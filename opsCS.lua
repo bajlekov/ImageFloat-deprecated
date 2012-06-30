@@ -280,20 +280,15 @@ end
 
 local LRGBtoXYZ
 local XYZtoLRGB
-do
-	--local C = ffi.new("double[10]", 0, unpack(C))
-	--local CI = ffi.new("double[10]", 0, unpack(CI))
 
-	-- LRGB <=> XYZ Rec 709/sRGB (D65 2-degree CIE 1931)
+do
 	function LRGBtoXYZ(r, g, b)
-		--return unpack(mat.mult(C,{r,g,b})) -- very slow!
 		return 	C[1]*r + C[2]*g + C[3]*b,
 				C[4]*r + C[5]*g + C[6]*b,
 				C[7]*r + C[8]*g + C[9]*b
 	end
 
 	function XYZtoLRGB(x, y, z)
-		--return unpack(mat.mult(CI,{x,y,z})) -- very slow!
 		return 	CI[1]*x + CI[2]*y + CI[3]*z,
 				CI[4]*x + CI[5]*y + CI[6]*z,
 				CI[7]*x + CI[8]*y + CI[9]*z

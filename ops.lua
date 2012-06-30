@@ -56,14 +56,12 @@ ops.strings = {
 	]],
 
 	cstransform = [[ --1, 1, {9}
-	local c1, c2, c3
-	c1 = get[1](0)
-	c2 = get[1](1)
-	c3 = get[1](2)
-
-	set[1]( params[1]*c1 + params[2]*c2 + params[3]*c3, 0)
-	set[1]( params[4]*c1 + params[5]*c2 + params[6]*c3, 1)
-	set[1]( params[7]*c1 + params[8]*c2 + params[9]*c3, 2)
+	local c1, c2, c3 = get3[1]()
+	local p1, p2, p3
+	p1 = params[1]*c1 + params[2]*c2 + params[3]*c3
+	p2 = params[4]*c1 + params[5]*c2 + params[6]*c3
+	p3 = params[7]*c1 + params[8]*c2 + params[9]*c3
+	set3[1](p1, p2, p3)
 	]],
 
 	copy = [[ -- 1, 1

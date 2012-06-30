@@ -42,27 +42,29 @@ hist.l = ffi.new("double[?]",size+1)
 hist.c = ffi.new("double[?]",size+1)
 hist.h = ffi.new("double[?]",size+1)
 
-	local floor = math.floor
-	local max = math.max
+local floor = math.floor
+local max = math.max
+
 function hist.calculate(buffer)
+	jit.flush()
 
 	local hr, hg, hb =hist.r, hist.g, hist.b
 	local hl, hc, hh =hist.l, hist.c, hist.h
 
 	--clear histograms
-	ffi.fill(hr, size+1)
-	ffi.fill(hg, size+1)
-	ffi.fill(hb, size+1)
-	ffi.fill(hl, size+1)
-	ffi.fill(hc, size+1)
-	ffi.fill(hh, size+1)
+	ffi.fill(hr, (size+1)*8)
+	ffi.fill(hg, (size+1)*8)
+	ffi.fill(hb, (size+1)*8)
+	ffi.fill(hl, (size+1)*8)
+	ffi.fill(hc, (size+1)*8)
+	ffi.fill(hh, (size+1)*8)
 
 	--count occurences
+	print("DB: HISTCALC ===")
+	print(buffer.x, buffer.y)
 	for x = 0, buffer.x-1 do --buffer.x shows double size
 		for y = 0, buffer.y-1 do
 			local r, g, b = buffer.data[x][y][0], buffer.data[x][y][1], buffer.data[x][y][2]
-			assert(r==r, tostring(buffer.x))
-
 			local l, c, h = luma(r, g, b), chroma(r, g, b), hue(r, g, b)
 			r = (r<0 and 0) or (r>1 and size) or floor(r*size)
 			g = (g<0 and 0) or (g>1 and size) or floor(g*size)

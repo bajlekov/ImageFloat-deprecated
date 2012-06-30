@@ -42,7 +42,7 @@ local function add()
 	end
 
 	do
-		--DEBUG SUMTHING?
+		--DEBUG!!!! infrequent segfault at rotate node
 		local n=node:new("Rotate")
 		n.param:add("Rotate", {-90,90,0})
 		n.ui.x=100
@@ -117,6 +117,7 @@ local function add()
 			-- if no input buffers then create from params
 			if bi[2].node then
 				bufsIn[2] = getBufIn(2)
+				-- perform switch at connect!!!!
 				if p[1].type=="value" then
 					p[1].v_ = p[1].value
 					p[1].value = tostring(bufsIn[2].type)
@@ -172,12 +173,6 @@ local function add()
 		--	self.conn_o[1].buf = img.newBuffer(0)
 		--end
 		function n:processRun(num)
-			--DEBUG!!!
-			-- input -> split -> rotate -> mix -> WB -> add -> output
-			--				  -> mix
-			--				  -> add
-			-- crash on preview, possibly wrong buffer size!
-
 			-- start timer
 			local bufsIn = {}
 			local bi = self.conn_i
@@ -188,18 +183,15 @@ local function add()
 				return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 			end
 
-			print("Set BUFS")
 			bufsIn[1] = bi[1].node and getBufIn(1) or img.newBuffer(0)
 			bufsIn[2] = bi[2].node and getBufIn(2) or img.newBuffer(0)
 			local x, y, z
 			x = math.max(bufsIn[1].x, bufsIn[2].x)
 			y = math.max(bufsIn[1].y, bufsIn[2].y)
 			z = math.max(bufsIn[1].z, bufsIn[2].z)
-			print(x, y, z)
 			bo[1].buf = img.newBuffer(x,y,z)
 
 			--execute
-			print("Execute ADD")
 			lua.threadSetup({bufsIn[1], bufsIn[2]}, bo[1].buf)
 			lua.threadRun("ops", "add")
 			coroutine.yield(num)
@@ -246,8 +238,6 @@ local function add()
 				bufsIn[1] = img.newBuffer(0)		-- input
 			end
 
-			--buffer copy is nasty as it doesn't look at size!!
-			--FIXME
 			bo[1].buf = bufsIn[1]:copy()
 			bo[2].buf = bufsIn[1]:copy()
 			bo[3].buf = bufsIn[1]:copy()
@@ -278,8 +268,6 @@ local function add()
 			-- collect types of input bufs, choose largest combination
 			if bi[0].node then
 				bo[0].buf = getBufIn(0):copyColor()	-- output
-				--possible problem with copyColor ??
-				--bo[0].buf = getBufIn(0):copy()	-- output
 			else
 				bo[0].buf = img.newBuffer({1,1,1})	-- output
 			end
@@ -294,15 +282,17 @@ local function add()
 			ax, ay = ax*A, ay*A
 			x, y, z = XYtoXYZ(x+gx+ax, y+gy+ay)
 			bo[4].buf = img.newBuffer({x,y,z})
+
 			--execute
 			lua.threadSetup(bo[0].buf, bo[0].buf)
 			lua.threadRun("ops", "cs", "SRGB", "XYZ")
 			coroutine.yield(num)
 
-			local tr = vonKriesTransform({x, y, z}, "D65")
+			--DEBUG!!!!!!!!!!!!!!!!! infrequent crashes/double free??
+			--check output of SRGB->XYZ transform!!
+			
 
-			--DEBUG!!!??
-			--WATCH POSSIBLE OVERWRITIG OF DATA IN SIMILAR NODES
+			local tr = vonKriesTransform({x, y, z}, "D65")
 			lua.threadSetup(bo[0].buf, bo[0].buf, tr)
 			lua.threadRun("ops", "cstransform")
 			coroutine.yield(num)
@@ -336,7 +326,7 @@ local function add()
 				bufsIn[1] = getBufIn(0)			-- input
 			else
 				print("*** node not connected")
-				bufsIn[1] = img.newBuffer({1,1,1})		-- input
+				bufsIn[1] = img.newBuffer({1})		-- input
 			end
 
 			--execute

@@ -45,9 +45,10 @@ function node:paramDrag(n, p)
 	local vmin = self[n].param[p].value[2]
 	local vmax = self[n].param[p].value[3]
 	local vrange = vmax-vmin
-
+	
 	while self.mouse.button[1] do
 		self.mouse:update()
+		if self[n].param[p].type~="value" then break end --have check earlier and update data
 		local fac = self.mouse.mod.shift and 10 or 1
 		v = v + self.mouse.dx/148/fac*vrange
 		if v>vmax then v=vmax end
@@ -140,6 +141,7 @@ local function nodeClick(self, part)
 end
 
 local function noodleConnect(self, pos, node, port)
+	print(self.n, pos, node, port)
 	local n_in = self.node[node].conn_i[port]
 	local n_out = self.conn_o[pos]
 

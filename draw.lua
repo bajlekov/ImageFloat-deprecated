@@ -55,6 +55,12 @@ function vLine(x,y,l,r,g,b)
 	end
 end
 
+function vLineAdd(x,y,l,r,g,b)
+  for y = y, y+l-1 do
+    pixelAdd(x,y,r,g,b)
+  end
+end
+
 function boxFill(x1,y1,x2,y2,r,g,b)
 	for x = x1, x2 do
 		for y = y1, y2 do

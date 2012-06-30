@@ -56,10 +56,10 @@ function transform.rotFast()
 				xr, yr = floor(xr), floor(yr)
 
 				if xr>=0 and xr<=xmax-1 and yr>=0 and yr<=ymax-1 then
-					local bo = 	xf*yf*((xr==xmax-1 or yr==ymax-1) and 0 or getxy[1](xr+1,yr+1,c)) +
-										(1-xf)*yf*((xr==0 or yr==ymax-1) and 0 or getxy[1](xr,yr+1,c)) +
-										xf*(1-yf)*((xr==xmax-1 or yr==0) and 0 or getxy[1](xr+1,yr,c)) +
-										(1-xf)*(1-yf)*((xr==0 or yr==0) and 0 or getxy[1](xr,yr,c))
+					local bo = 	((xr>=xmax-1 or yr>=ymax-1) and 0 or xf*yf*getxy[1](xr+1,yr+1,c)) +
+										((xr<=0 or yr>=ymax-1) and 0 or (1-xf)*yf*getxy[1](xr,yr+1,c)) +
+										((xr>=xmax-1 or yr<=0) and 0 or xf*(1-yf)*getxy[1](xr+1,yr,c)) +
+										((xr<=0 or yr<=0) and 0 or (1-xf)*(1-yf)*getxy[1](xr,yr,c))
 					set[1](bo, c)
 				end
 

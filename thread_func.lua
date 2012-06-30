@@ -17,6 +17,7 @@
 
 print("Thread setup...")
 
+
 local ffi = require("ffi")
 ops = require("ops")
 
@@ -26,7 +27,7 @@ get = {} -- get/set functions dependent on buffer type
 set = {}
 get3 = {} -- get/set function for triplets, wrapping above
 set3 = {}
-getxy = {}
+getxy = {} -- same as above with additional coordinate parameters for non-local changes
 setxy = {}
 get3xy = {}
 set3xy = {}
