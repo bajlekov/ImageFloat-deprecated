@@ -42,19 +42,17 @@ end
 -- image input, angle input, image output
 --rotate output and sample from input
 function transform.rotFast()
-
 	local xm, ym = xmax/2-1, ymax/2-1
 
 	for x = __instance, xmax-1, __tmax do
 		if progress[0]==-1 then break end
 		for y = 0, ymax-1 do
 			__pp = (x * ymax + y)
-			for c = 0, 2 do
+			for c = 0, zmax-1 do
 
 				local xr, yr = rot(x, y, params[1], xm, ym)
 				local xf, yf = xr%1, yr%1
 				xr, yr = floor(xr), floor(yr)
-
 				if xr>=0 and xr<=xmax-1 and yr>=0 and yr<=ymax-1 then
 					local bo = 	((xr>=xmax-1 or yr>=ymax-1) and 0 or xf*yf*getxy[1](xr+1,yr+1,c)) +
 										((xr<=0 or yr>=ymax-1) and 0 or (1-xf)*yf*getxy[1](xr,yr+1,c)) +
@@ -72,18 +70,18 @@ end
 
 function transform.rotFilt()
 
-	local filt = math.window.cubic
+	local filt = math.window.linear
 	math.window.cubicSet("CatmullRom")
 	local filtType = 3
 	local scale = 1
-	local width = 2
+	local width = 1
 	local xm, ym = xmax/2, ymax/2
 
 	for x = __instance, xmax-1, __tmax do
 		if progress[0]==-1 then break end
 		for y = 0, ymax-1 do
 			__pp = (x * ymax + y)
-			for c = 0, 2 do
+			for c = 0, zmax-1 do
 
 				local xr, yr = rot(x, y, params[1], xm, ym)
 				local xf, yf = xr%1, yr%1

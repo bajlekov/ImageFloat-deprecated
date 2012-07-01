@@ -31,10 +31,12 @@ local function loadlib(lib)
 	if not p then
 		print("no native library found, trying user library "..lib)
 		p, t = pcall(ffi.load, "./lib/usr/"..libname)
+		print(t)
 	end
 	if not p then
 		print("no user library found, trying supplied library "..lib)
 		p, t = pcall(ffi.load, path..libname)
+		print(p, t)
 	end
 	
 	if p then

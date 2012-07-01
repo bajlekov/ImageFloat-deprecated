@@ -33,27 +33,36 @@ local dbg = require("dbgtools")
 local ppm = require("ppmtools")
 local img = require("imgtools")
 
+__dbg = dbg
 --local function file_exists(name)
 --   local f=io.open(name,"r")
 --   if f~=nil then io.close(f) return true else return false end
 --end
 
 --if running source code then build bytecode, otherwise don't
-local release = false
+local release = true
 if release then
 	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
-	lua.threadInit(8, "Thread")
+	lua.threadInit(arg[2] or 8, "Thread")
 else
-	lua.threadInit(8, "thread_func.lua")
+	lua.threadInit(arg and arg[2] or 1, "thread_func.lua")
 end
+
+--general debugging notes:
+--SOLVED - check buffer locations if errors occur! wine gives access violation locations!
+--possible sdl error, doesn't occur in wine @ thread 1 with rotate node?? -> SDL updated, no issue @ 1 core rotate
+--still faults in rotate at high threadcounts!!! > error on read/write from buffer...sometimes invalid buffers!
 
 
 --initialise threads, display, input, fonts
 print("using "..lua.numCores.." threads...")
 sdl.init()
-sdl.setScreen(1280, 800, 32)
+--create init file
+sdl.setScreen(1200, 600, 32)
 sdl.caption("ImageFloat 2 ...loading", "ImageFloat 2");
 require("draw")
+
+local fileName = arg and arg[1] or "img.ppm"
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done
@@ -74,11 +83,11 @@ node:draw()
 sdl.flip()
 
 --read file
-local fileName = arg[1] or "img.ppm"
-local imageTemp = ppm.toBuffer(ppm.readFile(fileName))
-
-local bufO = img.scaleDownHQ(imageTemp, math.ceil(imageTemp.x/1280))
+print(fileName)
+local imageTemp = ppm.toBuffer(ppm.readIM(fileName))
+local bufO = img.scaleDownHQ(imageTemp, math.max(math.ceil(imageTemp.x/1200), math.ceil(imageTemp.y/750)))
 sdl.caption("ImageFloat 2 [ "..fileName.." ]", "ImageFloat 2");
+imageTemp = nil
 
 --working buffer pointers
 local buf
@@ -119,6 +128,7 @@ local calcUpdate
 
 local hist = require("histogram")
 
+--node[1]:connect(2,2,0)
 --[[
 --	===	Testing ===
 	node[1]:connect(2,5,1)
@@ -192,12 +202,14 @@ function node:calcLevels()
 			early = collect(tree[i],early)
 		end
 
+		--[[
 		-- display node tree
 		for i = 1, level do
 			print("level "..i..":")
 			print(unpack(tree[i]))
 		end
 		print("---")
+		--]]
 	end
 
 	self.levels = tree
@@ -210,7 +222,6 @@ function node:calcLevels()
 	self.exec = allProc
 	self.noExec = list(noProc)
 	for _, v in pairs(self.noExec) do
-		print("DB: cleaning node "..tostring(v))
 		generic_clean(v)
 	end
 
@@ -221,7 +232,6 @@ function node:calcLevels()
 end
 
 function funProcess()
-	print("=== START PROCESSING ===")	
 	cp=1
 
 	node[1].bufIn = buf
@@ -234,7 +244,7 @@ function funProcess()
 
 	-- keep track of output node when nodes get removed
 	for k, v in ipairs(node.execOrder) do
-		print("DB: starting node "..tostring(v).."/"..tostring(k))
+		--print("DB: starting node "..tostring(v).."/"..tostring(k))
 		node[v]:processRun(k)
 	end
 
@@ -250,7 +260,7 @@ function funProcess()
 		sdl.screenPut(surf, 50, 20)
 	end
 
-	hist.calculate(bufout)
+	--hist.calculate(bufout)
 	node:draw()
 	coroutine.yield(-1)
 end
@@ -265,7 +275,7 @@ local function imageProcess(flag)
 	-- no threadDone because there's no thread running for simple ops!
 	if flag=="process" and (lua.threadDone() or cp==-1) then
 		if cp==-1 then
-			toc("Process in:")
+			toc("Process in")
 			tic()
 			coProcess=coroutine.wrap(funProcess)
 		end
@@ -274,10 +284,8 @@ local function imageProcess(flag)
 	end
 
 	if __global.preview then
-		print("PREVIEW")
 		sdl.screenPut(surf, 50, 20)
 	else
-		print("FULL")
 		sdl.screenPut(surf, 50, 20)
 	end
 	
@@ -304,7 +312,6 @@ node:setImageProcess(imageProcess)
 
 --eventually move to node lib with callbacks for some functions
 function node:click()
-	print("==")
 	for i, n in ipairs(self.order) do --for each node on the list
 		if self[n].ui:click("node") then --if node is clicked
 			if i~=1 then self:focus(n) end --if node is not first then focus
@@ -402,7 +409,6 @@ while true do
 			if cp==-1 then
 				lua.threadStop()
 				calcUpdate = false
-				print("*** FULL PROCESS DONE***")
 				--Histogram
 				--slow hist calc...multithreaded and in separate instance + interruptable!
 				--effect of partly slow cpu speedup and inefficient compilation. flushing compiled code avoids 1000ms+ times

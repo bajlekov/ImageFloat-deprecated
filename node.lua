@@ -141,7 +141,6 @@ local function nodeClick(self, part)
 end
 
 local function noodleConnect(self, pos, node, port)
-	print(self.n, pos, node, port)
 	local n_in = self.node[node].conn_i[port]
 	local n_out = self.conn_o[pos]
 

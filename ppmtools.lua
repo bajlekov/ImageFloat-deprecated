@@ -19,18 +19,17 @@ local ffi = require "ffi"
 local ppm = {}
 local img = require "imgtools"
 
---methods for ppm headers
+---[[methods for ppm headers
 function ppm.newHeader(t)
 	local header = {}
-
-
-
 	for k, v in pairs(t) do header[k]=v end
 	return header
 end
-
+--]]
 
 --[[
+	APPEND b for windows to perform binary read from pipe!!!
+
 	exported (16bit):
 		ppm.readFile
 		ppm.readIM
@@ -100,7 +99,7 @@ local function image_data(header, ds)
 end
 
 function ppm.writeFile(header)
-	local f = io.open(header.name, "wb")
+	local f = io.open(header.name, "w")
 	f:write("P6\n")
 	f:write("# Created with PPMtools for Lua\n")
 	f:write(string.format("%d %d\n", header.res.x, header.res.y))
@@ -121,7 +120,7 @@ end
 
 function ppm.writeIM(header, op)
 	op = op or ""
-	local f = io.popen("convert ppm:- "..op.." "..header.name, "w")
+	local f = io.popen("convert ppm:- "..op.." "..header.name, "wb")
 	f:write("P6\n")
 	f:write("# Created with PPMtools for Lua\n")
 	f:write(string.format("%d %d\n", header.res.x, header.res.y))
@@ -141,7 +140,7 @@ function ppm.writeIM(header, op)
 end
 
 function ppm.readFile(name)
-	local f = io.open(name, "rb")
+	local f = io.open(name, "r")
 	if f:read("*l")~="P6" then print("wrong format") return nil end
 	skip_comment(f)
 	local x, y, b = f:read("*n", "*n", "*n", "*l")
@@ -171,7 +170,8 @@ local function read_pipe(f, name)
 	fl = f:read("*l")
 	local b = string.match(fl, "(%d+)")
 	x, y, b = tonumber(x), tonumber(y), tonumber(b)
-	local d = f:seek("cur")
+	--local d = f:seek("cur")
+	--print(d)
 	local ds = f:read("*a")
 	f:close()
 	local header = ppm.newHeader{
@@ -188,13 +188,13 @@ end
 
 function ppm.readRAW(name, op)
 	op = op or "-h -o 2 -6"
-	local f = io.popen("dcraw -c "..op.." "..name, "r")
+	local f = io.popen("dcraw -c "..op.." "..name, "r"..(ffi.os=="Windows" and "b" or ""))
 	return read_pipe(f, name)
 end
 
 function ppm.readIM(name, op)
 	op = op or ""
-	local f = io.popen("convert "..name.." "..op.." ppm:- ", "r")
+	local f = io.popen("convert "..name.." "..op.." ppm:- ", "r"..(ffi.os=="Windows" and "b" or ""))
 	return read_pipe(f, name)
 end
 

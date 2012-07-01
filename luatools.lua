@@ -211,13 +211,16 @@ if type(__sdl)=="table" then
 				l.pushTable(l.threadInstance[i], t, n)
 			end
 		end
+		local buffersData
 		function l.threadPushBuffers(t)
-			local buffers = ffi.new("void*["..(#t+1).."]")
+			--!!!!!!!!!!! keep reference to passed data!!!
+			buffersData = ffi.new("void*["..(#t+1).."]")
 			for k, v in ipairs(t) do
-				buffers[k] = v.data
+				buffersData[k] = v.data
+				--print(v.data)
 			end
 			for i = 0, l.numCores-1 do
-				l.pushUserData(l.threadInstance[i], buffers, "b")
+				l.pushUserData(l.threadInstance[i], buffersData, "b")
 			end
 		end
 
@@ -245,7 +248,7 @@ if type(__sdl)=="table" then
 		function l.threadSetup(ibufs, obufs, params)
 			local bufs = {}
 			local buftype = {}			
-			local x, y, i, o
+			local x, y, z, i, o
 
 			if type(ibufs)=="table" and ibufs.__type==nil then
 				for _, v in ipairs(ibufs) do
@@ -261,11 +264,11 @@ if type(__sdl)=="table" then
 					table.insert(bufs, v)
 				end
 				o = #obufs
-				x, y = obufs[1].x, obufs[1].y
+				x, y, z = obufs[1].x, obufs[1].y, obufs[1].z
 			else
 				table.insert(bufs, obufs)
 				o = 1
-				x, y = obufs.x, obufs.y
+				x, y, z = obufs.x, obufs.y, obufs.z
 			end
 			for _, v in ipairs(bufs) do
 				table.insert(buftype, v.type)
@@ -275,6 +278,7 @@ if type(__sdl)=="table" then
 			l.threadPushBuffers(bufs)
 			l.threadPushNumber(x, "xmax")
 			l.threadPushNumber(y, "ymax")
+			l.threadPushNumber(z, "zmax")
 			l.threadPushNumber(i, "ibuf")
 			l.threadPushNumber(o, "obuf")
 			l.threadPushTable(buftype, "buftype")
@@ -308,12 +312,12 @@ if type(__sdl)=="table" then
 					for i = 0, l.numCores-1 do
 						__sdl.waitThread(thread[i], NULL)
 					end
+					if not __global.preview__ then print("("..procName.."): "..tonumber(__sdl.ticks()-procTime).."ms") end
 				end
 				l.threadRunning = false
 				for i=0,l.numCores do
 					l.threadProgress[i]=0
 				end
-				if not __preview then print("("..procName.."): "..tonumber(__sdl.ticks()-procTime).."ms") end
 			end
 		end
 		function l.nonThreadRun(...)

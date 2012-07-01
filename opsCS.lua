@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+local dbg = require("dbgtools")
+
 local cs = {}
 local ffi = require("ffi")
 
@@ -521,11 +523,12 @@ end
 --general CS convert in place constructor
 function cs.constructor(fun)
 	return function()
+		jit.flush()
 		for x = __instance, xmax-1, __tmax do
 			if progress[0]==-1 then break end
 			for y = 0, ymax-1 do
 				__pp = (x * ymax + y)
-				set3[1]( fun(get3[1]()))
+				set3[1](fun(get3[1]()))
 			end
 			progress[__instance+1] = x - __instance
 		end

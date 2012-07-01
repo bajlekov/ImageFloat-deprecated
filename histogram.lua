@@ -60,8 +60,6 @@ function hist.calculate(buffer)
 	ffi.fill(hh, (size+1)*8)
 
 	--count occurences
-	print("DB: HISTCALC ===")
-	print(buffer.x, buffer.y)
 	for x = 0, buffer.x-1 do --buffer.x shows double size
 		for y = 0, buffer.y-1 do
 			local r, g, b = buffer.data[x][y][0], buffer.data[x][y][1], buffer.data[x][y][2]

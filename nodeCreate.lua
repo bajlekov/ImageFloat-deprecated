@@ -50,6 +50,7 @@ local function add()
 		n.conn_i:add(0)
 		n.conn_o:add(0)
 		function n:processRun(num)
+			print("***")
 			local bufsIn = {}
 			local p = self.param
 			local bi = self.conn_i
@@ -69,6 +70,7 @@ local function add()
 
 			if bufsIn[1].type==3 or bufsIn[1].type==4 then
 				lua.threadSetup(bufsIn[1], bo[0].buf, {p[1].value[1]})
+				--DEBUG: buggy rotfast/buggy SDL???
 				lua.threadRun("ops", "transform", "rotFast")
 				coroutine.yield(num)
 			else
@@ -79,7 +81,7 @@ local function add()
 
 	do
 		local n=node:new("Mixer")
-		n.ui.x=500
+		n.ui.x=400
 		n.ui.y=200
 		n.param:add("R -> R",{-3,3,1})
 		n.param:add("G -> R",{-3,3,0})
@@ -117,7 +119,8 @@ local function add()
 			-- if no input buffers then create from params
 			if bi[2].node then
 				bufsIn[2] = getBufIn(2)
-				-- perform switch at connect!!!!
+				--[[
+				--perform switch at connect!!!!
 				if p[1].type=="value" then
 					p[1].v_ = p[1].value
 					p[1].value = tostring(bufsIn[2].type)
@@ -129,7 +132,9 @@ local function add()
 					p[3].value = ""
 					p[3].type = "text"
 				end
+				--]]
 			else
+				--[[
 				if p[1].type=="text" then
 					p[1].value = p[1].v_
 					p[1].type = "value"
@@ -138,6 +143,7 @@ local function add()
 					p[3].value = p[3].v_
 					p[3].type = "value"
 				end
+				--]]
 				bufsIn[2] = img.newBuffer({p[1].value[1], p[2].value[1], p[3].value[1]})
 			end
 			if bi[5].node then
@@ -163,7 +169,7 @@ local function add()
 	do
 		local n=node:new("Add")
 		n.ui.x=500
-		n.ui.y=500
+		n.ui.y=400
 		n.param:add("Input","Output","text")
 		n.param:add("Input","","text")
 		n.conn_i:add(1)
@@ -214,7 +220,7 @@ local function add()
 	do
 		local n=node:new("Split")
 		n.ui.x=300
-		n.ui.y=600
+		n.ui.y=400
 		n.param:add("Input", "Output", "text")
 		n.param:add("", "Output", "text")
 		n.param:add("", "Output", "text")
@@ -264,6 +270,7 @@ local function add()
 			function getBufIn(p)
 				return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer({1,1,1})
 			end
+
 			-- init output buffer same as input 
 			-- collect types of input bufs, choose largest combination
 			if bi[0].node then

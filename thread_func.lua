@@ -52,6 +52,7 @@ function setup() -- set up instance for processing after node parameters are pas
 	local b = ffi.cast("void**", b)
 	for i = 1, ibuf+obuf do
 		bufdata[i] = ffi.cast("double*", b[i])
+		--print(i, bufdata[i])
 	end
 	b = nil -- leave only bufdata, actual data is kept referenced in original thread
 
