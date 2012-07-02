@@ -42,7 +42,6 @@ local function add()
 	end
 
 	do
-		--DEBUG!!!! infrequent segfault at rotate node
 		local n=node:new("Rotate")
 		n.param:add("Rotate", {-90,90,0})
 		n.ui.x=100
@@ -50,7 +49,6 @@ local function add()
 		n.conn_i:add(0)
 		n.conn_o:add(0)
 		function n:processRun(num)
-			print("***")
 			local bufsIn = {}
 			local p = self.param
 			local bi = self.conn_i
@@ -110,14 +108,15 @@ local function add()
 			-- init output buffer same as input 
 			-- collect types of input bufs, choose largest combination
 			if bi[0].node then
+				--if not color then all ops get assigned to same buffer and only blue channel is left because it's processed last
 				bufsIn[1] = getBufIn(0):copyColor()			-- input
-				bo[0].buf = getBufIn(0):new()	-- output
+				--bufsIn[1] = getBufIn(0)			-- input
+				bo[0].buf = getBufIn(0):newColor()	-- output
 			else
 				bufsIn[1] = img.newBuffer({1,1,1})		-- input
 				bo[0].buf = img.newBuffer({1,1,1})	-- output
 			end
 
-			print(bufsIn[1].type, bufsIn[1].x, bufsIn[1].y, bufsIn[1].z)
 			-- if no input buffers then create from params
 			if bi[2].node then
 				bufsIn[2] = getBufIn(2)
@@ -229,6 +228,44 @@ local function add()
 	end
 
 	do
+		local n=node:new("Decompose")
+		n.ui.x=700
+		n.ui.y=400
+		n.param:add("Input", "R", "text")
+		n.param:add("", "G", "text")
+		n.param:add("", "B", "text")
+		n.conn_i:add(1)
+		n.conn_o:add(1)
+		n.conn_o:add(2)
+		n.conn_o:add(3)
+		function n:processRun(num)
+			-- start timer
+			local bufsIn = {}
+			local bi = self.conn_i
+			local bo = self.conn_o
+			
+			function getBufIn(p)
+				return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+			end
+
+			if bi[1].node then
+				bufsIn[1] = getBufIn(1)			-- input
+			else
+				bufsIn[1] = img.newBuffer(0)		-- input
+			end
+
+			bo[1].buf = bufsIn[1]:newGS()
+			bo[2].buf = bufsIn[1]:newGS()
+			bo[3].buf = bufsIn[1]:newGS()
+
+			lua.threadSetup(bufsIn[1], {bo[1].buf, bo[2].buf, bo[3].buf})
+			lua.threadRun("ops", "decompose")
+			coroutine.yield(num)
+
+		end
+	end
+
+	do
 		local n=node:new("White Balance")
 		n.ui.x=500
 		n.ui.y=100
@@ -252,9 +289,8 @@ local function add()
 			-- init output buffer same as input 
 			-- collect types of input bufs, choose largest combination
 			if bi[0].node then
-				print(getBufIn(0).x)
 				bo[0].buf = getBufIn(0):copyColor()	-- output
-				print(getBufIn(0).x, bo[0].buf.x )
+				--bo[0].buf = getBufIn(0)
 			else
 				bo[0].buf = img.newBuffer({1,1,1})	-- output
 			end
@@ -310,7 +346,6 @@ local function add()
 
 			if bi[0].node then
 				bufsIn[1]=getBufIn(0)
-				print(bufsIn[1].x, bufsIn[1].y, bufsIn[1].z, bufsIn[1].type)
 				lua.threadSetup(bufsIn[1], self.bufOut)
 				lua.threadRun("ops", "copy")
 				coroutine.yield(num)

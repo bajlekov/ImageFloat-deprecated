@@ -283,7 +283,7 @@ if type(__sdl)=="table" then
 			l.threadPushNumber(z, "zmax")
 			l.threadPushNumber(i, "ibuf")
 			l.threadPushNumber(o, "obuf")
-			print(unpack(buftype))
+			--print(unpack(buftype))
 			l.threadPushTable(buftype, "buftype")
 			if type(params)=="table" then
 				l.threadPushTable(params, "params")

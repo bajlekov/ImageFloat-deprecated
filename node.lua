@@ -281,8 +281,9 @@ end
 node.backgrounds = {}
 node.backgrounds.window = __sdl.loadImage("background.png")
 node.backgrounds.node = __sdl.loadImage("node_t.png")
+
 function node:draw(flag)
-	--__sdl.blankScreen()
+	__sdl.blankScreen()
 	--add own background image here
 	__sdl.blit(node.backgrounds.window, nil, __sdl.screen, nil)
 	self.imageProcess(flag)
