@@ -266,6 +266,48 @@ local function add()
 	end
 
 	do
+		local n=node:new("Decompose")
+		n.ui.x=100
+		n.ui.y=400
+		n.param:add("Input", "L", "text")
+		n.param:add("", "C", "text")
+		n.param:add("", "H", "text")
+		n.conn_i:add(1)
+		n.conn_o:add(1)
+		n.conn_o:add(2)
+		n.conn_o:add(3)
+		function n:processRun(num)
+			-- start timer
+			local bufsIn = {}
+			local bi = self.conn_i
+			local bo = self.conn_o
+			
+			function getBufIn(p)
+				return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer({1,1,1})
+			end
+
+			if bi[1].node then
+				bufsIn[1] = getBufIn(1):copyColor()			-- input
+			else
+				bufsIn[1] = img.newBuffer({1,1,1})		-- input
+			end
+
+			bo[1].buf = bufsIn[1]:newGS()
+			bo[2].buf = bufsIn[1]:newGS()
+			bo[3].buf = bufsIn[1]:newGS()
+
+			lua.threadSetup(bufsIn[1], bufsIn[1])
+			lua.threadRun("ops", "cs", "SRGB", "LCHAB")
+			coroutine.yield(num)
+
+			lua.threadSetup(bufsIn[1], {bo[1].buf, bo[2].buf, bo[3].buf})
+			lua.threadRun("ops", "decompose")
+			coroutine.yield(num)
+
+		end
+	end
+
+	do
 		local n=node:new("White Balance")
 		n.ui.x=500
 		n.ui.y=100

@@ -315,7 +315,7 @@ if type(__sdl)=="table" then
 					for i = 0, l.numCores-1 do
 						__sdl.waitThread(thread[i], NULL)
 					end
-					if not __global.preview__ then print("("..procName.."): "..tonumber(__sdl.ticks()-procTime).."ms") end
+					if not __global.preview then print("("..procName.."): "..tonumber(__sdl.ticks()-procTime).."ms") end
 				end
 				l.threadRunning = false
 				for i=0,l.numCores do

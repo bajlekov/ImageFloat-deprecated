@@ -523,7 +523,6 @@ end
 --general CS convert in place constructor
 function cs.constructor(fun)
 	return function()
-		jit.flush()
 		for x = __instance, xmax-1, __tmax do
 			if progress[0]==-1 then break end
 			for y = 0, ymax-1 do

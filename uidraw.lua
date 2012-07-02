@@ -283,6 +283,8 @@ function funProcess()
 
 	--hist.calculate(bufout)
 	node:draw()
+		toc("Process in")
+		tic()
 	coroutine.yield(-1)
 end
 
@@ -308,8 +310,6 @@ local function imageProcess(flag)
 	-- no threadDone because there's no thread running for simple ops!
 	if flag=="process" and (lua.threadDone() or cp==-1) then
 		if cp==-1 then
-			toc("Process in")
-			tic()
 			coProcess=coroutine.wrap(funProcess)
 		end
 		lua.threadWait()
