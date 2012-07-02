@@ -16,8 +16,8 @@
 ]]
 
 local ffi = require("ffi")
-local fftw = ffi.load('fftw3')
---local fftw = {}
+local p, fftw = pcall(loadlib, "fftw3")
+assert(p, fftw)
 
 --os.execute([=[echo '#include <fftw3.h>' > stub.c]=])
 --os.execute([=[gcc -I /usr/include/SDL -E stub.c | grep -v '^#' > FFTW.h]=])

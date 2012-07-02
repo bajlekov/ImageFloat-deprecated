@@ -17,8 +17,31 @@
 
 print("Thread setup...")
 
-
 local ffi = require("ffi")
+function loadlib(lib)
+		local path = "./lib/"..ffi.os.."_"..ffi.arch.."/"
+		local libname
+		if ffi.os=="Linux" then libname = "lib"..lib..".so" end
+		if ffi.os=="Windows" then libname = lib..".dll" end
+		local t
+		local p
+		p, t = pcall(ffi.load, lib)
+		if not p then
+			print("no native library found, trying user library "..lib)
+			p, t = pcall(ffi.load, "./lib/usr/"..libname)
+		end
+		if not p then
+			print("no user library found, trying supplied library "..lib)
+			p, t = pcall(ffi.load, path..libname)
+		end
+
+		if p then
+			return t
+		else
+			print("failed loading "..lib)
+			return false
+		end
+	end
 ops = require("ops")
 
 

@@ -45,7 +45,7 @@ if release then
 	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
 	lua.threadInit(arg[2] or 8, "Thread")
 else
-	lua.threadInit(arg and arg[2] or 1, "thread_func.lua")
+	lua.threadInit(arg and arg[2] or 8, "thread_func.lua")
 end
 
 --general debugging notes:
@@ -58,7 +58,7 @@ end
 print("using "..lua.numCores.." threads...")
 sdl.init()
 --create init file
-sdl.setScreen(1200, 600, 32)
+sdl.setScreen(1650, 900, 32)
 sdl.caption("ImageFloat 2 ...loading", "ImageFloat 2");
 require("draw")
 

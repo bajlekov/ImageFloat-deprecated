@@ -31,12 +31,10 @@ local function loadlib(lib)
 	if not p then
 		print("no native library found, trying user library "..lib)
 		p, t = pcall(ffi.load, "./lib/usr/"..libname)
-		print(t)
 	end
 	if not p then
 		print("no user library found, trying supplied library "..lib)
 		p, t = pcall(ffi.load, path..libname)
-		print(p, t)
 	end
 	
 	if p then
@@ -49,11 +47,11 @@ end
 
 --load libraries
 if ffi.os=="Windows" then --maybe fix this?
-	loadlib('jpeg')
+	loadlib('libjpeg-8')
 	loadlib('zlib1')
 	loadlib('libfreetype-6')
-	loadlib('libpng12-0')
-	loadlib('libtiff-3')
+	loadlib('libpng15-15')
+	loadlib('libtiff-5')
 end
 _SDL = loadlib('SDL')
 local _TTF = loadlib("SDL_ttf")

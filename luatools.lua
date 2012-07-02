@@ -151,8 +151,9 @@ os.execute("i586-mingw32msvc-gcc -O3 -shared -fomit-frame-pointer -o lib/Windows
 if type(__sdl)=="table" then
 	local p, th
 	if ffi.os == "Linux" and ffi.arch=="x64" then p, th = pcall(ffi.load, "./lib/Linux_x64/libthread.so") end
-	if ffi.os == "Linux" and ffi.arch=="x32" then p, th = pcall(ffi.load, "./lib/Linux_x32/libthread.so") end
-	if ffi.os == "Windows" then p, th = pcall(ffi.load, "./lib/Windows_x86/thread.dll") end
+	if ffi.os == "Linux" and ffi.arch=="x86" then p, th = pcall(ffi.load, "./lib/Linux_x86/libthread.so") end
+	if ffi.os == "Windows" and ffi.arch=="x86" then p, th = pcall(ffi.load, "./lib/Windows_x86/thread.dll") end
+	if ffi.os == "Windows" and ffi.arch=="x64" then p, th = pcall(ffi.load, "./lib/Windows_x64/thread.dll") end
 
 	if p then
 
