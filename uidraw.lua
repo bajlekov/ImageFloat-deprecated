@@ -25,6 +25,7 @@ This is free software, and you are welcome to redistribute it under the conditio
 
 --load required libraries
 __global = {preview = true, error=false}
+__global.setup = require("IFsetup")
 
 --local ffi = require("ffi")
 local sdl = require("sdltools")
@@ -40,12 +41,12 @@ __dbg = dbg
 --end
 
 --if running source code then build bytecode, otherwise don't
-local release = true
+local release = false
 if release then
 	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
 	lua.threadInit(arg[2] or 8, "Thread")
 else
-	lua.threadInit(arg and arg[2] or 8, "thread_func.lua")
+	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
 end
 
 --general debugging notes:
@@ -58,7 +59,7 @@ end
 print("using "..lua.numCores.." threads...")
 sdl.init()
 --create init file
-sdl.setScreen(1650, 900, 32)
+sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
 sdl.caption("ImageFloat 2 ...loading", "ImageFloat 2");
 require("draw")
 
@@ -84,7 +85,13 @@ sdl.flip()
 
 --read file
 print(fileName)
-local imageTemp = ppm.toBuffer(ppm.readIM(fileName))
+local readFunTable = {
+	native = ppm.readFile,
+	IM = ppm.readIM,
+	RAW = ppm.readRAW,
+}
+local readFun = readFunTable[__global.setup.imageLoadType]
+local imageTemp = ppm.toBuffer(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams))
 local bufO = img.scaleDownHQ(imageTemp, math.max(math.ceil(imageTemp.x/1200), math.ceil(imageTemp.y/750)))
 sdl.caption("ImageFloat 2 [ "..fileName.." ]", "ImageFloat 2");
 imageTemp = nil
