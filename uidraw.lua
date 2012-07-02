@@ -15,7 +15,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
---require('debugger')
+require('debugger')
 
 print[[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
@@ -166,14 +166,17 @@ function node:calcLevels()
 	--return nodes connected to node n
 	function connected(n, flag)
 		local o = {}
-		for _, v in ipairs(self[n][flag and "conn_i" or "conn_o"].list) do
+		for _, v in ipairs(self[n][flag and "conn_o" or "conn_i"].list) do
 			if v.node then o[v.node] = true end
 		end
 		return list(o), o
 	end
 
 	--add all nodes that can be used as generators
-	table.insert(current, 1)
+	for k, v in ipairs(node) do
+		if v.procFlags.output then table.insert(current, k) end
+	end
+	
 
 	--fix to generate tree from output backwards, avoiding dead ends
 
@@ -226,6 +229,17 @@ function node:calcLevels()
 			table.insert(self.execOrder, v)
 		end
 	end
+
+	--invert execOrder
+	local tempOrder = {}
+	for i = 1, #self.execOrder do
+		tempOrder[#self.execOrder-i+1] = self.execOrder[i]
+	end
+	self.execOrder = tempOrder
+	tempOrder = nil
+
+	--print(unpack(self.execOrder))
+
 	self.exec = allProc
 	self.noExec = list(noProc)
 	for _, v in pairs(self.noExec) do
@@ -272,6 +286,18 @@ function funProcess()
 	coroutine.yield(-1)
 end
 
+--no-process function
+--[[
+function funProcess()
+	local outNode
+	for k, v in ipairs(node) do
+		if v.procFlags.output then outNode=k end
+	end
+	node[outNode].bufOut = buf:new()
+	node:draw()
+	coroutine.yield(-1)
+end
+--]]
 
 --calculate histograms
 

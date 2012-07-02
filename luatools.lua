@@ -212,13 +212,14 @@ if type(__sdl)=="table" then
 				l.pushTable(l.threadInstance[i], t, n)
 			end
 		end
+
 		local buffersData
 		function l.threadPushBuffers(t)
 			--!!!!!!!!!!! keep reference to passed data!!!
 			buffersData = ffi.new("void*["..(#t+1).."]")
 			for k, v in ipairs(t) do
 				buffersData[k] = v.data
-				--print(v.data)
+				--print(k, v.data)
 			end
 			for i = 0, l.numCores-1 do
 				l.pushUserData(l.threadInstance[i], buffersData, "b")
@@ -282,6 +283,7 @@ if type(__sdl)=="table" then
 			l.threadPushNumber(z, "zmax")
 			l.threadPushNumber(i, "ibuf")
 			l.threadPushNumber(o, "obuf")
+			print(unpack(buftype))
 			l.threadPushTable(buftype, "buftype")
 			if type(params)=="table" then
 				l.threadPushTable(params, "params")

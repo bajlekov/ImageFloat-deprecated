@@ -64,7 +64,7 @@ local function add()
 				bufsIn[1] = getBufIn(0)			-- input
 				bo[0].buf = getBufIn(0):new()	-- output
 			else
-				bufsIn[1] = img.newBuffer(1)		-- input
+				bufsIn[1] = img.newBuffer({1,1,1})		-- input
 				bo[0].buf = img.newBuffer({1,1,1})	-- output
 			end
 
@@ -110,40 +110,18 @@ local function add()
 			-- init output buffer same as input 
 			-- collect types of input bufs, choose largest combination
 			if bi[0].node then
-				bufsIn[1] = getBufIn(0)			-- input
+				bufsIn[1] = getBufIn(0):copyColor()			-- input
 				bo[0].buf = getBufIn(0):new()	-- output
 			else
-				bufsIn[1] = img.newBuffer(1)		-- input
+				bufsIn[1] = img.newBuffer({1,1,1})		-- input
 				bo[0].buf = img.newBuffer({1,1,1})	-- output
 			end
+
+			print(bufsIn[1].type, bufsIn[1].x, bufsIn[1].y, bufsIn[1].z)
 			-- if no input buffers then create from params
 			if bi[2].node then
 				bufsIn[2] = getBufIn(2)
-				--[[
-				--perform switch at connect!!!!
-				if p[1].type=="value" then
-					p[1].v_ = p[1].value
-					p[1].value = tostring(bufsIn[2].type)
-					p[1].type = "text"
-					p[2].v_ = p[2].value
-					p[2].value = ""
-					p[2].type = "text"
-					p[3].v_ = p[3].value
-					p[3].value = ""
-					p[3].type = "text"
-				end
-				--]]
 			else
-				--[[
-				if p[1].type=="text" then
-					p[1].value = p[1].v_
-					p[1].type = "value"
-					p[2].value = p[2].v_
-					p[2].type = "value"
-					p[3].value = p[3].v_
-					p[3].type = "value"
-				end
-				--]]
 				bufsIn[2] = img.newBuffer({p[1].value[1], p[2].value[1], p[3].value[1]})
 			end
 			if bi[5].node then
@@ -274,7 +252,9 @@ local function add()
 			-- init output buffer same as input 
 			-- collect types of input bufs, choose largest combination
 			if bi[0].node then
+				print(getBufIn(0).x)
 				bo[0].buf = getBufIn(0):copyColor()	-- output
+				print(getBufIn(0).x, bo[0].buf.x )
 			else
 				bo[0].buf = img.newBuffer({1,1,1})	-- output
 			end
@@ -297,7 +277,6 @@ local function add()
 
 			--DEBUG!!!!!!!!!!!!!!!!! infrequent crashes/double free??
 			--check output of SRGB->XYZ transform!!
-			
 
 			local tr = vonKriesTransform({x, y, z}, "D65")
 			lua.threadSetup(bo[0].buf, bo[0].buf, tr)
@@ -330,14 +309,14 @@ local function add()
 
 
 			if bi[0].node then
-				bufsIn[1] = getBufIn(0)			-- input
+				bufsIn[1]=getBufIn(0)
+				print(bufsIn[1].x, bufsIn[1].y, bufsIn[1].z, bufsIn[1].type)
+				lua.threadSetup(bufsIn[1], self.bufOut)
+				lua.threadRun("ops", "copy")
+				coroutine.yield(num)
 			else
 				print("*** node not connected")
-				bufsIn[1] = img.newBuffer({1})		-- input
 			end
-
-			--execute
-			self.bufOut = bufsIn[1]
 		end
 	end
 end

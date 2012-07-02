@@ -125,9 +125,10 @@ function img.copyGS(buffer)
 	out.z = 1
 	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "MAP"
-	if buffer.type==4 then
+	out.type = buffer.type
+	if out.type==4 then
 		out.type = 3 
-	elseif buffer.type==2 then
+	elseif out.type==2 then
 		out.type = 1
 	end
 	if buffer.z==3 then
@@ -154,9 +155,10 @@ function img.newGS(buffer)
 	out.z = 1
 	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "MAP"
-	if buffer.type==4 then
+	out.type = buffer.type
+	if out.type==4 then
 		out.type = 3 
-	elseif buffer.type==2 then
+	elseif out.type==2 then
 		out.type = 1
 	end
 	return out
@@ -169,9 +171,10 @@ function img.copyColor(buffer)
 	out.z = 3
 	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "SRGB"
-	if buffer.type==3 then
+	out.type = buffer.type
+	if out.type==3 then
 		out.type = 4 
-	elseif buffer.type==1 then
+	elseif out.type==1 then
 		out.type = 2
 	end
 	if buffer.z==1 then
@@ -201,9 +204,10 @@ function img.newColor(buffer)
 	out.z = 3
 	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "SRGB"
-	if buffer.type==3 then
+	out.type = buffer.type
+	if out.type==3 then
 		out.type = 4 
-	elseif buffer.type==1 then
+	elseif out.type==1 then
 		out.type = 2
 	end
 	return out

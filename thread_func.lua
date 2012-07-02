@@ -71,11 +71,14 @@ end
 --__pp = (x * ymax + y)
 
 function setup() -- set up instance for processing after node parameters are passed
+	--print(unpack(b))
+	print("*", unpack(buftype))
+	--print(xmax, ymax, zmax)
 	local bufdata={}
 	local b = ffi.cast("void**", b)
 	for i = 1, ibuf+obuf do
 		bufdata[i] = ffi.cast("double*", b[i])
-		--print(i, bufdata[i])
+		--print("*", i, bufdata[i])
 	end
 	b = nil -- leave only bufdata, actual data is kept referenced in original thread
 
@@ -110,7 +113,9 @@ function setup() -- set up instance for processing after node parameters are pas
 		if buftype[ii]==1 then set[i] = function(v) bufdata[ii][0] = v end
 		elseif buftype[ii]==2 then set[i] = function(v, c) bufdata[ii][c] = v end
 		elseif buftype[ii]==3 then set[i] = function(v) bufdata[ii][__pp] = v end
-		elseif buftype[ii]==4 then set[i] = function(v, c) bufdata[ii][__pp*3+c] = v end
+		elseif buftype[ii]==4 then
+			--DEBUG MIX to WB to OUT: passing cs instead of buffer value
+			set[i] = function(v, c) assert(type(v)=="number") bufdata[ii][__pp*3+c] = v end
 		end
 		if buftype[ii]==2 or buftype[ii]==4 then
 			set3[i] = function(c0, c1, c2) set[i](c0, 0) set[i](c1, 1) set[i](c2, 2) end
