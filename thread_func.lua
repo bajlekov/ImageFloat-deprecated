@@ -118,7 +118,7 @@ function setup() -- set up instance for processing after node parameters are pas
 		if buftype[ii]==2 or buftype[ii]==4 then
 			set3[i] = function(c0, c1, c2) set[i](c0, 0) set[i](c1, 1) set[i](c2, 2) end
 		else
-			set3[i] = function(c0, c1, c2) set[i]((c0+c2+c3)/3) end
+			set3[i] = function(c0, c1, c2) set[i]((c0+c1+c2)/3) end
 		end
 	end
 

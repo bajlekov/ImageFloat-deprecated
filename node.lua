@@ -312,4 +312,108 @@ function node:cleanup()
 	__sdl.destroySurface(self.backgrounds.node)
 end
 
+function node:calcLevels()
+	calcUpdate = true
+
+	local current = {}
+	local level = 1
+	local tree = {}
+	local error = false
+
+	local c = require("boolops")
+	local collect = c.collect
+	local negate = c.cNot
+	local list = c.list
+
+	--return nodes connected to node n
+	function connected(n, flag)
+		local o = {}
+		for _, v in ipairs(self[n][flag and "conn_o" or "conn_i"].list) do
+			if v.node then o[v.node] = true end
+		end
+		return list(o), o
+	end
+
+	--add all nodes that can be used as generators
+	for k, v in ipairs(node) do
+		if v.procFlags.output then table.insert(current, k) end
+	end
+
+
+	--fix to generate tree from output backwards, avoiding dead ends
+
+	local allProc = {}
+	local noProc
+
+	while true do
+		tree[level] = current
+		local c = {}
+		for _, v in ipairs(tree[level]) do
+			local t = connected(v)
+			c = collect(t, c)
+		end
+
+		collect(current, allProc)
+
+		current = list(c)
+		level = level + 1
+
+		if level>#self+1 then error("Loop detected! Wrong node connections. FIXME") end
+		if #current==0 then break end
+	end
+
+	noProc = c.cNot(c.new(1,#self),allProc)
+
+	if not error then
+		level = level - 1
+
+		-- filter only last occurrence of each node:
+		local early = {}
+		for i = level,1, -1 do
+			tree[i] = list(negate(collect(tree[i]), early))
+			early = collect(tree[i],early)
+		end
+
+		-- display node tree
+		--[[
+		for i = 1, level do
+			print("level "..i..":")
+			print(unpack(tree[i]))
+		end
+		print("---")
+		--]]
+	end
+
+	self.levels = tree
+	self.execOrder = {}
+	for _, v in ipairs(self.levels) do
+		for _, v in ipairs(v) do
+			table.insert(self.execOrder, v)
+		end
+	end
+
+	--invert execOrder
+	local tempOrder = {}
+	for i = 1, #self.execOrder do
+		tempOrder[#self.execOrder-i+1] = self.execOrder[i]
+	end
+	self.execOrder = tempOrder
+	tempOrder = nil
+
+	--print(unpack(self.execOrder))
+
+	self.exec = allProc
+	self.noExec = list(noProc)
+	for _, v in pairs(self.noExec) do
+		generic_clean(v)
+	end
+
+	for _, v in ipairs(self) do
+		v.ui.draw=true
+	end
+	__sdl.flip()
+end
+
+
+
 return node

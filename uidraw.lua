@@ -15,7 +15,15 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-require('debugger')
+--require('debugger')
+-- bug in processing, disable items till fixed??
+-- appears not to happen in wine
+-- check buffer allocations, passing to instances
+-- check if gc-ing variables is the cause
+-- problem appears to not be localised to a node
+-- try kernel dumpinng?? attach to gdb??
+-- check history what has been changed last? segfault appears not to have been present in earlier builds
+
 
 print[[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
@@ -27,6 +35,8 @@ This is free software, and you are welcome to redistribute it under the conditio
 __global = {preview = true, error=false}
 __global.setup = require("IFsetup")
 
+math.randomseed(os.time())
+
 --local ffi = require("ffi")
 local sdl = require("sdltools")
 local lua = require("luatools")
@@ -34,7 +44,9 @@ local dbg = require("dbgtools")
 local ppm = require("ppmtools")
 local img = require("imgtools")
 
+--put often-used libs in a global namespace and index from there, not as independent globals
 __dbg = dbg
+__img = img
 --local function file_exists(name)
 --   local f=io.open(name,"r")
 --   if f~=nil then io.close(f) return true else return false end
@@ -54,7 +66,6 @@ end
 --possible sdl error, doesn't occur in wine @ thread 1 with rotate node?? -> SDL updated, no issue @ 1 core rotate
 --still faults in rotate at high threadcounts!!! > error on read/write from buffer...sometimes invalid buffers!
 
-
 --initialise threads, display, input, fonts
 print("using "..lua.numCores.." threads...")
 sdl.init()
@@ -71,7 +82,17 @@ local node = require("node")
 
 --move to node?
 require("nodeCreate")(node, img)
-node:add()
+node:add("Input")
+node:add("Rotate")
+node:add("Mixer")
+node:add("Add")
+node:add("Split")
+node:add("Decompose")
+node:add("WhiteBalance")
+node:add("Compose")
+--node:add("ColorSpace")
+node:add("Output")
+
 
 node:setInput(mouse)
 -- move to fonttools?
@@ -92,7 +113,8 @@ local readFunTable = {
 }
 local readFun = readFunTable[__global.setup.imageLoadType]
 local imageTemp = ppm.toBuffer(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams))
-local bufO = img.scaleDownHQ(imageTemp, math.max(math.ceil(imageTemp.x/1200), math.ceil(imageTemp.y/750)))
+local bufO = img.scaleDownHQ(imageTemp, math.max(math.ceil(imageTemp.x/__global.setup.windowSize[1]),
+	math.ceil(imageTemp.y/__global.setup.windowSize[2])))
 sdl.caption("ImageFloat 2 [ "..fileName.." ]", "ImageFloat 2");
 imageTemp = nil
 
@@ -135,142 +157,23 @@ local calcUpdate
 
 local hist = require("histogram")
 
---node[1]:connect(2,2,0)
---[[
---	===	Testing ===
-	node[1]:connect(2,5,1)
-	node[5]:connect(2,3,2)
-	node[5]:connect(3,4,2)
-	node[5]:connect(1,2,0)
-	node[2]:connect(0,3,0)
-	node[3]:connect(0,6,0)
-	node[7]:connect(0,4,2)
-	node[6]:connect(0,4,1)
-	node[4]:connect(1,7,0)
---]]
 
 
-function node:calcLevels()
-	calcUpdate = true
-
-	local current = {}
-	local level = 1
-	local tree = {}
-	local error = false
-
-	local c = require("boolops")
-	local collect = c.collect
-	local negate = c.cNot
-	local list = c.list
-	
-	--return nodes connected to node n
-	function connected(n, flag)
-		local o = {}
-		for _, v in ipairs(self[n][flag and "conn_o" or "conn_i"].list) do
-			if v.node then o[v.node] = true end
-		end
-		return list(o), o
-	end
-
-	--add all nodes that can be used as generators
-	for k, v in ipairs(node) do
-		if v.procFlags.output then table.insert(current, k) end
-	end
-	
-
-	--fix to generate tree from output backwards, avoiding dead ends
-
-	local allProc = {}
-	local noProc
-
-	while true do
-		tree[level] = current
-		local c = {}
-		for _, v in ipairs(tree[level]) do
-			local t = connected(v)
-			c = collect(t, c)
-		end
-
-		collect(current, allProc)
-
-		current = list(c)
-		level = level + 1
-
-		if level>#self+1 then dbg.warn("Loop detected! Wrong node connections.") error = true break end
-		if #current==0 then break end
-	end
-
-	noProc = c.cNot(c.new(1,#self),allProc)
-
-	if not error then
-		level = level - 1
-
-		-- filter only last occurrence of each node:
-		local early = {}
-		for i = level,1, -1 do
-			tree[i] = list(negate(collect(tree[i]), early))
-			early = collect(tree[i],early)
-		end
-
-		--[[
-		-- display node tree
-		for i = 1, level do
-			print("level "..i..":")
-			print(unpack(tree[i]))
-		end
-		print("---")
-		--]]
-	end
-
-	self.levels = tree
-	self.execOrder = {}
-	for _, v in ipairs(self.levels) do
-		for _, v in ipairs(v) do
-			table.insert(self.execOrder, v)
-		end
-	end
-
-	--invert execOrder
-	local tempOrder = {}
-	for i = 1, #self.execOrder do
-		tempOrder[#self.execOrder-i+1] = self.execOrder[i]
-	end
-	self.execOrder = tempOrder
-	tempOrder = nil
-
-	--print(unpack(self.execOrder))
-
-	self.exec = allProc
-	self.noExec = list(noProc)
-	for _, v in pairs(self.noExec) do
-		generic_clean(v)
-	end
-
-	for _, v in ipairs(self) do
-		v.ui.draw=true
-	end
-	__sdl.flip()
-end
-
+-- segfaults still!!
 function funProcess()
-	cp=1
-
-	node[1].bufIn = buf
-	
-	local outNode
-	for k, v in ipairs(node) do
-		if v.procFlags.output then outNode=k end
-	end
-	node[outNode].bufOut = buf:new()
-
-	-- keep track of output node when nodes get removed
+	cp=1 									-- reset processing coroutine
+	node[1].bufIn = buf 					--initialise node, move to other location!
+	-- find output node, make selector for this.../one fixed output node
+	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
+	if outNode==nil then error("no output node! FIXME") end --error if no output node found
+	node[outNode].bufOut = buf:new()		-- place black screen if output node is not connected
 	for k, v in ipairs(node.execOrder) do
-		--print("DB: starting node "..tostring(v).."/"..tostring(k))
 		node[v]:processRun(k)
+		print("node:", v)
 	end
-
 	bufout = node[outNode].bufOut
 
+	--update previews
 	if __global.preview then
 		img.toSurfaceQuad(bufout, surf)
 		sdl.screenPut(surf, 50, 20)
@@ -321,7 +224,7 @@ local function imageProcess(flag)
 	else
 		sdl.screenPut(surf, 50, 20)
 	end
-	
+
 	--[[
 	for i=1, 255 do
 	--wrap graphics
@@ -354,7 +257,7 @@ function node:click()
 				if self[n].conn_i[p]~=nil then --if port exists
 					if self[n].conn_i[p].node~=nil then --if allready connected
 						local nn = self[n].conn_i[p].node --find source node and port
-						local pp = self[n].conn_i[p].port 
+						local pp = self[n].conn_i[p].port
 						self:focus(nn)	--focus source node
 						self:noodleDrag(nn, pp) --noodle-drag from source node
 					end
@@ -426,7 +329,7 @@ while true do
 	if mouse.click[1] then
 		node:click() --run mouse updating loop till mouse released
 	else
-		
+
 		--draw progress bar
 		if calcUpdate then
 		 	local size = buf.x
@@ -457,6 +360,7 @@ while true do
 	end
 	if mouse.quit then break end
 end
+
 
 --cleanup
 lua.threadStop()
