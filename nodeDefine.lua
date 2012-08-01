@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+--use persistent tables for input and output buffers and properties
+
 local lua = __lua
 local img = __img
 require("opsCS")

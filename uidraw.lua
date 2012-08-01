@@ -22,8 +22,10 @@
 -- check if gc-ing variables is the cause
 -- problem appears to not be localised to a node
 -- try kernel dumpinng?? attach to gdb??
--- check history what has been changed last? segfault appears not to have been present in earlier builds
+-- check history what has been changed last? segfault appears not to have been present in earlier builds --no apparent causes in changes
+-- possibly bug from new interpreter??  (also would explain why windows/wine doesn't show this error) : updated luajit/ test without allocation sinking
 
+--check efficiency of passing processing arguments in buffers?
 
 print[[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
@@ -77,7 +79,7 @@ require("draw")
 local fileName = arg and arg[1] or "img.ppm"
 
 local mouse = sdl.input()
-mouse.interrupt = lua.threadDone -- interface refresh call on thread done
+mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
 local node = require("node")
 
 --move to node?
@@ -329,7 +331,6 @@ while true do
 	if mouse.click[1] then
 		node:click() --run mouse updating loop till mouse released
 	else
-
 		--draw progress bar
 		if calcUpdate then
 		 	local size = buf.x
