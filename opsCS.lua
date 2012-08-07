@@ -581,7 +581,7 @@ local function LCHABtoLRGB(c1, c2, c3) return XYZtoLRGB(LCHABtoXYZ(c1, c2, c3)) 
 local function SRGBtoLAB(c1, c2, c3) return XYZtoLAB(SRGBtoXYZ(c1, c2, c3)) end
 local function LABtoSRGB(c1, c2, c3) return XYZtoSRGB(LABtoXYZ(c1, c2, c3)) end
 local function SRGBtoLCHAB(c1, c2, c3) return XYZtoLCHAB(SRGBtoXYZ(c1, c2, c3)) end
-local function LCHABtoSRGB(c1, c2, c3) return XYZtoSRGB(LCHABtoXYZ(c1, c2, c3)) end
+function LCHABtoSRGB(c1, c2, c3) return XYZtoSRGB(LCHABtoXYZ(c1, c2, c3)) end
 local function HSVtoLAB(c1, c2, c3) return XYZtoLAB(HSVtoXYZ(c1, c2, c3)) end
 local function LABtoHSV(c1, c2, c3) return XYZtoHSV(LABtoXYZ(c1, c2, c3)) end
 local function HSVtoLCHAB(c1, c2, c3) return XYZtoLCHAB(HSVtoXYZ(c1, c2, c3)) end

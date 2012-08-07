@@ -38,6 +38,39 @@ nodeTable["Input"] = function(self)
 	return n
 end
 
+nodeTable["Color RGB"] = function(self)
+	local n=self:new("Color")
+	n.param:add("Red", {0,1,1})
+	n.param:add("Green", {0,1,1})
+	n.param:add("Blue", {0,1,1})
+	n.conn_o:add(0)
+	function n:processRun(num)
+		local bo = self.conn_o
+		local r, g, b = self.param[1].value[1], self.param[2].value[1], self.param[3].value[1]
+
+		bo[0].buf = img.newBuffer({r,g,b})
+	end
+	return n
+end
+
+nodeTable["Color LCH"] = function(self)
+	local n=self:new("Color")
+	n.param:add("Luma", {0,1,1})
+	n.param:add("Chroma", {0,1,1})
+	n.param:add("Hue", {0,1,1})
+	n.conn_o:add(0)
+	function n:processRun(num)
+		local bo = self.conn_o
+		local r, g, b = self.param[1].value[1], self.param[2].value[1], self.param[3].value[1]
+
+		r, g, b = LCHABtoSRGB(r, g, b) 
+
+		bo[0].buf = img.newBuffer({r,g,b})
+		coroutine.yield("pass")
+	end
+	return n
+end
+
 nodeTable["Rotate"] = function(self)
 	local n=self:new("Rotate")
 	n.param:add("Rotate", {-90,90,0})
@@ -57,8 +90,8 @@ nodeTable["Rotate"] = function(self)
 			bufsIn[1] = getBufIn(0)			-- input
 			bo[0].buf = getBufIn(0):new()	-- output
 		else
-			bufsIn[1] = img.newBuffer({1,1,1})		-- input
-			bo[0].buf = img.newBuffer({1,1,1})	-- output
+			bufsIn[1] = img.newBuffer({0,0,0})		-- input
+			bo[0].buf = img.newBuffer({0,0,0})	-- output
 		end
 
 		if bufsIn[1].type==3 or bufsIn[1].type==4 then
@@ -108,7 +141,7 @@ nodeTable["Mixer"] = function(self)
 			bo[0].buf = getBufIn(0):newColor()	-- output
 		else
 			bufsIn[1] = img.newBuffer({1,1,1})		-- input
-			bo[0].buf = img.newBuffer({1,1,1})	-- output
+			bo[0].buf = img.newBuffer({0,0,0})	-- output
 		end
 
 		-- if no input buffers then create from params
@@ -284,6 +317,8 @@ nodeTable["WhiteBalance"] = function(self)
 		ax, ay = ax*A, ay*A
 		x, y, z = XYtoXYZ(x+gx+ax, y+gy+ay)
 		bo[4].buf = img.newBuffer({x,y,z})
+		
+		--depending on speed it might be better to call just one coroutine.yield()
 		lua.threadSetup(bo[0].buf, bo[0].buf)
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
@@ -315,6 +350,7 @@ nodeTable["Output"] = function(self)
 
 		if bi[0].node then
 			bufsIn[1]=getBufIn(0)
+			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
 			lua.threadSetup(bufsIn[1], self.bufOut)
 			lua.threadRun("ops", "copy")
 			coroutine.yield(num)

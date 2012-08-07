@@ -24,6 +24,8 @@
 -- try kernel dumpinng?? attach to gdb??
 -- check history what has been changed last? segfault appears not to have been present in earlier builds --no apparent causes in changes
 -- possibly bug from new interpreter??  (also would explain why windows/wine doesn't show this error) : updated luajit/ test without allocation sinking
+-- solve noodle flickering
+-- refactor code
 
 --check efficiency of passing processing arguments in buffers?
 
@@ -64,9 +66,9 @@ else
 end
 
 --general debugging notes:
---SOLVED - check buffer locations if errors occur! wine gives access violation locations!
---possible sdl error, doesn't occur in wine @ thread 1 with rotate node?? -> SDL updated, no issue @ 1 core rotate
---still faults in rotate at high threadcounts!!! > error on read/write from buffer...sometimes invalid buffers!
+-- segfaults, cause unknown
+-- segfault on just HCLAB color input to output!! only parallel processing in output node
+-- connect color HCLAB to output, then switch to split directly
 
 --initialise threads, display, input, fonts
 print("using "..lua.numCores.." threads...")
@@ -94,6 +96,8 @@ node:add("WhiteBalance")
 node:add("Compose")
 --node:add("ColorSpace")
 node:add("Output")
+node:add("Color RGB")
+node:add("Color LCH")
 
 
 node:setInput(mouse)
@@ -165,14 +169,18 @@ local hist = require("histogram")
 function funProcess()
 	cp=1 									-- reset processing coroutine
 	node[1].bufIn = buf 					--initialise node, move to other location!
+	
 	-- find output node, make selector for this.../one fixed output node
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
+	
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
 	node[outNode].bufOut = buf:new()		-- place black screen if output node is not connected
+	
 	for k, v in ipairs(node.execOrder) do
 		node[v]:processRun(k)
-		print("node:", v)
+		print("node:", k, v)
 	end
+
 	bufout = node[outNode].bufOut
 
 	--update previews
@@ -213,11 +221,10 @@ end
 --processing control should be located in a different area which is being looped through!...or called from the input module
 local function imageProcess(flag)
 	-- no threadDone because there's no thread running for simple ops!
-	if flag=="process" and (lua.threadDone() or cp==-1) then
-		if cp==-1 then
-			coProcess=coroutine.wrap(funProcess)
-		end
-		lua.threadWait()
+	print("*****", cp)
+	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
+		if cp==-1 then coProcess=coroutine.wrap(funProcess)
+		elseif cp~="pass" then lua.threadWait() end
 		cp = coProcess()
 	end
 
@@ -298,7 +305,7 @@ function node:click()
 					lua.threadStop() --stops all processing threads and returns after they have stopped (in case processing is still going on)
 					bufSet("S")
 					coProcess=coroutine.wrap(funProcess) --create coroutine process
-					coProcess()	--start coroutine process
+					cp = coProcess()	--start coroutine process
 					calcUpdate = true
 					self:paramDrag(n, p)
 					lua.threadStop() -- stop processing
@@ -342,7 +349,7 @@ while true do
 
 		--force one last update before quitting
 		--not called after input-output connection!!!
-		if lua.threadDone() or (calcUpdate and cp==-1) then
+		if (lua.threadDone() or (calcUpdate and cp==-1)) or cp=="pass" then
 			if cp==-1 then
 				lua.threadStop()
 				calcUpdate = false
@@ -354,7 +361,7 @@ while true do
 					--additional non-MT thread for non-blocking ops?
 				--node:draw()
 			else
-				lua.threadWait()
+				if cp~="pass" then lua.threadWait() end
 				cp = coProcess()
 			end
 		end

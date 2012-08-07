@@ -126,7 +126,7 @@ return function(SDL)
 		---[[
 		do
 			local t = __sdl.ticks()-startTime
-			if t > 33 then print("***",t) end
+			--if t > 33 then print("***",t) end
 		end
 		--]]
 		startTime = __sdl.ticks()

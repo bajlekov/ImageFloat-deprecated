@@ -20,6 +20,7 @@ ops.cs = require("opsCS")
 ops.fft = require("opsFFT")
 ops.transform = require("opsTransform")
 ops.filter = require("opsFilter")
+ops.layer = require("opsLayer")
 
 require("mathtools")
 
