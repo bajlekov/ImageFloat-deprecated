@@ -144,7 +144,7 @@ if type(__sdl)=="table" then
 
 		-- lua thread table
 		ffi.cdef([[
-			lua_State* L[64]; //lua states
+			lua_State* L[65]; //lua states
 			SDL_mutex* mut; //global mutex
 			
 			int lua_thread_call(void* in); //lua threaded function

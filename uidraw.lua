@@ -15,11 +15,14 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
---require('debugger')
+-- require('debugger')
 -- gc in threads causes problems
 -- multithreading not active??
 -- solve noodle flickering
 -- refactor code
+-- fix add-node
+-- segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
+-- connect color HCLAB to output, then switch to split directly ?? still
 
 --check efficiency of passing processing arguments in buffers?
 print([[
@@ -50,17 +53,13 @@ __img = img
 --end
 
 --if running source code then build bytecode, otherwise don't
-local release = false
+local release = true
 if release then
 	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
 	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
 else
 	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
 end
-
---general debugging notes:
--- segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
--- connect color HCLAB to output, then switch to split directly ?? still
 
 --initialise threads, display, input, fonts
 print("using "..lua.numCores.." threads...")
@@ -170,7 +169,7 @@ function funProcess()
 	
 	for k, v in ipairs(node.execOrder) do
 		node[v]:processRun(k)
-		print("node:", k, v)
+		--print("node:", k, v)
 	end
 
 	bufout = node[outNode].bufOut
@@ -216,6 +215,7 @@ local function imageProcess(flag)
 	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
 		if cp==-1 then coProcess=coroutine.wrap(funProcess) end
 		--elseif cp~="pass" then lua.threadWait() end
+		--lua.threadWait()
 		cp = coProcess()
 	end
 

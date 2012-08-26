@@ -77,7 +77,7 @@ function setup() -- set up instance for processing after node parameters are pas
 	b = nil -- leave only bufdata, actual data is kept referenced in original thread
 	
 	-- !! GC problem
-	collectgarbage("collect")
+	-- collectgarbage("collect") -- too slow/ no negative effects observed otherwise
 	-- probably lowering mem consumption so no gc is triggered at other position, thus preventing crash
 	-- due to low memory consumption of threads, have interval gc instead of automatic??
 	-- ability to see what is cleaned by gc??

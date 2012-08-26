@@ -162,11 +162,9 @@ nodeTable["Mixer"] = function(self)
 		end
 
 		--execute
-		print("threads start MIX")
 		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bufsIn[4]}, bo[0].buf)
 		lua.threadRun("ops", "mixer")
 		coroutine.yield(num)
-		print("threads done MIX")
 		bufsIn = {}
 
 		--CS process depending on output connection
@@ -308,7 +306,6 @@ nodeTable["WhiteBalance"] = function(self)
 		-- collect types of input bufs, choose largest combination
 		if bi[0].node then
 			bo[0].buf = getBufIn(0):copyColor()	-- output
-			--bo[0].buf = getBufIn(0)
 		else
 			bo[0].buf = img.newBuffer({1,1,1})	-- output
 		end
@@ -324,7 +321,7 @@ nodeTable["WhiteBalance"] = function(self)
 		x, y, z = XYtoXYZ(x+gx+ax, y+gy+ay)
 		bo[4].buf = img.newBuffer({x,y,z})
 		
-		--depending on speed it might be better to call just one coroutine.yield()
+		--depending on speed it might be better to call just one coroutine.yield() ??
 		lua.threadSetup(bo[0].buf, bo[0].buf)
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
@@ -356,11 +353,9 @@ nodeTable["Output"] = function(self)
 		if bi[0].node then
 			bufsIn[1]=getBufIn(0)
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
-			print("OUTPUT start")
 			lua.threadSetup(bufsIn[1], self.bufOut)
 			lua.threadRun("ops", "copy")
 			coroutine.yield(num)
-			print("OUTPUT end")
 		else
 			print("*** node not connected")
 		end

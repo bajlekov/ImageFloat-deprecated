@@ -160,7 +160,7 @@ do
 			if progress[0]==-1 then break end
 			for y = 0, ymax/2 do
 				local gauss
-				local size = 128--math.sqrt(xmax^2+ymax^2)
+				local size = 128 --math.sqrt(xmax^2+ymax^2)
 				gauss = func(math.sqrt(x^2+y^2), get[1](0)*size)
 				gauss = gauss + (flag and func(math.sqrt((xmax-x+1)^2+y^2), get[1](0)*size) or 0)
 				gauss = gauss + (flag and func(math.sqrt(x^2+(ymax-y+1)^2), get[1](0)*size) or 0)

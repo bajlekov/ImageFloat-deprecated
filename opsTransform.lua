@@ -39,17 +39,15 @@ local function rot(x, y, a, ox, oy, sx, sy)
 		x*sin(a)+y*cos(a)+oy
 end
 
--- image input, angle input, image output
+--image input, angle input, image output
 --rotate output and sample from input
 function transform.rotFast()
 	local xm, ym = xmax/2-1, ymax/2-1
-
 	for x = __instance, xmax-1, __tmax do
 		if progress[0]==-1 then break end
 		for y = 0, ymax-1 do
 			__pp = (x * ymax + y)
 			for c = 0, zmax-1 do
-
 				local xr, yr = rot(x, y, params[1], xm, ym)
 				local xf, yf = xr%1, yr%1
 				xr, yr = floor(xr), floor(yr)
@@ -60,7 +58,6 @@ function transform.rotFast()
 										((xr<=0 or yr<=0) and 0 or (1-xf)*(1-yf)*getxy[1](xr,yr,c))
 					set[1](bo, c)
 				end
-
 			end
 		end
 		progress[__instance+1] = x - __instance
@@ -69,24 +66,21 @@ function transform.rotFast()
 end
 
 function transform.rotFilt()
-
-	local filt = math.window.linear
-	math.window.cubicSet("CatmullRom")
-	local filtType = 3
+	local filt = math.window.cubic
+	math.window.cubicSet("BSpline")
+	--math.window.blackmanSet("blackmanHarris4")
+	local filtType = .5
 	local scale = 1
-	local width = 1
+	local width = 2
 	local xm, ym = xmax/2, ymax/2
-
 	for x = __instance, xmax-1, __tmax do
 		if progress[0]==-1 then break end
 		for y = 0, ymax-1 do
 			__pp = (x * ymax + y)
 			for c = 0, zmax-1 do
-
 				local xr, yr = rot(x, y, params[1], xm, ym)
 				local xf, yf = xr%1, yr%1
 				xr, yr = floor(xr), floor(yr)
-
 				if xr>=0 and xr<=xmax-1 and yr>=0 and yr<=ymax-1 then
 					local bo = 0
 					local sum = 0
@@ -97,10 +91,8 @@ function transform.rotFilt()
 								bo = bo + (((xr+x)>0 and (yr+y)>0 and (xr+x)<=xmax-1 and (yr+y)<=ymax-1) and weight*getxy[1](xr+x,yr+y,c) or 0 )
 							end
 						end
-
 					set[1](bo/sum, c)
 				end
-
 			end
 		end
 		progress[__instance+1] = x - __instance
@@ -110,27 +102,21 @@ end
 
 -- rotates input and splats on output, only way to use sample-based angles
 function transform.rot2()
-
 	local xm, ym = xmax/2, ymax/2
-
 	for x = __instance, xmax-1, __tmax do
 		if progress[0]==-1 then break end
 		for y = 0, ymax-1 do
 			__pp = (x * ymax + y)
 			for c = 0, 2 do
-
 				local xr, yr = rot(x, y, get[2](c), xm, ym)
 				xr, yr = floor(xr), floor(yr)
-
 				if xr>=0 and xr<=xmax-1 and yr>=0 and yr<=ymax-1 then
 					-- desired effect is achieved, but interpolation is very tricky!!!
 					-- splating requires add function and clear function to collect
 					-- values from multiple pixels
-
 					--if structured sampling is too complex implement random sample splating and oversample!
 					setxy[1](get[1](c), xr, yr, c)
 				end
-
 			end
 		end
 		progress[__instance+1] = x - __instance

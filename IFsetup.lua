@@ -5,11 +5,11 @@
 
 return {
 	windowSize = {1650, 900},
-	numThreads = 8,
+	numThreads = 4,
 	
 	imageLoadType = "IM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
-	imageLoadName = "img.ppm",
+	imageLoadName = "img16.ppm",
 
 	--NYI
 	imageSaveType = "PPM", -- PPM / IM / FPM
