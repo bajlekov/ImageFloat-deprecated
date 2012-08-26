@@ -69,6 +69,7 @@ end
 
 function dbg.gc()
 	collectgarbage("collect")
+	print("*** COLLECT GARBAGE ***")
 end
 
 function dbg.print(m)

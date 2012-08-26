@@ -7,12 +7,12 @@ return {
 	windowSize = {1650, 900},
 	numThreads = 8,
 	
-	imageLoadType = "IM", -- / IM / RAW / FPM
+	imageLoadType = "IM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
 	imageLoadName = "img.ppm",
 
 	--NYI
-	imageSaveType = "native", -- / IM / FPM
+	imageSaveType = "PPM", -- PPM / IM / FPM
 	imageSaveParams = "",
 	imageSaveName = "out.ppm",
 }

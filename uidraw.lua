@@ -16,24 +16,17 @@
 ]]
 
 --require('debugger')
--- bug in processing, disable items till fixed??
--- appears not to happen in wine
--- check buffer allocations, passing to instances
--- check if gc-ing variables is the cause
--- problem appears to not be localised to a node
--- try kernel dumpinng?? attach to gdb??
--- check history what has been changed last? segfault appears not to have been present in earlier builds --no apparent causes in changes
--- possibly bug from new interpreter??  (also would explain why windows/wine doesn't show this error) : updated luajit/ test without allocation sinking
+-- gc in threads causes problems
+-- multithreading not active??
 -- solve noodle flickering
 -- refactor code
 
 --check efficiency of passing processing arguments in buffers?
-
-print[[
+print([[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
 This program comes WITHOUT ANY WARRANTY.
 This is free software, and you are welcome to redistribute it under the conditions of the GNU General Public License version 3.
-]]
+]])
 
 --load required libraries
 __global = {preview = true, error=false}
@@ -60,15 +53,14 @@ __img = img
 local release = false
 if release then
 	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
-	lua.threadInit(arg[2] or 8, "Thread")
+	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
 else
 	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
 end
 
 --general debugging notes:
--- segfaults, cause unknown
--- segfault on just HCLAB color input to output!! only parallel processing in output node
--- connect color HCLAB to output, then switch to split directly
+-- segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
+-- connect color HCLAB to output, then switch to split directly ?? still
 
 --initialise threads, display, input, fonts
 print("using "..lua.numCores.." threads...")
@@ -113,7 +105,7 @@ sdl.flip()
 --read file
 print(fileName)
 local readFunTable = {
-	native = ppm.readFile,
+	PPM = ppm.readFile,
 	IM = ppm.readIM,
 	RAW = ppm.readRAW,
 }
@@ -221,10 +213,9 @@ end
 --processing control should be located in a different area which is being looped through!...or called from the input module
 local function imageProcess(flag)
 	-- no threadDone because there's no thread running for simple ops!
-	print("*****", cp)
 	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
-		if cp==-1 then coProcess=coroutine.wrap(funProcess)
-		elseif cp~="pass" then lua.threadWait() end
+		if cp==-1 then coProcess=coroutine.wrap(funProcess) end
+		--elseif cp~="pass" then lua.threadWait() end
 		cp = coProcess()
 	end
 

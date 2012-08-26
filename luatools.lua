@@ -119,21 +119,6 @@ end
 
 function l.newState()
 	local state = lua.luaL_newstate()
-	--[[
-	lua.luaopen_base(state);
-	lua.luaopen_math(state);
-	lua.luaopen_string(state);
-	lua.luaopen_table(state);
-	lua.luaopen_io(state);
-	lua.luaopen_os(state);
-
-	lua.luaopen_package(state);
-	print("***")
-	lua.luaopen_debug(state);
-	lua.luaopen_bit(state);
-	lua.luaopen_jit(state);
-	lua.luaopen_ffi(state);
-	--]]
 	lua.luaL_openlibs(state)
 	return state
 end
@@ -213,39 +198,17 @@ if type(__sdl)=="table" then
 			end
 		end
 
+		--keep reference to passed data!
 		local buffersData
 		function l.threadPushBuffers(t)
-			--!!!!!!!!!!! keep reference to passed data!!!
 			buffersData = ffi.new("void*["..(#t+1).."]")
 			for k, v in ipairs(t) do
 				buffersData[k] = v.data
-				--print(k, v.data)
 			end
 			for i = 0, l.numCores-1 do
 				l.pushUserData(l.threadInstance[i], buffersData, "b")
 			end
 		end
-
-
-		-- function l.threadSetup(bufs, ibuf, obuf, params)
-		-- 	local buftype = {}
-		-- 	for _, v in ipairs(bufs) do
-		-- 		table.insert(buftype, v.type)
-		-- 	end
-		-- 	l.threadBufferWidth = bufs[ibuf+1].x
-		-- 	l.threadPushBuffers(bufs)
-		-- 	l.threadPushNumber(bufs[ibuf+1].x, "xmax")
-		-- 	l.threadPushNumber(bufs[ibuf+1].y, "ymax")
-		-- 	l.threadPushNumber(ibuf, "ibuf")
-		-- 	l.threadPushNumber(obuf, "obuf")
-		-- 	l.threadPushTable(buftype, "buftype")
-		-- 	if type(params)=="table" then
-		-- 		l.threadPushTable(params, "params")
-		-- 	end
-		-- 	for i = 0, l.numCores-1 do
-		-- 		l.doFunction(l.threadInstance[i], "setup") --run setup function
-		-- 	end
-		-- end
 
 		function l.threadSetup(ibufs, obufs, params)
 			local bufs = {}
@@ -275,7 +238,6 @@ if type(__sdl)=="table" then
 			for _, v in ipairs(bufs) do
 				table.insert(buftype, v.type)
 			end
-
 			l.threadBufferWidth = x
 			l.threadPushBuffers(bufs)
 			l.threadPushNumber(x, "xmax")
@@ -283,11 +245,11 @@ if type(__sdl)=="table" then
 			l.threadPushNumber(z, "zmax")
 			l.threadPushNumber(i, "ibuf")
 			l.threadPushNumber(o, "obuf")
-			--print(unpack(buftype))
 			l.threadPushTable(buftype, "buftype")
 			if type(params)=="table" then
 				l.threadPushTable(params, "params")
 			end
+
 			for i = 0, l.numCores-1 do
 				l.doFunction(l.threadInstance[i], "setup") --run setup function
 			end
@@ -311,7 +273,7 @@ if type(__sdl)=="table" then
 				procName = table.concat({...},".")
 			end
 			function l.threadWait()
-				if l.threadRunning== true then
+				if l.threadRunning==true then
 					for i = 0, l.numCores-1 do
 						__sdl.waitThread(thread[i], NULL)
 					end
@@ -343,7 +305,6 @@ if type(__sdl)=="table" then
 			end
 		end
 		function l.threadGetProgress()
-			-- prevent weird values
 			if l.numCores==0 or l.threadBufferWidth==0 then return 0 end
 			local n = 0
 			for i = 1, l.numCores do

@@ -15,7 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
---use persistent tables for input and output buffers and properties
+-- use persistent tables for input and output buffers and properties!
+-- cleanup already copied buffers!
 
 local lua = __lua
 local img = __img
@@ -76,8 +77,8 @@ nodeTable["Rotate"] = function(self)
 	n.param:add("Rotate", {-90,90,0})
 	n.conn_i:add(0)
 	n.conn_o:add(0)
+	local bufsIn = {}
 	function n:processRun(num)
-		local bufsIn = {}
 		local p = self.param
 		local bi = self.conn_i
 		local bo = self.conn_o
@@ -96,12 +97,12 @@ nodeTable["Rotate"] = function(self)
 
 		if bufsIn[1].type==3 or bufsIn[1].type==4 then
 			lua.threadSetup(bufsIn[1], bo[0].buf, {p[1].value[1]})
-			--DEBUG: buggy rotfast/buggy SDL???
 			lua.threadRun("ops", "transform", "rotFast")
 			coroutine.yield(num)
 		else
 			bo[0].buf = bufsIn[1]:copy()
 		end
+		bufsIn = {}
 	end
 	return n
 end
@@ -122,9 +123,11 @@ nodeTable["Mixer"] = function(self)
 	n.conn_i:add(5)
 	n.conn_i:add(8)
 	n.conn_o:add(0)
+	-- have internal structure for extra buffers!
+	local bufsIn = {}
+	--clean up local after use!!!
 	function n:processRun(num)
 		-- start timer
-		local bufsIn = {}
 		local bi = self.conn_i
 		local bo = self.conn_o
 		local p = self.param
@@ -132,16 +135,13 @@ nodeTable["Mixer"] = function(self)
 		function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 		end
-		-- init output buffer same as input
-		-- collect types of input bufs, choose largest combination
+		
 		if bi[0].node then
-			--if not color then all ops get assigned to same buffer and only blue channel is left because it's processed last
 			bufsIn[1] = getBufIn(0):copyColor()			-- input
-			--bufsIn[1] = getBufIn(0)			-- input
-			bo[0].buf = getBufIn(0):newColor()	-- output
+			bo[0].buf = getBufIn(0):newColor()			-- output
 		else
-			bufsIn[1] = img.newBuffer({1,1,1})		-- input
-			bo[0].buf = img.newBuffer({0,0,0})	-- output
+			bufsIn[1] = img.newBuffer({1,1,1})			-- input
+			bo[0].buf = img.newBuffer({0,0,0})			-- output
 		end
 
 		-- if no input buffers then create from params
@@ -162,9 +162,13 @@ nodeTable["Mixer"] = function(self)
 		end
 
 		--execute
+		print("threads start MIX")
 		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bufsIn[4]}, bo[0].buf)
 		lua.threadRun("ops", "mixer")
 		coroutine.yield(num)
+		print("threads done MIX")
+		bufsIn = {}
+
 		--CS process depending on output connection
 		--profiler code
 	end
@@ -181,9 +185,9 @@ nodeTable["Add"] = function(self)
 	--function n:processClear(num)
 	--	self.conn_o[1].buf = img.newBuffer(0)
 	--end
+	local bufsIn = {}
 	function n:processRun(num)
 		-- start timer
-		local bufsIn = {}
 		local bi = self.conn_i
 		local bo = self.conn_o
 		local p = self.param
@@ -204,6 +208,7 @@ nodeTable["Add"] = function(self)
 		lua.threadSetup({bufsIn[1], bufsIn[2]}, bo[1].buf)
 		lua.threadRun("ops", "add")
 		coroutine.yield(num)
+		bufsIn = {}
 		--CS process depending on output connection
 		--profiler code
 	end
@@ -219,9 +224,9 @@ nodeTable["Split"] = function(self)
 	n.conn_o:add(1)
 	n.conn_o:add(2)
 	n.conn_o:add(3)
+	local bufsIn = {}
 	function n:processRun(num)
 		-- start timer
-		local bufsIn = {}
 		local bi = self.conn_i
 		local bo = self.conn_o
 
@@ -238,6 +243,7 @@ nodeTable["Split"] = function(self)
 		bo[1].buf = bufsIn[1]:copy()
 		bo[2].buf = bufsIn[1]:copy()
 		bo[3].buf = bufsIn[1]:copy()
+		bufsIn = {}
 	end
 	return n
 end
@@ -251,9 +257,9 @@ nodeTable["Decompose"] = function(self)
 	n.conn_o:add(1)
 	n.conn_o:add(2)
 	n.conn_o:add(3)
+	local bufsIn = {}
 	function n:processRun(num)
 		-- start timer
-		local bufsIn = {}
 		local bi = self.conn_i
 		local bo = self.conn_o
 
@@ -274,7 +280,7 @@ nodeTable["Decompose"] = function(self)
 		lua.threadSetup(bufsIn[1], {bo[1].buf, bo[2].buf, bo[3].buf})
 		lua.threadRun("ops", "decompose")
 		coroutine.yield(num)
-
+		bufsIn = {}
 	end
 	return n
 end
@@ -329,6 +335,7 @@ nodeTable["WhiteBalance"] = function(self)
 		lua.threadSetup(bo[0].buf, bo[0].buf)
 		lua.threadRun("ops", "cs", "XYZ", "SRGB")
 		coroutine.yield(num)
+		bufsIn = {}
 	end
 	return n
 end
@@ -337,26 +344,27 @@ nodeTable["Output"] = function(self)
 	local n=self:new("Output")
 	n.conn_i:add(0)
 	n.procFlags.output = true
+	local bufsIn = {}
 	function n:processRun(num)
-		-- start timer
-		local bufsIn = {}
 		local bi = self.conn_i
 		local p = self.param
-		--move function to external?
+
 		function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 		end
 
-
 		if bi[0].node then
 			bufsIn[1]=getBufIn(0)
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
+			print("OUTPUT start")
 			lua.threadSetup(bufsIn[1], self.bufOut)
 			lua.threadRun("ops", "copy")
 			coroutine.yield(num)
+			print("OUTPUT end")
 		else
 			print("*** node not connected")
 		end
+		bufsIn = {}
 	end
 	return n
 end
@@ -373,9 +381,9 @@ local n=self:new("Compose")
 	n.conn_i:add(1)
 	n.conn_i:add(2)
 	n.conn_i:add(3)
+	local bufsIn = {}
 	function n:processRun(num)
 		-- start timer
-		local bufsIn = {}
 		local bi = self.conn_i
 		local bo = self.conn_o
 
@@ -386,17 +394,17 @@ local n=self:new("Compose")
 		if bi[1].node then
 			bufsIn[1] = getBufIn(1)			-- input
 		else
-			bufsIn[1] = img.newBuffer(0)		-- input
+			bufsIn[1] = img.newBuffer(0)	-- input
 		end
 		if bi[2].node then
 			bufsIn[2] = getBufIn(2)			-- input
 		else
-			bufsIn[2] = img.newBuffer(0)		-- input
+			bufsIn[2] = img.newBuffer(0)	-- input
 		end
 		if bi[3].node then
 			bufsIn[3] = getBufIn(3)			-- input
 		else
-			bufsIn[3] = img.newBuffer(0)		-- input
+			bufsIn[3] = img.newBuffer(0)	-- input
 		end
 		local x, y
 		x = math.max(bufsIn[1].x, bufsIn[2].x, bufsIn[3].x)
@@ -406,18 +414,17 @@ local n=self:new("Compose")
 		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3]}, bo[1].buf)
 		lua.threadRun("ops", "compose")
 		coroutine.yield(num)
-
+		bufsIn = {}
 	end
 	return n
 end
 
---DEBUG!!!???
 nodeTable["ColorSpace"] = function(self)
 	local n=self:new("RGB to XYZ")
 	n.conn_i:add(0)
 	n.conn_o:add(0)
+	local bufsIn = {}
 	function n:processRun(num)
-		local bufsIn = {}
 		local bi = self.conn_i
 		local bo = self.conn_o
 
@@ -436,6 +443,7 @@ nodeTable["ColorSpace"] = function(self)
 		lua.threadSetup(bufsIn[1], bo[0].buf)
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
+		bufsIn = {}
 	end
 	return n
 end
