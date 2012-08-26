@@ -19,61 +19,55 @@ print("Thread setup...")
 
 local ffi = require("ffi")
 function loadlib(lib)
-		local path = "./lib/"..ffi.os.."_"..ffi.arch.."/"
-		local libname
-		if ffi.os=="Linux" then libname = "lib"..lib..".so" end
-		if ffi.os=="Windows" then libname = lib..".dll" end
-		local t
-		local p
-		p, t = pcall(ffi.load, lib)
-		if not p then
-			print("no native library found, trying user library "..lib)
-			p, t = pcall(ffi.load, "./lib/usr/"..libname)
-		end
-		if not p then
-			print("no user library found, trying supplied library "..lib)
-			p, t = pcall(ffi.load, path..libname)
-		end
-
-		if p then
-			return t
-		else
-			print("failed loading "..lib)
-			return false
-		end
+	local path = "./lib/"..ffi.os.."_"..ffi.arch.."/"
+	local libname
+	if ffi.os=="Linux" then libname = "lib"..lib..".so" end
+	if ffi.os=="Windows" then libname = lib..".dll" end
+	local t
+	local p
+	p, t = pcall(ffi.load, lib)
+	if not p then
+		print("no native library found, trying user library "..lib)
+		p, t = pcall(ffi.load, "./lib/usr/"..libname)
 	end
+	if not p then
+		print("no user library found, trying supplied library "..lib)
+		p, t = pcall(ffi.load, path..libname)
+	end
+
+	if p then
+		return t
+	else
+		print("failed loading "..lib)
+		return false
+	end
+end
+
 ops = require("ops")
 
-
-__pp = 0 --__pp indicates pixel position
-get = {} -- get/set functions dependent on buffer type
-set = {}
-get3 = {} -- get/set function for triplets, wrapping above
-set3 = {}
-getxy = {} -- same as above with additional coordinate parameters for non-local changes
-setxy = {}
-get3xy = {}
-set3xy = {}
 progress = nil
 
 function init() -- initialisation function, runs once when instance is started
 	progress = ffi.cast("int*", progress)
+	-- figure out where gc causes trouble!!
+	collectgarbage("stop")
 end
 
---b[]
---xmax
---ymax
---cmax ??
---ibuf
---obuf
---buftype{}
-
---__pp = (x * ymax + y)
-
 function setup() -- set up instance for processing after node parameters are passed
-	--print(unpack(b))
+	--print("Thread Setup:", b,xmax,ymax,zmax,ibuf,obuf)
 	--print("*", unpack(buftype))
-	--print(xmax, ymax, zmax)
+
+	--functions for accessing buffers
+	__pp = 0 --__pp indicates pixel position
+	get = {} -- get/set functions dependent on buffer type
+	set = {}
+	get3 = {} -- get/set function for triplets, wrapping above
+	set3 = {}
+	getxy = {} -- same as above with additional coordinate parameters for non-local changes
+	setxy = {}
+	get3xy = {}
+	set3xy = {}
+
 	local bufdata={}
 	local b = ffi.cast("void**", b)
 	for i = 1, ibuf+obuf do
@@ -81,6 +75,12 @@ function setup() -- set up instance for processing after node parameters are pas
 		--print("*", i, bufdata[i])
 	end
 	b = nil -- leave only bufdata, actual data is kept referenced in original thread
+	
+	-- !! GC problem
+	collectgarbage("collect")
+	-- probably lowering mem consumption so no gc is triggered at other position, thus preventing crash
+	-- due to low memory consumption of threads, have interval gc instead of automatic??
+	-- ability to see what is cleaned by gc??
 
 	for i = 1, ibuf do
 		if buftype[i]==1 then get[i] = function() return bufdata[i][0] end
