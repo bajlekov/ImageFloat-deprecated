@@ -80,8 +80,9 @@ function img.newBuffer(a, b, c)
 	out.toScreen = img.toScreen
 	out.toScreenQuad = img.toScreenQuad
 	out.saveHD = img.bufferSaveHD
-	out.saveIM = img.writeIM
 	out.loadHD = img.bufferSaveHD
+	out.saveIM = img.writeIM
+	out.loadIM = img.readIM
 	out.copy = img.copy
 	out.new = img.new
 	out.copyGS = img.copyGS
@@ -266,16 +267,31 @@ do
 		f:close()
 	end
 
-	--[[
+	---[[
 	--finish high precision read from IM
 
-	function img.readIM(p1, p2, p3)
+	function img.readIM(p1, p2, p3, p4)
+		--buffer, file name, ops
+		-- file name, ops, size y, size x
+		if not p4 then
+			buffer = p1
+			name = p2
+			op = p3 or ""
+		else
+			local buffer = img.newBuffer()
+			name = p1
+			op = p2 or ""
+			x = p4
+			y = p3
+			buffer.x, buffer.y, buffer.z = x, y, 3
+		end
 		print("Loading: "..name)
-		op = op or ""
-		local f = io.popen("convert -define quantum:format=floating-point -depth 64 -size "..buffer.y.."x"..buffer.x..
-			" rgb:- -transpose "..op.." "..name, "w")
 		local x, y, z = buffer.x, buffer.y, buffer.z
-		bufwrite(buffer.data, x*y*3, f)
+		buffer.data = ffi.new("double["..x.."]["..y.."][3]")
+
+		local f = io.popen("convert -define quantum:format=floating-point -depth 64 -size "..buffer.y.."x"..buffer.x..
+			" "..name.." -transpose "..op.." rgb:-", "r")
+		bufread(buffer.data, x*y*3, f)
 		f:close()
 	end
 	--]]
