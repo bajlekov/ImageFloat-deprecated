@@ -257,13 +257,28 @@ do
 	end
 
 	function img.writeIM(buffer, name, op)
+		print("Saving to: "..name)
 		op = op or ""
 		local f = io.popen("convert -define quantum:format=floating-point -depth 64 -size "..buffer.y.."x"..buffer.x..
 			" rgb:- -transpose "..op.." "..name, "w")
 		local x, y, z = buffer.x, buffer.y, buffer.z
-		f:write(ffi.string(buffer.data, x*y*3*8))
+		bufwrite(buffer.data, x*y*3, f)
 		f:close()
 	end
+
+	--[[
+	--finish high precision read from IM
+
+	function img.readIM(p1, p2, p3)
+		print("Loading: "..name)
+		op = op or ""
+		local f = io.popen("convert -define quantum:format=floating-point -depth 64 -size "..buffer.y.."x"..buffer.x..
+			" rgb:- -transpose "..op.." "..name, "w")
+		local x, y, z = buffer.x, buffer.y, buffer.z
+		bufwrite(buffer.data, x*y*3, f)
+		f:close()
+	end
+	--]]
 end
 
 
