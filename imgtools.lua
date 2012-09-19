@@ -267,9 +267,6 @@ do
 		f:close()
 	end
 
-	---[[
-	--finish high precision read from IM
-
 	function img.readIM(p1, p2, p3, p4)
 		--buffer, file name, ops
 		-- file name, ops, size y, size x
@@ -294,7 +291,28 @@ do
 		bufread(buffer.data, x*y*3, f)
 		f:close()
 	end
-	--]]
+
+	-- external processing using named pipes
+	-- needs separate processing thread for synchronopus in-- and output
+	function img.processIM(buffer, op)
+		--os.execute("mkfifo tempBufferI")
+		--os.execute("mkfifo tempBufferO")
+		print("**")
+		local x, y, z = buffer.x, buffer.y, buffer.z
+
+		local fi = io.open("tempBufferI", "w")
+		bufwrite(buffer.data, x*y*3, fi) -- parallel push
+		fi:close()
+		
+		os.execute("convert -define quantum:format=floating-point -depth 64 -size "..buffer.y.."x"..buffer.x..
+			" rgb:tempBufferI -transpose "..op.." -transpose rgb:tempBufferO")
+
+		local fo = io.open("tempBufferO", "r")
+		bufread(buffer.data, x*y*3, fo) -- parallel pull
+		fo:close()
+		os.remove("tempBufferI")
+		os.remove("tempBufferO")
+	end
 end
 
 
