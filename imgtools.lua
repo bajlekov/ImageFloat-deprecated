@@ -213,17 +213,25 @@ function img.newColor(buffer)
 	return out
 end
 
+--disk io native C functions
+ffi.cdef[[
+	size_t fread ( void * ptr, size_t size, size_t count, FILE * stream );
+	size_t fwrite ( const void * ptr, size_t size, size_t count, FILE * stream );
+]]
+
+local function bufread(bptr, length, fptr)
+	ffi.C.fread(bptr, 8, length*8, fptr)
+end
+local function bufwrite(bptr, length, fptr)
+	ffi.C.fwrite(bptr, 8, length*8, fptr)
+end
+
+-- implement partial reads and writes!!!
+
 do 
-	local chunk = 1000
 	function img.bufferSaveHD(buffer, fname)
-		local x, y = buffer.x, buffer.y
-		local b = ffi.cast("uint8_t*", buffer.data)
 		local f = io.open(fname, "w")
-		f:write(ffi.string(ffi.new("double[2]", {x, y}), 16))
-		--write in several pieces
-		for i = 0, x*y*3*8, chunk do
-			f:write(ffi.string(b+i, chunk))
-		end
+		bufwrite(buffer.data, buffer.x*buffer.y*3, f)
 		f:close()
 		return fname
 	end
@@ -239,13 +247,11 @@ do
 		local res_s = f:read(16)
 		local res_d = ffi.cast("double*", res_s)
 		local x, y = res_d[0], res_d[1]
+		
 		buffer.x, buffer.y, buffer.z = x, y, 3
 		buffer.data = ffi.new("double["..x.."]["..y.."][3]")
-		local b = ffi.cast("uint8_t*", buffer.data)
-		--read in several pieces
-		for i = 0, x*y*3*8, chunk do
-			ffi.copy(b+i, f:read(chunk))
-		end
+
+		bufread(buffer.data, x*y*3, f)
 		f:close()
 		return buffer
 	end

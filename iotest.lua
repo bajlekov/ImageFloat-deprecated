@@ -15,6 +15,14 @@ buf = img.scaleUpQuad(buf)
 dbg.gc()
 print("***")
 
+---[[
+tic()
+buf:saveHD("test.buf")
+toc("save")
+tic()
+buf:loadHD("test.buf")
+toc("load")
+---[[
 tic()
 buf:saveHD("test.buf")
 toc("save")
@@ -24,9 +32,12 @@ toc("load")
 tic()
 buf:saveHD("test.buf")
 toc("save")
-tic()
-buf:loadHD("test.buf")
-toc("load")
-tic()
-buf:saveHD("test.buf")
-toc("save")
+--]]
+
+
+local f = io.open("img16.ppm")
+
+ffi.cdef[[
+	size_t fread ( void * ptr, size_t size, size_t count, FILE * stream );
+	size_t fwrite ( const void * ptr, size_t size, size_t count, FILE * stream );
+]]
