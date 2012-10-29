@@ -99,7 +99,7 @@ local function image_data(header, ds)
 end
 
 function ppm.writeFile(header)
-	local f = io.open(header.name, "w")
+	local f = io.open(header.name, "w"..(ffi.os=="Windows" and "b" or ""))
 	f:write("P6\n")
 	f:write("# Created with PPMtools for Lua\n")
 	f:write(string.format("%d %d\n", header.res.x, header.res.y))
@@ -120,7 +120,7 @@ end
 
 function ppm.writeIM(header, op)
 	op = op or ""
-	local f = io.popen("convert ppm:- "..op.." "..header.name, "wb")
+	local f = io.popen("convert ppm:- "..op.." "..header.name, "w"..(ffi.os=="Windows" and "b" or ""))
 	f:write("P6\n")
 	f:write("# Created with PPMtools for Lua\n")
 	f:write(string.format("%d %d\n", header.res.x, header.res.y))
