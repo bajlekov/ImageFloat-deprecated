@@ -169,4 +169,5 @@ function SDL.mapRGBA(surf, r, g, b, a)
 end
 
 __sdl = SDL --create global sdl table 
+print("SDL loaded")
 return SDL

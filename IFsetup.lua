@@ -7,7 +7,7 @@ return {
 	windowSize = {1650, 900},
 	numThreads = 4,
 	
-	imageLoadType = "IM", -- PPM / IM / RAW / FPM
+	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
 	imageLoadName = "img16.ppm",
 

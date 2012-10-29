@@ -32,7 +32,6 @@ return function(img)
 			for y = 0, buffer.y-1 do
 				local ny = math.floor(y/sc)
 				for c = 0, buffer.z-1 do
-
 					out.data[nx][ny][c] = out.data[nx][ny][c] + buffer.data[x][y][c]
 				end
 				count[nx][ny] = count[nx][ny] + 1

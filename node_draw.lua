@@ -122,8 +122,7 @@ do
 	local nodeSurf = {}
 
 	function nodeDraw(self)
-		--FIX ALPHA!!! possible?
-		--FIX BLACK BARS!!!
+		--fix alpha??
 
 		local n = #self.param
 		local x = 13

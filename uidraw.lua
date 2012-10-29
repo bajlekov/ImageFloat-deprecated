@@ -47,13 +47,14 @@ local img = require("imgtools")
 --put often-used libs in a global namespace and index from there, not as independent globals
 __dbg = dbg
 __img = img
+
 --local function file_exists(name)
 --   local f=io.open(name,"r")
 --   if f~=nil then io.close(f) return true else return false end
 --end
 
 --if running source code then build bytecode, otherwise don't
-local release = true
+local release = false
 if release then
 	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
 	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
@@ -152,13 +153,10 @@ local coProcess
 local funProcess
 local calcUpdate
 
-local hist = require("histogram")
+--local hist = require("histogram")
 
-
-
--- segfaults still!!
 function funProcess()
-	cp=1 									-- reset processing coroutine
+	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 					--initialise node, move to other location!
 	
 	-- find output node, make selector for this.../one fixed output node
@@ -168,6 +166,7 @@ function funProcess()
 	node[outNode].bufOut = buf:new()		-- place black screen if output node is not connected
 	
 	for k, v in ipairs(node.execOrder) do
+		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name) end
 		node[v]:processRun(k)
 		--print("node:", k, v)
 	end

@@ -161,8 +161,10 @@ if type(__sdl)=="table" then
 		l.threadBufferWidth = 0
 		function l.threadArgIn(n) th.arg_in = n end
 		function l.threadArgOut(n) th.arg_out = n end
+		
 		function l.threadInit(n, file)	--number of threads, file to load in new instances
 			l.numCores = n
+			print("using "..l.numCores.." threads...")
 			l.threadProgress = ffi.new("int[?]", l.numCores+1)
 			th.mut = __sdl.createMutex()
 			for i=0, l.numCores-1 do
@@ -327,5 +329,5 @@ else
 end
 
 __lua = l
-
+print("Lua threads loaded")
 return l
