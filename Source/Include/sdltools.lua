@@ -20,8 +20,10 @@ local ffi = require("ffi")
 --check native libs
 --check user folder with libs
 --check supplied libs (errs sometimes)
+
+--set local paths!! different between packaged and developer versions!
 local function loadlib(lib)
-	local path = "./lib/"..ffi.os.."_"..ffi.arch.."/"
+	local path = __global.libPath
 	local libname
 	if ffi.os=="Linux" then libname = "lib"..lib..".so" end
 	if ffi.os=="Windows" then libname = lib..".dll" end
@@ -62,7 +64,7 @@ os.execute([=[echo '#include <SDL.h> \n #include <SDL_ttf.h> \n #include <SDL_im
 os.execute([=[gcc -I /usr/include/SDL -E stub.c | grep -v '^#' > SDL.h]=])
 --]]
 
-ffi.cdef(io.open('SDL.h', 'r'):read('*a'))
+ffi.cdef(io.open('./Include/SDL.h', 'r'):read('*a'))
 io.close()
 
 ffi.cdef([[

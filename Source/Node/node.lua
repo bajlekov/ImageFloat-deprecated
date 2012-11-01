@@ -278,9 +278,12 @@ function node:remove(n)
 	
 end
 
+os.execute("ls ../Resources/Images")
+print(__global.imgPath)
+
 node.backgrounds = {}
-node.backgrounds.window = __sdl.loadImage("background.png")
-node.backgrounds.node = __sdl.loadImage("node_t.png")
+node.backgrounds.window = __sdl.loadImage(__global.imgPath.."background.png")
+node.backgrounds.node = __sdl.loadImage(__global.imgPath.."node_t.png")
 
 --destroy backgrounds at end?
 

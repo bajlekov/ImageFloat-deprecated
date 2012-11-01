@@ -15,6 +15,22 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+local ffi = ffi
+
+-- setup paths if not loading bytecode
+package.path = 	"./Build/?.lua;"..
+				"./Draw/?.lua;"..
+				"./Include/?.lua;"..
+				"./Interop/?.lua;"..
+				"./Math/?.lua;"..
+				"./Node/?.lua;"..
+				"./Ops/?.lua;"..
+				"./Threads/?.lua;"..
+				"./Tools/?.lua;"..package.path
+
+local ffi = require("ffi")
+_G.ffi = ffi
+
 -- require('debugger')
 -- gc in threads causes problems
 -- multithreading not active??
@@ -35,9 +51,13 @@ This is free software, and you are welcome to redistribute it under the conditio
 __global = {preview = true, error=false}
 __global.setup = require("IFsetup")
 
+-- setup paths for libraries and resources
+__global.libPath = "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
+__global.imgPath = "../Resources/Images/"
+__global.ttfPath = "../Resources/Fonts/"
+
 math.randomseed(os.time())
 
---local ffi = require("ffi")
 local sdl = require("sdltools")
 local lua = require("luatools")
 local dbg = require("dbgtools")
@@ -57,13 +77,15 @@ __img = img
 local release = false
 if release then
 	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
-	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
+	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "./Threads/threadFunc.lua")
 else
-	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "thread_func.lua")
+	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "./Threads/threadFunc.lua")
 end
 
+
+
 --initialise threads, display, input, fonts
-print("using "..lua.numCores.." threads...")
+--print("using "..lua.numCores.." threads...")
 sdl.init()
 --create init file
 sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
@@ -91,12 +113,12 @@ node:add("Output")
 node:add("Color RGB")
 node:add("Color LCH")
 
-
 node:setInput(mouse)
+
 -- move to fonttools?
 font = {}
-font.normal = sdl.font("UbuntuR.ttf", 11)
-font.big = sdl.font("UbuntuR.ttf", 15)
+font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
+font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 
 --draw initial
 node:draw()

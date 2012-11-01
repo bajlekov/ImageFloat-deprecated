@@ -21,7 +21,7 @@ local fft = require ("fftw")
 local ffi = require ("ffi")
 
 local function loadlib(lib)
-	local path = "./lib/"..ffi.os.."_"..ffi.arch.."/"
+	local path = "../Library/"..ffi.os.."_"..ffi.arch.."/"
 	local libname
 	if ffi.os=="Linux" then libname = "lib"..lib..".so" end
 	if ffi.os=="Windows" then libname = lib..".dll" end

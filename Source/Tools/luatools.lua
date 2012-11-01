@@ -15,10 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-ffi = require("ffi")
+local ffi = require("ffi")
 local lua
-if ffi.os == "Linux" then lua = ffi.load("./libluajit.so") end
-if ffi.os == "Windows" then lua = ffi.load("./lua51.dll") end
+
+--make arch-dependent!!
+if ffi.os == "Linux" then lua = ffi.load(__global.libPath.."libluajit.so") end
+if ffi.os == "Windows" then lua = ffi.load(__global.libPath.."lua51.dll") end
 
 ffi.cdef([[
 	typedef struct lua_State lua_State;
@@ -92,13 +94,13 @@ function l.pushMultiple(state, t)
 end
 
 function l.doFile(state, file)
-	lua.luaL_loadfile(state, file)
-	lua.lua_call(state, 0, 0)
+	assert(lua.luaL_loadfile(state, file)==0)
+	assert(lua.lua_call(state, 0, 0)==0)
 end
 
 function l.doString(state, str)
-	lua.luaL_loadstring(state, str)
-	lua.lua_call(state, 0, 0)
+	assert(lua.luaL_loadstring(state, str)==0)
+	assert(lua.lua_call(state, 0, 0)==0)
 end
 
 function l.doFunction(state, name)
@@ -135,10 +137,8 @@ os.execute("i586-mingw32msvc-gcc -O3 -shared -fomit-frame-pointer -o lib/Windows
 
 if type(__sdl)=="table" then
 	local p, th
-	if ffi.os == "Linux" and ffi.arch=="x64" then p, th = pcall(ffi.load, "./lib/Linux_x64/libthread.so") end
-	if ffi.os == "Linux" and ffi.arch=="x86" then p, th = pcall(ffi.load, "./lib/Linux_x86/libthread.so") end
-	if ffi.os == "Windows" and ffi.arch=="x86" then p, th = pcall(ffi.load, "./lib/Windows_x86/thread.dll") end
-	if ffi.os == "Windows" and ffi.arch=="x64" then p, th = pcall(ffi.load, "./lib/Windows_x64/thread.dll") end
+	if ffi.os == "Linux" then p, th = pcall(ffi.load, __global.libPath.."libthread.so") end
+	if ffi.os == "Windows" then p, th = pcall(ffi.load, __global.libPath.."libthread.dll") end
 
 	if p then
 

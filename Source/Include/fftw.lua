@@ -22,7 +22,7 @@ assert(p, fftw)
 --os.execute([=[echo '#include <fftw3.h>' > stub.c]=])
 --os.execute([=[gcc -I /usr/include/SDL -E stub.c | grep -v '^#' > FFTW.h]=])
 
-ffi.cdef(io.open('FFTW.h', 'r'):read('*a')) --contains stdio, interfering with sdl
+ffi.cdef(io.open('./Include/FFTW.h', 'r'):read('*a')) --contains stdio, interfering with sdl
 io.close()
 
 --[[

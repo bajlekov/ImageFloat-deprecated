@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+
+
 local ops = {}
 ops.cs = require("opsCS")
 ops.fft = require("opsFFT")
@@ -23,7 +25,6 @@ ops.filter = require("opsFilter")
 ops.layer = require("opsLayer")
 
 require("mathtools")
-
 
 -- generic pixel function loop
 local startstring_matrix = [[

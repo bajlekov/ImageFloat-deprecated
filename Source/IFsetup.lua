@@ -9,10 +9,10 @@ return {
 	
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
-	imageLoadName = "img16.ppm",
+	imageLoadName = "../Resources/Photos/img16.ppm",
 
 	--NYI
 	imageSaveType = "PPM", -- PPM / IM / FPM
 	imageSaveParams = "",
-	imageSaveName = "out.ppm",
+	imageSaveName = "../Resources/Photos/out.ppm",
 }

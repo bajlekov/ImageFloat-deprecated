@@ -17,9 +17,19 @@
 
 print("Thread setup...")
 
+package.path = 	"./Build/?.lua;"..
+				"./Draw/?.lua;"..
+				"./Include/?.lua;"..
+				"./Interop/?.lua;"..
+				"./Math/?.lua;"..
+				"./Node/?.lua;"..
+				"./Ops/?.lua;"..
+				"./Threads/?.lua;"..
+				"./Tools/?.lua;"..package.path
+
 local ffi = require("ffi")
 function loadlib(lib)
-	local path = "./lib/"..ffi.os.."_"..ffi.arch.."/"
+	local path = "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 	local libname
 	if ffi.os=="Linux" then libname = "lib"..lib..".so" end
 	if ffi.os=="Windows" then libname = lib..".dll" end
