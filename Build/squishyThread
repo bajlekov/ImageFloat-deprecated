@@ -1,0 +1,13 @@
+Main "../Source/Threads/threadFunc.lua"
+
+Module "ops" "../Source/Ops/ops.lua"
+Module "dbgtools" "../Source/Tools/dbgtools.lua"
+Module "opsCS" "../Source/Ops/opsCS.lua"
+Module "opsFFT" "../Source/Ops/opsFFT.lua"
+Module "opsTransform" "../Source/Ops/opsTransform.lua"
+Module "opsFilter" "../Source/Ops/opsFilter.lua"
+Module "opsLayer" "../Source/Ops/opsLayer.lua"
+Module "mathtools" "../Source/Math/mathtools.lua"
+Module "fftw" "../Source/Include/fftw.lua"
+
+Output "Thread.lua"
