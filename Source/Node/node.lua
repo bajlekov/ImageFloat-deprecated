@@ -284,6 +284,30 @@ node.backgrounds.node = __sdl.loadImage(__global.imgPath.."node_t.png")
 
 --destroy backgrounds at end?
 
+local helpText = {
+	"ImageFloat",
+	"Copyright (C) 2011-2012 G.Bajlekov",
+	"This program comes WITHOUT",
+	"ANY WARRANTY. This is free",
+	"software, and you are welcome to",
+	"redistribute it under the conditions",
+	"of the GNU General Public License",
+	"version 3 or later.",
+	" ",
+	"Instructions:",
+	"I - toggle this message",
+	"H - toggle process half",
+	"Z - toggle crop view",
+	"R - reset parameters",
+	"S - save preview",
+	"Q - quit",
+	" ",
+	"Mouse:",
+	"Ctrl - step adjust",
+	"Shift - precise adjust",
+	"Alt - reset to default",
+}
+
 function node:draw(flag)
 	-- see if drawing can be reduced when no update is available!!
 	__sdl.blit(node.backgrounds.window, nil, __sdl.screen, nil) --draws background
@@ -291,9 +315,11 @@ function node:draw(flag)
 	drawNoodles(self) -- draws noodles
 
 	--help text
-	--text(t, font.normal, x+2, y+20+12*n)
-	--text(t, font.normal, x+2, y+20+12*n)
-	--text(t, font.normal, x+2, y+20+12*n)
+	if __global.info then
+		for k, v in ipairs(helpText) do
+			__sdl.text(v, font.normal, __global.setup.windowSize[1] - 220, 10 + k*10, 128, 64, 64)
+		end
+	end
 	
 	for n = #self,1,-1 do
 		self[self.order[n]]:draw()

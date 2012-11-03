@@ -47,7 +47,7 @@ This is free software, and you are welcome to redistribute it under the conditio
 ]])
 
 --load required libraries
-__global = {preview = true, error=false}
+__global = {preview = true, error=false, info=true}
 local __global = __global
 __global.setup = require("IFsetup")
 
@@ -84,7 +84,7 @@ lua.threadInit(arg and arg[2] or __global.setup.numThreads, __global.setup.threa
 sdl.init()
 --create init file
 sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
-sdl.caption("ImageFloat 2 ...loading", "ImageFloat 2");
+sdl.caption("ImageFloat...loading", "ImageFloat");
 require("draw")
 
 __global.setup.imageLoadName = arg and arg[1] or __global.setup.imageLoadName
@@ -133,7 +133,7 @@ local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[
 	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
 local bufZ = ppm.toBufferCrop(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams), bufO.x, bufO.y)
-sdl.caption("ImageFloat 2 [ "..__global.setup.imageLoadName.." ]", "ImageFloat 2");
+sdl.caption("ImageFloat [ "..__global.setup.imageLoadName.." ]", "ImageFloat");
 imageTemp = nil
 
 print(bufO.x, bufO.y)
@@ -378,6 +378,10 @@ while true do
 		bufSet("L")
 		coProcess=coroutine.wrap(funProcess) -- reset coroutine
 		coProcess()
+		node:draw()
+	end
+	if mouse.key.num==105 then--"I"
+		__global.info = not __global.info
 		node:draw()
 	end
 	if mouse.click[1] then
