@@ -127,11 +127,17 @@ local readFunTable = {
 	RAW = ppm.readRAW,
 }
 local readFun = readFunTable[__global.setup.imageLoadType]
+
 local imageTemp = ppm.toBuffer(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams))
-local bufO = img.scaleDownHQ(imageTemp, math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
+local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
 	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
+local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
+local bufZ = ppm.toBufferCrop(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams), bufO.x, bufO.y)
 sdl.caption("ImageFloat 2 [ "..__global.setup.imageLoadName.." ]", "ImageFloat 2");
 imageTemp = nil
+
+print(bufO.x, bufO.y)
+print(bufZ.x, bufZ.y)
 
 --working buffer pointers
 local buf
@@ -146,6 +152,28 @@ local surfS = img.toSurface(img.scaleUpQuad(bufS:new()))
 local bufL = bufO
 local bufoutL = bufL:new()
 local surfL = img.toSurface(bufL:new())
+
+
+--toggles buffers between cropped and scaled
+do
+	crop = false
+	function bufZoom(zoom)
+		if zoom==nil then
+			crop = not crop
+		else
+			crop = zoom
+		end
+		if crop then
+			bufS = img.scaleDownHQ(bufZ, 4)
+			bufL = bufZ
+			crop = true
+		else
+			bufS = img.scaleDownHQ(bufO, 4)
+			bufL = bufO
+			crop = false
+		end
+	end
+end
 
 --set desired working buffers
 function bufSet(size)
@@ -197,9 +225,8 @@ function funProcess()
 		img.toSurfaceQuad(bufout, surf)
 	else
 		img.toSurface(bufout, surf)
-		bufoutS = img.scaleDownHQ(bufout,4)
-		img.toSurfaceQuad(bufoutS, surfS)--if full process then also update preview buffer
-		print(bufout.data[0][0][0])
+		bufoutS = img.scaleDownHQ(bufout,4) --if full process then also update preview buffer
+		img.toSurfaceQuad(bufoutS, surfS)
 		-- why is bufoutL not used??
 	end
 	--]]
@@ -343,6 +370,15 @@ while true do
 		d.name = __global.setup.imageSaveName
 		writeFun(d, __global.setup.imageSaveParams)
 		d = nil
+	end
+	if mouse.key.num==122 then--"Z"
+		bufZoom()
+		lua.threadStop() -- stop processing		
+		calcUpdate = true
+		bufSet("L")
+		coProcess=coroutine.wrap(funProcess) -- reset coroutine
+		coProcess()
+		node:draw()
 	end
 	if mouse.click[1] then
 		node:click() --run mouse updating loop till mouse released

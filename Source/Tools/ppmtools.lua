@@ -217,6 +217,28 @@ function ppm.toBuffer(header)
 	return buffer
 end
 
+function ppm.toBufferCrop(header, newX, newY)
+	local buffer = img.newBuffer()
+	buffer.x = newX
+	buffer.y = newY
+	local offX = math.floor((header.res.x - buffer.x)/2)
+	local offY = math.floor((header.res.y - buffer.y)/2)
+	local fullX = header.res.x
+	buffer.z = 3
+	buffer.type = 4
+	buffer.data = ffi.new("double["..tonumber(buffer.x).."]["..tonumber(buffer.y).."][3]")
+	buffer.cs = "SRGB"
+	local scale = header.depth==8 and 1/(2^8-1) or 1/(2^16-1)
+	for x = 0, buffer.x-1 do
+		for y = 0, buffer.y-1 do
+			for c = 0, 2 do
+				buffer.data[x][y][c] = header.data[(offX + x + fullX * (offY + y)) * 3 + c] * scale
+			end
+		end
+	end
+	return buffer
+end
+
 --float buffer to ppm image
 function ppm.fromBuffer(buffer, depth)
 	depth = depth or 16
