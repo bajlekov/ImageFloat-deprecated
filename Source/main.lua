@@ -48,6 +48,7 @@ This is free software, and you are welcome to redistribute it under the conditio
 
 --load required libraries
 __global = {preview = true, error=false}
+local __global = __global
 __global.setup = require("IFsetup")
 
 -- setup paths for libraries and resources (do that for threads too!!)
@@ -62,6 +63,7 @@ local lua = require("luatools")
 local dbg = require("dbgtools")
 local ppm = require("ppmtools")
 local img = require("imgtools")
+
 
 --put often-used libs in a global namespace and index from there, not as independent globals
 __dbg = dbg
@@ -168,7 +170,7 @@ local coProcess
 local funProcess
 local calcUpdate
 
---local hist = require("histogram")
+local hist = require("histogram")
 
 function funProcess()
 	cp=1							-- reset processing coroutine
@@ -178,7 +180,7 @@ function funProcess()
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
 	
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
-	node[outNode].bufOut = buf:new()		-- place black screen if output node is not connected
+	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
 	
 	for k, v in ipairs(node.execOrder) do
 		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name) end
@@ -189,56 +191,18 @@ function funProcess()
 	bufout = node[outNode].bufOut
 
 	--update previews
+	---[[
 	if __global.preview then
 		img.toSurfaceQuad(bufout, surf)
-		sdl.screenPut(surf, 50, 20)
 	else
 		img.toSurface(bufout, surf)
 		bufoutS = img.scaleDownHQ(bufout,4)
-		img.toSurfaceQuad(bufoutS, surfS)
-		sdl.screenPut(surf, 50, 20)
+		img.toSurfaceQuad(bufoutS, surfS)--if full process then also update preview buffer
 	end
-
-	--hist.calculate(bufout)
-	node:draw()
-		toc("Process in")
-		tic()
-	coroutine.yield(-1)
-end
-
---no-process function
---[[
-function funProcess()
-	local outNode
-	for k, v in ipairs(node) do
-		if v.procFlags.output then outNode=k end
-	end
-	node[outNode].bufOut = buf:new()
-	node:draw()
-	coroutine.yield(-1)
-end
---]]
-
---calculate histograms
+	--]]
 
 
---function updating the image and controling processing
---processing control should be located in a different area which is being looped through!...or called from the input module
-local function imageProcess(flag)
-	-- no threadDone because there's no thread running for simple ops!
-	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
-		if cp==-1 then coProcess=coroutine.wrap(funProcess) end
-		--elseif cp~="pass" then lua.threadWait() end
-		--lua.threadWait()
-		cp = coProcess()
-	end
-
-	if __global.preview then
-		sdl.screenPut(surf, 50, 20)
-	else
-		sdl.screenPut(surf, 50, 20)
-	end
-
+	hist.calculate(bufout)
 	--[[
 	for i=1, 255 do
 	--wrap graphics
@@ -255,9 +219,25 @@ local function imageProcess(flag)
 		vLineAdd(i+910, 790 - math.floor(hist.h[i]), math.floor(hist.h[i]), r*255, g*255, b*255)
 	end
 	--]]
+
+	toc("Process in")
+	tic()
+	coroutine.yield(-1)
 end
 
---register imageDraw
+--function updating the image and checking when processing should be advanced
+local function imageProcess(flag)
+	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
+		if cp==-1 then coProcess=coroutine.wrap(funProcess) end -- if processing is done then start again
+		cp = coProcess() -- go to next step
+	end
+
+	sdl.screenPut(surf, 350, 20)
+
+	-- put histogram buffer
+end
+
+--register imageProcess
 node:setImageProcess(imageProcess)
 
 --eventually move to node lib with callbacks for some functions
@@ -347,8 +327,8 @@ while true do
 		if calcUpdate then
 		 	local size = buf.x
 			local progress = math.floor(size*lua.threadGetProgress())
-			boxFill(50,8,50+progress,12,128,128,128)
-			boxFill(50+progress,8,50+size,12,32,32,32)
+			boxFill(350,8,350+progress,12,128,128,128)
+			boxFill(350+progress,8,350+size,12,32,32,32)
 			sdl.flip()
 		end
 
@@ -364,7 +344,7 @@ while true do
 				--still, perform non-blocking and possibly threaded!
 					--improve interface for non-blocking ops with extra data passing!
 					--additional non-MT thread for non-blocking ops?
-				--node:draw()
+				node:draw()
 			else
 				if cp~="pass" then lua.threadWait() end
 				cp = coProcess()

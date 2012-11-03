@@ -288,11 +288,11 @@ node.backgrounds.node = __sdl.loadImage(__global.imgPath.."node_t.png")
 --destroy backgrounds at end?
 
 function node:draw(flag)
-	--__sdl.blankScreen()
-	--add own background image here
-	__sdl.blit(node.backgrounds.window, nil, __sdl.screen, nil)
-	self.imageProcess(flag)
-	drawNoodles(self)
+	-- see if drawing can be reduced when no update is available!!
+	__sdl.blit(node.backgrounds.window, nil, __sdl.screen, nil) --draws background
+	self.imageProcess(flag) -- puts image on screen
+	drawNoodles(self) -- draws noodles
+	
 	for n = #self,1,-1 do
 		self[self.order[n]]:draw()
 	end
