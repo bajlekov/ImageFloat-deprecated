@@ -233,22 +233,6 @@ function funProcess()
 
 
 	hist.calculate(bufout)
-	--[[
-	for i=1, 255 do
-	--wrap graphics
-		--dbg.warn("HISTOGRAM DRAWING")
-		-- hist to buffer after calc, only put to screen here!!
-		-- why isn't background always drawn below histogram??
-		vLineAdd(i+10, 790 - math.floor(hist.r[i]), math.floor(hist.r[i]), 128, 32, 32)
-		vLineAdd(i+10, 790 - math.floor(hist.g[i]), math.floor(hist.g[i]), 32, 128, 32)
-		vLineAdd(i+10, 790 - math.floor(hist.b[i]), math.floor(hist.b[i]), 32, 32, 128)
-
-		vLineAdd(i+310, 790 - math.floor(hist.l[i]), math.floor(hist.l[i]), 255, 255, i)
-		vLineAdd(i+610, 790 - math.floor(hist.c[i]), math.floor(hist.c[i]), 255, i, 255)
-		local r, g, b = HtoRGB(i/255)
-		vLineAdd(i+910, 790 - math.floor(hist.h[i]), math.floor(hist.h[i]), r*255, g*255, b*255)
-	end
-	--]]
 
 	toc("Process in ")
 	tic()
@@ -265,6 +249,41 @@ local function imageProcess(flag)
 	sdl.screenPut(surf, 350, 20)
 
 	-- put histogram buffer
+	for i=1, 255 do
+	--wrap graphics
+		--dbg.warn("HISTOGRAM DRAWING")
+		-- hist to buffer after calc, only put to screen here!!
+		-- why isn't background always drawn below histogram??
+		vLineAdd(i+10, __global.setup.windowSize[2]-10 - math.floor(hist.r[i]), math.floor(hist.r[i]), 128, 32, 32)
+		vLineAdd(i+10, __global.setup.windowSize[2]-10 - math.floor(hist.g[i]), math.floor(hist.g[i]), 32, 128, 32)
+		vLineAdd(i+10, __global.setup.windowSize[2]-10 - math.floor(hist.b[i]), math.floor(hist.b[i]), 32, 32, 128)
+
+		vLineAdd(i+10, __global.setup.windowSize[2]-110 - math.floor(hist.l[i]), math.floor(hist.l[i]), 128, 128, i/2)
+		vLineAdd(i+10, __global.setup.windowSize[2]-210 - math.floor(hist.c[i]), math.floor(hist.c[i]), 128, i/2, 128)
+		local r, g, b = HtoRGB(i/255)
+		vLineAdd(i+10, __global.setup.windowSize[2]-310 - math.floor(hist.h[i]), math.floor(hist.h[i]), r*128, g*128, b*128)
+	end
+
+		vLineAdd(10+255, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
+		vLineAdd(10, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
+
+		vLineAdd(197, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+		vLineAdd(147, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+		vLineAdd(110, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+		vLineAdd(83, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+		vLineAdd(64, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+		vLineAdd(49, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+
+		vLineAdd(53, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
+		vLineAdd(95, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
+		vLineAdd(138, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
+		vLineAdd(180, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
+		vLineAdd(223, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
+
+		__sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
+		__sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
+		__sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
+		__sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
 end
 
 --register imageProcess
@@ -357,6 +376,8 @@ node:draw()
 sdl.flip()
 while true do
 	mouse:update()
+	
+	-- some simple interface handling, move to separate function!
 	if mouse.key.num==115 then--"S"
 		print("Saving image: "..__global.setup.imageSaveName)
 		-- why is bufoutL never filled? use bufout as it's always set to bufoutL?
@@ -384,6 +405,9 @@ while true do
 		__global.info = not __global.info
 		node:draw()
 	end
+
+
+
 	if mouse.click[1] then
 		node:click() --run mouse updating loop till mouse released
 	else

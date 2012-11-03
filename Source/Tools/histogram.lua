@@ -46,7 +46,8 @@ local floor = math.floor
 local max = math.max
 
 function hist.calculate(buffer)
-	jit.flush()
+	print("start buffer calc")
+	--jit.flush()
 
 	local hr, hg, hb =hist.r, hist.g, hist.b
 	local hl, hc, hh =hist.l, hist.c, hist.h
@@ -70,6 +71,7 @@ function hist.calculate(buffer)
 			l = (l<0 and 0) or (l>1 and size) or floor(l*size)
 			c = (c<0 and 0) or (c>1 and size) or floor(c*size)
 			h = floor(h*size)
+			--print(r, g, b, l, c, h)
 			hr[r] = hr[r] + 1
 			hg[g] = hg[g] + 1
 			hb[b] = hb[b] + 1
@@ -80,7 +82,7 @@ function hist.calculate(buffer)
 	end
 
 	--normalisation
-	local mrgb, ml, mc, mh = 0, 0, 0, 0
+	local mrgb, ml, mc, mh = 1, 1, 1, 1 --prevents slowdowns and division by 0
 	for i=1, size-1 do
 		mrgb = max(mrgb, hr[i], hg[i], hb[i])
 		ml = max(ml, hl[i])
@@ -99,6 +101,8 @@ function hist.calculate(buffer)
 		hc[i] = hc[i]*mc
 		hh[i] = hh[i]*mh
 	end
+
+	print("end buffer calc")
 end
 
 return hist
