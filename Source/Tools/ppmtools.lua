@@ -28,16 +28,15 @@ end
 --]]
 
 --[[
-	APPEND b for windows to perform binary read from pipe!!!
-
 	exported (16bit):
 		ppm.readFile
 		ppm.readIM
 		ppm.readRAW
 		ppm.writeFile
 		ppm.writeIM
-		ppm.toBuffer
-		ppm.fromBuffer
+	
+	ppm.toBuffer
+	ppm.fromBuffer
 
 	todo:
 		ascii:		
@@ -51,20 +50,20 @@ end
 		Binary:
 			- read/write PFM binary files (64bit)
 				- semi-standard ppm header
-			- read/write binary data with structured headers (64bit) !!!
+			- read/write binary data with structured headers (64bit)
 				- python/octave interface
 			- read/write rgb raw data (64bit)
 				- IM pipe
 			ppm.writePFM
 			ppm.readPFM
 
-			buffer.writeRAW
-			buffer.readRAW
-			buffer.writeIM
-			buffer.readIM
+		buffer.writeRAW
+		buffer.readRAW
+		buffer.writeIM
+		buffer.readIM
 		
 		native:
-			- read/write native jpg, png, tiff, bmp ??? using SDL_image (only 8-bit)
+			- read/write native jpg, png, tiff, bmp using SDL_image (only 8-bit)
 			buffer.readSDL
 ]]
 
@@ -140,7 +139,7 @@ function ppm.writeIM(header, op)
 end
 
 function ppm.readFile(name)
-	local f = io.open(name, "r")
+	local f = io.open(name, "r"..(ffi.os=="Windows" and "b" or ""))
 	if f:read("*l")~="P6" then print("wrong format") return nil end
 	skip_comment(f)
 	local x, y, b = f:read("*n", "*n", "*n", "*l")

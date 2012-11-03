@@ -20,7 +20,7 @@ local lua
 
 --make arch-dependent!!
 if ffi.os == "Linux" then lua = ffi.load(__global.libPath.."libluajit.so") end
-if ffi.os == "Windows" then lua = ffi.load(__global.libPath.."lua51.dll") end
+if ffi.os == "Windows" then lua = ffi.load("lua51.dll") end
 
 ffi.cdef([[
 	typedef struct lua_State lua_State;
@@ -138,7 +138,7 @@ os.execute("i586-mingw32msvc-gcc -O3 -shared -fomit-frame-pointer -o lib/Windows
 if type(__sdl)=="table" then
 	local p, th
 	if ffi.os == "Linux" then p, th = pcall(ffi.load, __global.libPath.."libthread.so") end
-	if ffi.os == "Windows" then p, th = pcall(ffi.load, __global.libPath.."libthread.dll") end
+	if ffi.os == "Windows" then p, th = pcall(ffi.load, __global.libPath.."thread.dll") end
 
 	if p then
 
