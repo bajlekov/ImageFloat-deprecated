@@ -35,7 +35,6 @@ package.path = 	"./Build/?.lua;"..
 
 function loadlib(lib)
 	local path = __global.libPath
-	print(path)
 	local libname
 	if ffi.os=="Linux" then libname = "lib"..lib..".so" end
 	if ffi.os=="Windows" then libname = lib..".dll" end

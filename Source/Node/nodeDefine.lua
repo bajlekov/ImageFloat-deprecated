@@ -358,6 +358,7 @@ nodeTable["Output"] = function(self)
 			coroutine.yield(num)
 		else
 			print("*** node not connected")
+			-- needs to refresh buffer!
 		end
 		bufsIn = {}
 	end

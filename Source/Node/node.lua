@@ -278,9 +278,6 @@ function node:remove(n)
 	
 end
 
-os.execute("ls ../Resources/Images")
-print(__global.imgPath)
-
 node.backgrounds = {}
 node.backgrounds.window = __sdl.loadImage(__global.imgPath.."background.png")
 node.backgrounds.node = __sdl.loadImage(__global.imgPath.."node_t.png")
@@ -292,6 +289,11 @@ function node:draw(flag)
 	__sdl.blit(node.backgrounds.window, nil, __sdl.screen, nil) --draws background
 	self.imageProcess(flag) -- puts image on screen
 	drawNoodles(self) -- draws noodles
+
+	--help text
+	--text(t, font.normal, x+2, y+20+12*n)
+	--text(t, font.normal, x+2, y+20+12*n)
+	--text(t, font.normal, x+2, y+20+12*n)
 	
 	for n = #self,1,-1 do
 		self[self.order[n]]:draw()
@@ -343,9 +345,6 @@ function node:calcLevels()
 	for k, v in ipairs(node) do
 		if v.procFlags.output then table.insert(current, k) end
 	end
-
-
-	--fix to generate tree from output backwards, avoiding dead ends
 
 	local allProc = {}
 	local noProc

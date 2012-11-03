@@ -87,7 +87,7 @@ sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
 sdl.caption("ImageFloat 2 ...loading", "ImageFloat 2");
 require("draw")
 
-local fileName = arg and arg[1] or "img.ppm"
+__global.setup.imageLoadName = arg and arg[1] or __global.setup.imageLoadName
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
@@ -120,7 +120,7 @@ node:draw()
 sdl.flip()
 
 --read file
-print(fileName)
+print("Loading image: "..__global.setup.imageLoadName)
 local readFunTable = {
 	PPM = ppm.readFile,
 	IM = ppm.readIM,
@@ -128,9 +128,9 @@ local readFunTable = {
 }
 local readFun = readFunTable[__global.setup.imageLoadType]
 local imageTemp = ppm.toBuffer(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams))
-local bufO = img.scaleDownHQ(imageTemp, math.max(math.ceil(imageTemp.x/__global.setup.windowSize[1]),
-	math.ceil(imageTemp.y/__global.setup.windowSize[2])))
-sdl.caption("ImageFloat 2 [ "..fileName.." ]", "ImageFloat 2");
+local bufO = img.scaleDownHQ(imageTemp, math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
+	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
+sdl.caption("ImageFloat 2 [ "..__global.setup.imageLoadName.." ]", "ImageFloat 2");
 imageTemp = nil
 
 --working buffer pointers
@@ -180,6 +180,7 @@ function funProcess()
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
 	
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
+	
 	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
 	
 	for k, v in ipairs(node.execOrder) do
@@ -198,6 +199,8 @@ function funProcess()
 		img.toSurface(bufout, surf)
 		bufoutS = img.scaleDownHQ(bufout,4)
 		img.toSurfaceQuad(bufoutS, surfS)--if full process then also update preview buffer
+		print(bufout.data[0][0][0])
+		-- why is bufoutL not used??
 	end
 	--]]
 
@@ -220,7 +223,7 @@ function funProcess()
 	end
 	--]]
 
-	toc("Process in")
+	toc("Process in ")
 	tic()
 	coroutine.yield(-1)
 end
@@ -257,18 +260,23 @@ function node:click()
 					end
 					lua.threadStop() -- stop processing
 					self:calcLevels()
+					calcUpdate = true
 					bufSet("L")
 					coProcess=coroutine.wrap(funProcess) -- reset coroutine
 					coProcess()
+					self:draw()
 				end
 			elseif t=="connR" then
 				if self[n].conn_o[p]~=nil then --if port exists
 					self:noodleDrag(n, p)
 					lua.threadStop() -- stop processing
 					self:calcLevels()
+					
+					calcUpdate = true
 					bufSet("L")
 					coProcess=coroutine.wrap(funProcess) -- reset coroutine
 					coProcess()
+					self:draw()
 				end
 			elseif t=="title" then
 				if self.mouse.x>=self[n].ui.x+130 and --delete node
@@ -291,9 +299,11 @@ function node:click()
 					bufSet("S")
 					coProcess=coroutine.wrap(funProcess) --create coroutine process
 					cp = coProcess()	--start coroutine process
-					calcUpdate = true
-					self:paramDrag(n, p)
+					
+					self:paramDrag(n, p) --loop while dragging slider
+					
 					lua.threadStop() -- stop processing
+					calcUpdate = true
 					bufSet("L")
 					coProcess=coroutine.wrap(funProcess) -- reset coroutine
 					coProcess()
@@ -320,6 +330,20 @@ node:draw()
 sdl.flip()
 while true do
 	mouse:update()
+	if mouse.key.num==115 then--"S"
+		print("Saving image: "..__global.setup.imageSaveName)
+		-- why is bufoutL never filled? use bufout as it's always set to bufoutL?
+		local writeFunTable = {
+			PPM = ppm.writeFile,
+			IM = ppm.writeIM,
+		}
+		local writeFun = writeFunTable[__global.setup.imageSaveType]
+
+		d = ppm.fromBuffer(bufout)
+		d.name = __global.setup.imageSaveName
+		writeFun(d, __global.setup.imageSaveParams)
+		d = nil
+	end
 	if mouse.click[1] then
 		node:click() --run mouse updating loop till mouse released
 	else
@@ -344,7 +368,9 @@ while true do
 				--still, perform non-blocking and possibly threaded!
 					--improve interface for non-blocking ops with extra data passing!
 					--additional non-MT thread for non-blocking ops?
-				node:draw()
+				--img.toSurface(bufout, surf)
+				node:draw() -- does not redraw automatically
+				--node:draw()
 			else
 				if cp~="pass" then lua.threadWait() end
 				cp = coProcess()

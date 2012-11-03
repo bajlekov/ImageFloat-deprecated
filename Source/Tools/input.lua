@@ -97,7 +97,10 @@ return function(SDL)
 		if key[307]==1 or key[308]==1 then self.mod.alt=true else self.mod.alt=false end
 
 		if key[32]==1 then self.mod.space=true else self.mod.space=false end
-		
+
+		--debug keyboard
+		--if self.key.num then print(self.key.num==115) end
+
 		--[[from sdl_keysym.h:
 		SDLK_UP			= 273,
 		SDLK_DOWN		= 274,
@@ -115,6 +118,35 @@ return function(SDL)
 		SDLK_RSUPER		= 312,		/**< Right "Windows" key */
 		SDLK_MODE		= 313,
 		--]]
+
+		--[[
+		SDLK_a = 97,
+		SDLK_b = 98,
+		SDLK_c = 99,
+		SDLK_d = 100,
+		SDLK_e = 101,
+		SDLK_f = 102,
+		SDLK_g = 103,
+		SDLK_h = 104,
+		SDLK_i = 105,
+		SDLK_j = 106,
+		SDLK_k = 107,
+		SDLK_l = 108,
+		SDLK_m = 109,
+		SDLK_n = 110,
+		SDLK_o = 111,
+		SDLK_p = 112,
+		SDLK_q = 113,
+		SDLK_r = 114,
+		SDLK_s = 115,
+		SDLK_t = 116,
+		SDLK_u = 117,
+		SDLK_v = 118,
+		SDLK_w = 119,
+		SDLK_x = 120,
+		SDLK_y = 121,
+		SDLK_z = 122,
+		]]
 
 		-- event functions like on_click etc.
 
