@@ -31,16 +31,15 @@ package.path = 	"./Build/?.lua;"..
 local ffi = require("ffi")
 _G.ffi = ffi
 
--- require('debugger')
--- gc in threads causes problems
--- multithreading not active??
--- solve noodle flickering
--- refactor code
--- fix add-node
--- segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
--- connect color HCLAB to output, then switch to split directly ?? still
+--	refactor code
+--	fix add-node
 
---check efficiency of passing processing arguments in buffers?
+-- 		segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
+-- 		connect color HCLAB to output, then switch to split directly ?? still
+
+--	check efficiency of passing processing arguments in buffers?
+
+
 print([[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
 This program comes WITHOUT ANY WARRANTY.
@@ -51,10 +50,10 @@ This is free software, and you are welcome to redistribute it under the conditio
 __global = {preview = true, error=false}
 __global.setup = require("IFsetup")
 
--- setup paths for libraries and resources
-__global.libPath = "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
-__global.imgPath = "../Resources/Images/"
-__global.ttfPath = "../Resources/Fonts/"
+-- setup paths for libraries and resources (do that for threads too!!)
+__global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
+__global.imgPath = __global.setup.imgPath or "../Resources/Images/"
+__global.ttfPath = __global.setup.ttfPath or "../Resources/Fonts/"
 
 math.randomseed(os.time())
 
@@ -74,15 +73,9 @@ __img = img
 --end
 
 --if running source code then build bytecode, otherwise don't
-local release = false
-if release then
-	if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
-	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "./Threads/threadFunc.lua")
-else
-	lua.threadInit(arg and arg[2] or __global.setup.numThreads, "./Threads/threadFunc.lua")
-end
-
-
+--check whether running source or bytecode
+--if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
+lua.threadInit(arg and arg[2] or __global.setup.numThreads, __global.setup.threadPath)
 
 --initialise threads, display, input, fonts
 --print("using "..lua.numCores.." threads...")
