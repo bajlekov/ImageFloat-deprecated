@@ -136,9 +136,6 @@ local bufZ = ppm.toBufferCrop(readFun(__global.setup.imageLoadName, __global.set
 sdl.caption("ImageFloat [ "..__global.setup.imageLoadName.." ]", "ImageFloat");
 imageTemp = nil
 
-print(bufO.x, bufO.y)
-print(bufZ.x, bufZ.y)
-
 --working buffer pointers
 local buf
 local bufout
@@ -231,10 +228,11 @@ function funProcess()
 	end
 	--]]
 
-
-	hist.calculate(bufout)
-
+	
 	toc("Process in ")
+	tic()
+	hist.calculate(bufout)
+	toc("Histogram in ")
 	tic()
 	coroutine.yield(-1)
 end
@@ -247,7 +245,6 @@ local function imageProcess(flag)
 	end
 
 	sdl.screenPut(surf, 350, 20)
-
 	-- put histogram buffer
 	for i=1, 255 do
 	--wrap graphics
@@ -264,21 +261,24 @@ local function imageProcess(flag)
 		vLineAdd(i+10, __global.setup.windowSize[2]-310 - math.floor(hist.h[i]), math.floor(hist.h[i]), r*128, g*128, b*128)
 	end
 
-		vLineAdd(10+255, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
+		vLineAdd(266, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
 		vLineAdd(10, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
 
-		vLineAdd(197, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(147, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(110, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(83, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(64, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(49, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+		vLineAdd(197, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(147, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(110, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(83, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(64, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(49, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
 
-		vLineAdd(53, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(95, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(138, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(180, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(223, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
+		vLineAdd(53, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(95, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(138, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(180, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(223, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+
+		hLineAdd(11, __global.setup.windowSize[2]-410, 255, 64, 64, 64)
+		hLineAdd(10, __global.setup.windowSize[2]-10, 257, 64, 64, 64)
 
 		__sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
 		__sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
@@ -405,7 +405,9 @@ while true do
 		__global.info = not __global.info
 		node:draw()
 	end
-
+	if mouse.key.num==113 then--"Q"
+		os.exit()
+	end
 
 
 	if mouse.click[1] then
