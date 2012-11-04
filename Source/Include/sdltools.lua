@@ -64,7 +64,7 @@ os.execute([=[echo '#include <SDL.h> \n #include <SDL_ttf.h> \n #include <SDL_im
 os.execute([=[gcc -I /usr/include/SDL -E stub.c | grep -v '^#' > SDL.h]=])
 --]]
 
-ffi.cdef(io.open('./Include/SDL.h', 'r'):read('*a'))
+ffi.cdef(io.open(__global.setup.incPath.."SDL.h", "r"):read('*a'))
 io.close()
 
 ffi.cdef([[

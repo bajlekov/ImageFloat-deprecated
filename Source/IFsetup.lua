@@ -17,10 +17,12 @@ return {
 	imageSaveName = "../Resources/Photos/out.ppm",
 
 	--Paths
-	threadPath = "./Threads/threadFunc.lua",
+	--threadPath = "./Threads/threadFunc.lua",
+	threadPath = "./Thread.lua",
 	libPath = nil,
 	imgPath = "../Resources/Images/",
 	ttfPath = "../Resources/Fonts/",
+	incPath = "./Include/",
 
 	--library names
 }
