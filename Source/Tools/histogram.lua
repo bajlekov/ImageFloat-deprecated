@@ -46,8 +46,7 @@ local floor = math.floor
 local max = math.max
 
 function hist.calculate(buffer)
-	print("start buffer calc")
-	--jit.flush()
+	jit.flush()
 
 	local hr, hg, hb =hist.r, hist.g, hist.b
 	local hl, hc, hh =hist.l, hist.c, hist.h
@@ -101,8 +100,6 @@ function hist.calculate(buffer)
 		hc[i] = hc[i]*mc
 		hh[i] = hh[i]*mh
 	end
-
-	print("end buffer calc")
 end
 
 return hist
