@@ -55,12 +55,6 @@ function vLine(x,y,l,r,g,b)
 	end
 end
 
-function hLineAdd(x,y,l,r,g,b)
-  for x = x, x+l-1 do
-    pixelAdd(x,y,r,g,b)
-  end
-end
-
 function vLineAdd(x,y,l,r,g,b)
   for y = y, y+l-1 do
     pixelAdd(x,y,r,g,b)
