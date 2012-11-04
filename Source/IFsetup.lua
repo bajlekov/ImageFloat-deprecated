@@ -9,12 +9,14 @@ return {
 	
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
-	imageLoadName = "../Resources/Photos/img16.ppm",
+	imageLoadName = "img16.ppm",
+	imageLoadPath = "../Resources/Photos/",
 
 	--NYI
 	imageSaveType = "PPM", -- PPM / IM / FPM
 	imageSaveParams = "",
-	imageSaveName = "../Resources/Photos/out.ppm",
+	imageSaveName = "out.ppm",
+	imageSavePath = "../Resources/Photos/",
 
 	--Paths
 	--threadPath = "./Threads/threadFunc.lua",

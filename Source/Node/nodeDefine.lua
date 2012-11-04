@@ -25,7 +25,7 @@ local nodeTable = {}
 
 nodeTable["Input"] = function(self)
 	local n=self:new("Input")
-	n.param:add("File:", "img16.ppm", "text")
+	n.param:add("File:", __global.setup.imageLoadName, "text")
 	n.param:add("", "Coulour", "text")
 	n.param:add("", "Greyscale", "text")
 	n.conn_o:add(2)

@@ -87,7 +87,8 @@ sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
 sdl.caption("ImageFloat...loading", "ImageFloat");
 require("draw")
 
-__global.setup.imageLoadName = arg and arg[1] or __global.setup.imageLoadName
+__global.loadFile = arg and arg[1] or __global.setup.imageLoadPath..__global.setup.imageLoadName
+__global.saveFile = __global.setup.imageSavePath..__global.setup.imageSaveName
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
@@ -128,12 +129,12 @@ local readFunTable = {
 }
 local readFun = readFunTable[__global.setup.imageLoadType]
 
-local imageTemp = ppm.toBuffer(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams))
+local imageTemp = ppm.toBuffer(readFun(__global.loadFile, __global.setup.imageLoadParams))
 local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
 	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
-local bufZ = ppm.toBufferCrop(readFun(__global.setup.imageLoadName, __global.setup.imageLoadParams), bufO.x, bufO.y)
-sdl.caption("ImageFloat [ "..__global.setup.imageLoadName.." ]", "ImageFloat");
+local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
+sdl.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
 imageTemp = nil
 
 print(bufO.x, bufO.y)
@@ -264,21 +265,24 @@ local function imageProcess(flag)
 		vLineAdd(i+10, __global.setup.windowSize[2]-310 - math.floor(hist.h[i]), math.floor(hist.h[i]), r*128, g*128, b*128)
 	end
 
-		vLineAdd(10+255, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
+		vLineAdd(266, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
 		vLineAdd(10, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
 
-		vLineAdd(197, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(147, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(110, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(83, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(64, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
-		vLineAdd(49, __global.setup.windowSize[2]-310, 300, 32, 32, 32)
+		vLineAdd(197, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(147, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(110, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(83, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(64, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+		vLineAdd(49, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
 
-		vLineAdd(53, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(95, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(138, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(180, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
-		vLineAdd(223, __global.setup.windowSize[2]-410, 100, 32, 32, 32)
+		vLineAdd(53, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(95, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(138, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(180, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+		vLineAdd(223, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+
+		hLineAdd(10, __global.setup.windowSize[2]-411, 257, 64, 64, 64)
+		hLineAdd(10, __global.setup.windowSize[2]-10, 257, 64, 64, 64)
 
 		__sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
 		__sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
@@ -379,7 +383,7 @@ while true do
 	
 	-- some simple interface handling, move to separate function!
 	if mouse.key.num==115 then--"S"
-		print("Saving image: "..__global.setup.imageSaveName)
+		print("Saving image: "..__global.saveFile)
 		-- why is bufoutL never filled? use bufout as it's always set to bufoutL?
 		local writeFunTable = {
 			PPM = ppm.writeFile,
@@ -388,7 +392,7 @@ while true do
 		local writeFun = writeFunTable[__global.setup.imageSaveType]
 
 		d = ppm.fromBuffer(bufout)
-		d.name = __global.setup.imageSaveName
+		d.name = __global.saveFile
 		writeFun(d, __global.setup.imageSaveParams)
 		d = nil
 	end
