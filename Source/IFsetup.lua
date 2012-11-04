@@ -9,7 +9,7 @@ return {
 	
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
-	imageLoadName = "img16.ppm",
+	imageLoadName = "img.ppm",
 	imageLoadPath = "../Resources/Photos/",
 
 	--NYI
@@ -19,8 +19,8 @@ return {
 	imageSavePath = "../Resources/Photos/",
 
 	--Paths
-	--threadPath = "./Threads/threadFunc.lua",
-	threadPath = "./Thread.lua",
+	threadPath = "./Threads/threadFunc.lua",
+	--threadPath = "./Thread.lua",
 	libPath = nil,
 	imgPath = "../Resources/Images/",
 	ttfPath = "../Resources/Fonts/",

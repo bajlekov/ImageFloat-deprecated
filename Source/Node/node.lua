@@ -53,8 +53,13 @@ function node:paramDrag(n, p)
 		v = v + self.mouse.dx/148/fac*vrange
 		if v>vmax then v=vmax end
 		if v<vmin then v=vmin end
-		if self.mouse.mod.ctrl then v = self[n].param[p].value[4] end
-		self[n].param[p].value[1] = v
+		if self.mouse.mod.alt then v = self[n].param[p].value[4] end
+		if self.mouse.mod.ctrl then
+			local unit = vrange/(self.mouse.mod.shift and 100 or 10)
+			self[n].param[p].value[1] = vmin + math.floor(((v-vmin)/unit+0.5))*unit
+		else
+			self[n].param[p].value[1] = v
+		end
 		self[n].ui.draw=true
 		self:draw("process")
 	end
