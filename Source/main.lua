@@ -409,6 +409,9 @@ while true do
 		__global.info = not __global.info
 		node:draw()
 	end
+	if mouse.key.num==113 then--"Q"
+		os.exit()
+	end
 
 
 
