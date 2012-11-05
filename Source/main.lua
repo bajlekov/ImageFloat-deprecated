@@ -50,7 +50,7 @@ This is free software, and you are welcome to redistribute it under the conditio
 __global = {preview = true, error=false, info=true}
 local __global = __global
 __global.setup = require("IFsetup")
-__global.setup.bufferPrecision = __global.setup.bufferPrecision or {"single", 4}
+__global.setup.bufferPrecision = __global.setup.bufferPrecision or {"float", 4}
 
 -- setup paths for libraries and resources (do that for threads too!!)
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
