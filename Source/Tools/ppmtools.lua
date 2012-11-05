@@ -204,7 +204,7 @@ function ppm.toBuffer(header)
 	buffer.y = header.res.y
 	buffer.z = 3
 	buffer.type = 4
-	buffer.data = ffi.new("double["..tonumber(buffer.x).."]["..tonumber(buffer.y).."][3]")
+	buffer.data = ffi.new(__global.setup.bufferPrecision[1].."["..tonumber(buffer.x).."]["..tonumber(buffer.y).."][3]")
 	buffer.cs = "SRGB"
 	local scale = header.depth==8 and 1/(2^8-1) or 1/(2^16-1)
 	for x = 0, buffer.x-1 do
@@ -226,7 +226,7 @@ function ppm.toBufferCrop(header, newX, newY)
 	local fullX = header.res.x
 	buffer.z = 3
 	buffer.type = 4
-	buffer.data = ffi.new("double["..tonumber(buffer.x).."]["..tonumber(buffer.y).."][3]")
+	buffer.data = ffi.new(__global.setup.bufferPrecision[1].."["..tonumber(buffer.x).."]["..tonumber(buffer.y).."][3]")
 	buffer.cs = "SRGB"
 	local scale = header.depth==8 and 1/(2^8-1) or 1/(2^16-1)
 	for x = 0, buffer.x-1 do

@@ -18,6 +18,8 @@
 local ffi = require "ffi"
 local img = {}
 
+local prec = __global.setup.bufferPrecision
+
 function img.newBuffer(a, b, c)
 	local out = {}
 	--properties
@@ -25,7 +27,7 @@ function img.newBuffer(a, b, c)
 		out.x = 1
 		out.y = 1
 		out.z = 1
-		out.data = ffi.new("double[1][1][1]")
+		out.data = ffi.new(prec[1].."[1][1][1]")
 		out.data[0][0][0] = a
 		out.type = 1
 		out.cs = "MAP"
@@ -33,7 +35,7 @@ function img.newBuffer(a, b, c)
 		out.x = a
 		out.y = b
 		out.z = c
-		out.data = ffi.new("double["..a.."]["..b.."]["..c.."]")
+		out.data = ffi.new(prec[1].."["..a.."]["..b.."]["..c.."]")
 		if a==1 and b==1 then
 			if c==1 then
 				out.type = 1
@@ -55,7 +57,7 @@ function img.newBuffer(a, b, c)
 		out.x = 1
 		out.y = 1
 		out.z = 3
-		out.data = ffi.new("double[1][1][3]")
+		out.data = ffi.new(prec[1].."[1][1][3]")
 		out.data[0][0][0] = a[1]
 		out.data[0][0][1] = a[2]
 		out.data[0][0][2] = a[3]
@@ -101,10 +103,10 @@ function img.copy(buffer)
 	out.x = buffer.x
 	out.y = buffer.y
 	out.z = buffer.z
-	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = buffer.cs
 	out.type = buffer.type
-	ffi.copy(out.data, buffer.data, buffer.x*buffer.y*buffer.z*8)
+	ffi.copy(out.data, buffer.data, buffer.x*buffer.y*buffer.z*prec[2])
 	return out
 end
 
@@ -113,7 +115,7 @@ function img.new(buffer)
 	out.x = buffer.x
 	out.y = buffer.y
 	out.z = buffer.z
-	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = buffer.cs
 	out.type = buffer.type
 	return out
@@ -124,7 +126,7 @@ function img.copyGS(buffer)
 	out.x = buffer.x
 	out.y = buffer.y
 	out.z = 1
-	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "MAP"
 	out.type = buffer.type
 	if out.type==4 then
@@ -154,7 +156,7 @@ function img.newGS(buffer)
 	out.x = buffer.x
 	out.y = buffer.y
 	out.z = 1
-	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "MAP"
 	out.type = buffer.type
 	if out.type==4 then
@@ -170,7 +172,7 @@ function img.copyColor(buffer)
 	out.x = buffer.x
 	out.y = buffer.y
 	out.z = 3
-	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "SRGB"
 	out.type = buffer.type
 	if out.type==3 then
@@ -203,7 +205,7 @@ function img.newColor(buffer)
 	out.x = buffer.x
 	out.y = buffer.y
 	out.z = 3
-	out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 	out.cs = "SRGB"
 	out.type = buffer.type
 	if out.type==3 then
@@ -248,11 +250,11 @@ do
 		end
 		local f = io.open(fname, "r")
 		local res_s = f:read(16)
-		local res_d = ffi.cast("double*", res_s)
+		local res_d = ffi.cast(prec[1].."*", res_s)
 		local x, y = res_d[0], res_d[1]
 		
 		buffer.x, buffer.y, buffer.z = x, y, 3
-		buffer.data = ffi.new("double["..x.."]["..y.."][3]")
+		buffer.data = ffi.new(prec[1].."["..x.."]["..y.."][3]")
 
 		bufread(buffer.data, x*y*3, f)
 		f:close()
@@ -286,7 +288,7 @@ do
 		end
 		print("Loading: "..name)
 		local x, y, z = buffer.x, buffer.y, buffer.z
-		buffer.data = ffi.new("double["..x.."]["..y.."][3]")
+		buffer.data = ffi.new(prec[1].."["..x.."]["..y.."][3]")
 
 		local f = io.popen("convert -define quantum:format=floating-point -depth 64 -size "..buffer.y.."x"..buffer.x..
 			" "..name.." -transpose "..op.." rgb:-", "r")

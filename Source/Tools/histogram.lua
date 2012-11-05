@@ -35,12 +35,12 @@ end
 local size = 256
 local height = 100
 local hist = {}
-hist.r = ffi.new("double[?]",size+1)
-hist.g = ffi.new("double[?]",size+1)
-hist.b = ffi.new("double[?]",size+1)
-hist.l = ffi.new("double[?]",size+1)
-hist.c = ffi.new("double[?]",size+1)
-hist.h = ffi.new("double[?]",size+1)
+hist.r = ffi.new("int[?]",size+1)
+hist.g = ffi.new("int[?]",size+1)
+hist.b = ffi.new("int[?]",size+1)
+hist.l = ffi.new("int[?]",size+1)
+hist.c = ffi.new("int[?]",size+1)
+hist.h = ffi.new("int[?]",size+1)
 
 local floor = math.floor
 local max = math.max
@@ -52,12 +52,12 @@ function hist.calculate(buffer)
 	local hl, hc, hh =hist.l, hist.c, hist.h
 
 	--clear histograms
-	ffi.fill(hr, (size+1)*8)
-	ffi.fill(hg, (size+1)*8)
-	ffi.fill(hb, (size+1)*8)
-	ffi.fill(hl, (size+1)*8)
-	ffi.fill(hc, (size+1)*8)
-	ffi.fill(hh, (size+1)*8)
+	ffi.fill(hr, (size+1)*4)
+	ffi.fill(hg, (size+1)*4)
+	ffi.fill(hb, (size+1)*4)
+	ffi.fill(hl, (size+1)*4)
+	ffi.fill(hc, (size+1)*4)
+	ffi.fill(hh, (size+1)*4)
 
 	--count occurences
 	for x = 0, buffer.x-1 do --buffer.x shows double size

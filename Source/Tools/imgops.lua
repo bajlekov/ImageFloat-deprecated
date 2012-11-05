@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+local prec = __global.setup.bufferPrecision
+
 return function(img)
 
 	--float buffer square aperture scaling
@@ -24,9 +26,9 @@ return function(img)
 		out.y = math.ceil(buffer.y / sc)
 		out.z = buffer.z
 		out.type = buffer.type
-		out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
 		out.cs = buffer.cs
-		local count = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]")
+		local count = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]")
 		for x = 0, buffer.x-1 do
 			local nx = math.floor(x/sc)
 			for y = 0, buffer.y-1 do
@@ -54,9 +56,9 @@ return function(img)
 		out.y = math.ceil(buffer.y / sc)
 		out.z = buffer.z
 		out.type = buffer.type
-		out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
 		out.cs = buffer.cs
-		local count = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."]")
+		local count = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]")
 		for x = 0, buffer.x-1 do
 			local nx = math.floor(x/sc)
 			local rx = math.abs(x % sc - 0.5 * sc)
@@ -86,7 +88,7 @@ return function(img)
 		out.y = math.ceil(buffer.y / sc)
 		out.z = buffer.z
 		out.type = buffer.type
-		out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
 			local nx = x*sc
@@ -107,7 +109,7 @@ return function(img)
 		out.y = math.floor(buffer.y * sc)
 		out.z = buffer.z
 		out.type = buffer.type
-		out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
 			local nx = math.floor(x/sc)
@@ -127,7 +129,7 @@ return function(img)
 		out.y = math.floor(buffer.y / 4)
 		out.z = buffer.z
 		out.type = buffer.type
-		out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
 			for y = 0, out.y-1 do
@@ -145,7 +147,7 @@ return function(img)
 		out.y = buffer.y * 4
 		out.z = buffer.z
 		out.type = buffer.type
-		out.data = ffi.new("double["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
 		out.cs = buffer.cs
 		for x = 0, buffer.x-1 do
 			for y = 0, buffer.y-1 do

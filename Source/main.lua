@@ -50,6 +50,7 @@ This is free software, and you are welcome to redistribute it under the conditio
 __global = {preview = true, error=false, info=true}
 local __global = __global
 __global.setup = require("IFsetup")
+__global.setup.bufferPrecision = __global.setup.bufferPrecision or {"single", 4}
 
 -- setup paths for libraries and resources (do that for threads too!!)
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
@@ -215,7 +216,7 @@ function funProcess()
 	for k, v in ipairs(node.execOrder) do
 		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name) end
 		node[v]:processRun(k)
-		--print("node:", k, v)
+		print("node:", k, v)
 	end
 
 	bufout = node[outNode].bufOut
@@ -231,12 +232,12 @@ function funProcess()
 		-- why is bufoutL not used??
 	end
 	--]]
-
-
+	print("prehist")
 	hist.calculate(bufout)
-
+	print("posthist")
 	toc("Process in ")
 	tic()
+
 	coroutine.yield(-1)
 end
 

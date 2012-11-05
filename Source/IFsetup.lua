@@ -6,6 +6,7 @@
 return {
 	windowSize = {1280, 600},
 	numThreads = 4,
+	bufferPrecision = {"double",8},
 	
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",

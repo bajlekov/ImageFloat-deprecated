@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-print("Thread setup...")
+print("Thread initialisation...")
 
 local ffi = require("ffi")
 
@@ -82,7 +82,7 @@ function setup() -- set up instance for processing after node parameters are pas
 	local bufdata={}
 	local b = ffi.cast("void**", b)
 	for i = 1, ibuf+obuf do
-		bufdata[i] = ffi.cast("double*", b[i])
+		bufdata[i] = ffi.cast(__global.setup.bufferPrecision[1].."*", b[i])
 		--print("*", i, bufdata[i])
 	end
 	b = nil -- leave only bufdata, actual data is kept referenced in original thread
