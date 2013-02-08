@@ -15,10 +15,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
-    Adapted from: Chuan-kai Lin, Portland State University (2004). "Pixel Grouping for Color Filter Array Demosaicing"
-    (https://sites.google.com/site/chklin/demosaic/)
-
 --]]
 
 

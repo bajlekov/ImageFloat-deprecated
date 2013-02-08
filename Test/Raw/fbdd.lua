@@ -16,8 +16,8 @@
 
 
 
-    Adapted from: L. Zhang and X. Wu, Color demosaicking via directional linear minimum mean square-error estimation,
-    IEEE Trans. on Image Processing, vol. 14, pp. 2167-2178, Dec. 2005.
+    Adapted from: Jacek Góźdź and Luis Sanz Rodríguez (cuniek@kft.umcs.lublin.pl, luis.sanz.rodriguez@gmail.com)
+    http://www.linuxphoto.org/html/algorithms.html
 
 --]]
 

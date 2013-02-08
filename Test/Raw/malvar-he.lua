@@ -16,8 +16,8 @@
 
 
 
-    Adapted from: L. Zhang and X. Wu, Color demosaicking via directional linear minimum mean square-error estimation,
-    IEEE Trans. on Image Processing, vol. 14, pp. 2167-2178, Dec. 2005.
+    Adapted from: Getreuer, Pascal. “Malvar-He-Cutler Linear Image Demosaicking.”
+	Image Processing On Line 2011 (2011). http://dx.doi.org/10.5201/ipol.2011.g_mhcd
 
 --]]
 

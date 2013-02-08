@@ -38,8 +38,6 @@ local function SRGBtoLRGB(i)
 	return i<=k and i*f_1 or ((i+aa)*a_1)^G
 end
 
-print(f_1)
-
 -- create c library for vectorised calculation of above functions
 os.execute ("gcc -O2 -march=native -fPIC -c Test/sse.c -o Test/sse.o")
 os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
