@@ -16,7 +16,7 @@
 ]]
 
 --require("../Lua/lua_utils.lua")
-require("node_draw")
+require("nodeDraw")
 local node = {order = {}, execOrder = {}, levels = {}, noExec = {}, exec = {}}
 
 function node:setInput(input)

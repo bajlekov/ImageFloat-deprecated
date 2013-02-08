@@ -6,7 +6,7 @@
 return {
 	windowSize = {1280, 600},
 	numThreads = 4,
-	bufferPrecision = {"double",8},
+	bufferPrecision = {"float",4}, -- {"float", 4} or {"double", 8}
 	
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
@@ -21,7 +21,6 @@ return {
 
 	--Paths
 	threadPath = "./Threads/threadFunc.lua",
-	--threadPath = "./Thread.lua",
 	libPath = nil,
 	imgPath = "../Resources/Images/",
 	ttfPath = "../Resources/Fonts/",

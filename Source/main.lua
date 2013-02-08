@@ -15,10 +15,10 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local ffi = ffi
-
 -- setup paths if not loading bytecode
-package.path = 	"./Build/?.lua;"..
+package.path = 	"./?.lua;"..
+				"./Setup/?.lua;"..
+				"./Build/?.lua;"..
 				"./Draw/?.lua;"..
 				"./Include/?.lua;"..
 				"./Interop/?.lua;"..
@@ -31,13 +31,14 @@ package.path = 	"./Build/?.lua;"..
 local ffi = require("ffi")
 _G.ffi = ffi
 
+-- TODO
 --	refactor code
---	fix add-node
-
--- 		segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
--- 		connect color HCLAB to output, then switch to split directly ?? still
-
 --	check efficiency of passing processing arguments in buffers?
+-- FIXME
+--	fix add-node
+-- 	segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
+-- 	connect color HCLAB to output, then switch to split directly ?? still
+-- 
 
 
 print([[
@@ -65,7 +66,6 @@ local dbg = require("dbgtools")
 local ppm = require("ppmtools")
 local img = require("imgtools")
 
-
 --put often-used libs in a global namespace and index from there, not as independent globals
 __dbg = dbg
 __img = img
@@ -78,12 +78,11 @@ __img = img
 --if running source code then build bytecode, otherwise don't
 --check whether running source or bytecode
 --if arg[0]:sub(#arg[0]-3, #arg[0])==".lua" then os.execute("./build.sh") end
-lua.threadInit(arg and arg[2] or __global.setup.numThreads, __global.setup.threadPath)
 
---initialise threads, display, input, fonts
---print("using "..lua.numCores.." threads...")
+lua.threadInit(arg and arg[2] or __global.setup.numThreads, __global.setup.threadPath)
 sdl.init()
---create init file
+--initialise threads, display, input, fonts
+
 sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
 sdl.caption("ImageFloat...loading", "ImageFloat");
 require("draw")

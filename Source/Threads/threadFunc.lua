@@ -17,13 +17,9 @@
 
 print("Thread initialisation...")
 
-local ffi = require("ffi")
-
-__global = {}
-__global.setup = require("IFsetup")
-__global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
-
-package.path = 	"./Build/?.lua;"..
+package.path = 	"./?.lua;"..
+				"./Setup/?.lua;"..
+				"./Build/?.lua;"..
 				"./Draw/?.lua;"..
 				"./Include/?.lua;"..
 				"./Interop/?.lua;"..
@@ -32,6 +28,12 @@ package.path = 	"./Build/?.lua;"..
 				"./Ops/?.lua;"..
 				"./Threads/?.lua;"..
 				"./Tools/?.lua;"..package.path
+
+local ffi = require("ffi")
+
+__global = {}
+__global.setup = require("IFsetup")
+__global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
 function loadlib(lib)
 	local path = __global.libPath
@@ -45,7 +47,7 @@ function loadlib(lib)
 		print("no user library found, trying supplied library "..lib)
 		p, t = pcall(ffi.load, path..libname)
 	end
-
+	
 	if p then
 		return t
 	else

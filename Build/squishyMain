@@ -13,7 +13,7 @@ Module "boolops" "../Source/Math/boolops.lua"
 Module "histogram" "../Source/Tools/histogram.lua"
 Module "input" "../Source/Tools/input.lua"
 Module "imgops" "../Source/Tools/imgops.lua"
-Module "node_draw" "../Source/Node/node_draw.lua"
+Module "node_draw" "../Source/Node/nodeDraw.lua"
 Module "opsCS" "../Source/Ops/opsCS.lua"
 
 Output "ImageFloat.lua"
