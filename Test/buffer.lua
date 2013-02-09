@@ -26,6 +26,124 @@ ffi.cdef[[
 	void free ( void * ptr );
 ]]
 
+local function allocf(size)
+	return ffi.gc(ffi.cast("float*", ffi.C.calloc(size, 4)), ffi.C.free)
+end
+
+local function allocd(size)
+	return ffi.gc(ffi.cast("double*", ffi.C.calloc(size, 8)), ffi.C.free)
+end
+
+local alloc = allocf
+
+local buffer = {}
+buffer.meta={}
+buffer.metaDebug={}
+
+-- indexing with array bounds checking
+function buffer.metaDebug.__newindex(t, k, v) --set
+	if k>(t.x*t.y*t.z-1) or k<0 then
+		print(debug.traceback("WARNING: Assignment outside array bounds, element "..k.." of "..t.x*t.y*t.z.."."))
+		-- automatic resizing for array lib
+	else
+		t.data[k] = v
+	end
+end
+
+function buffer.meta.__newindex(t, k, v) --set
+	k = type(k)=="table" and (k[1]*t.y*t.z + k[2]*t.z + k[3]) or k
+	t.data[k] = v
+end
+
+function buffer:get(x,y,z)
+	return self.data[x*self.y*self.z + y*self.z + z]
+end
+
+function buffer:set(x,y,z, v)
+	self.data[x*self.y*self.z + y*self.z + z] = v
+end
+
+
+function buffer.metaDebug.__index(t, k) --get
+	if k>(t.x*t.y*t.z-1) or k<0 then
+		print(debug.traceback("WARNING: Index outside array bounds, element "..k.." of "..t.x*t.y*t.z.."."))
+		return 0
+		-- automatic resizing for array lib
+	else
+		return t.data[k]
+	end
+end
+
+function buffer.meta.__index(t, k) --get
+	return t.data[k]
+end
+
+function buffer:clean()
+	ffi.C.realloc(self.data, 1)
+	self.x=0
+	self.y=0
+	self.z=0
+end
+
+function buffer:new(x, y, z, ...)
+	x = x or self.x or 1
+	y = y or self.y or 1
+	z = z or self.z or 1
+	
+	local size = x*y*z
+	
+	local o = {
+		new = buffer.new,
+		data = alloc(size),
+		x = x,
+		y = y,
+		z = z,
+		free = buffer.clean,
+		i = buffer.get,
+		a = buffer.set,
+		}
+	setmetatable(o, buffer.meta)
+	return o
+end
+
+local b = buffer:new(128,128,128)
+
+local t = os.clock()
+for i = 1, 25 do
+	for x=0,127 do
+		for y=0,127 do
+			for z=0,127 do
+				b[x*b.y*b.z + y*b.z + z] = x+y+z
+			end
+		end
+	end
+end
+print((os.clock() - t)*4, "array assignment")
+
+local t = os.clock()
+for i = 1, 100 do
+	for x=0,127 do
+		for y=0,127 do
+			for z=0,127 do
+				--b[{x,y,z}] = x+y+z
+				b:a(x,y,z,x+y+z)
+			end
+		end
+	end
+end
+print((os.clock() - t), "array assignment with table index")
+
+local t = os.clock()
+for i = 1, 100 do
+	for x=0,127 do
+		for y=0,127 do
+			for z=0,127 do
+				b.data[x*b.y*b.z + y*b.z + z] = x+y+z
+			end
+		end
+	end
+end
+print(os.clock() - t, "raw data assignment")
 
 --implement:
 --[==[
@@ -56,9 +174,11 @@ ffi.cdef[[
 		- .precision	("single" or "double")
 		- .type			(I/M/C/V/A/"empty")
 		- :clean()		(manually realloc to 1 element)	
-		- array bounds checking optional
+		- array bounds checking optional -- no significant effect on indexing
 	
-	- indexing:
+	- indexing:	-- setting/getting is up to 4 times slower than raw access, but is convenient for prototyping
+				-- indexing with arrays is up to 50 times slower!!!
+				-- shorthand i indexing function, a assignment function? assignment is more difficult -> yields same performance as direct raw indexing/assignment, yay!
 		- [{ X, Y, Z}] = V
 		- [{ {minX, maxX}, Y, Z}] = I/G
 		- [{ {minX}, Y, Z}]
@@ -70,18 +190,21 @@ ffi.cdef[[
 			- set3(x,y,z,c1,c2,c3)
 			- get(x,y,z)
 			- get3(x,y)
+			-- check performance difference when overloading
 --]==]
 
+print(17.27/.35)
 
 -- tests alloc/collect tests
+--[[
 local p
 local size = 1024*1024*1024
 local n = 100000
 
 local t = os.clock()
 for i = 1, n do
-	p = ffi.cast("double*", ffi.gc(ffi.C.calloc(size, 1), ffi.C.free))
-	ffi.C.realloc(p, 1)
+	p = allocd(size/8)
+	ffi.C.realloc(p, 16)
 end
 print(os.clock() - t, "C GC callback")
 collectgarbage()
@@ -95,7 +218,11 @@ end
 print(os.clock() - t, "C explicit free")
 collectgarbage()
 
---local buffer = {}
-
---function buffer:new()
-
+local t = os.clock()
+for i = 1, n do
+	p = ffi.cast("double*", ffi.gc(ffi.C.calloc(size, 1), ffi.C.free))
+	ffi.C.realloc(p, 16)
+end
+print(os.clock() - t, "C GC callback")
+collectgarbage()
+--]]
