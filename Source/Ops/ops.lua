@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-
+-- getters and setters are found in global tables, slowdown?
 
 local ops = {}
 ops.cs = require("opsCS")
@@ -28,11 +28,21 @@ require("mathtools")
 
 -- generic pixel function loop
 local startstring_matrix = [[
+							local set = set
+							local get = get
+							local set3 = set3
+							local get3 = get3
+							local setxy = getxy
+							local getxy = setxy
+							local set3xy = set3xy
+							local get3xy = get3xy
 							for x = __instance, xmax-1, __tmax do
 								if progress[0]==-1 then break end
 								for y = 0, ymax-1 do
 									__pp = (x * ymax + y)
-]] local endstring_matrix = [[
+]]
+
+local endstring_matrix = [[
 									end
 								progress[__instance+1] = x - __instance
 							end
