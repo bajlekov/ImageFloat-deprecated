@@ -56,13 +56,15 @@ function loadlib(lib)
 	end
 end
 
+-- FIXME ops not a local struct... 
 ops = require("ops")
 
 progress = nil
 
 function init() -- initialisation function, runs once when instance is started
 	progress = ffi.cast("int*", progress)
-	-- figure out where gc causes trouble!!
+	
+	-- FIXME figure out where gc causes trouble!!
 	collectgarbage("stop")
 end
 

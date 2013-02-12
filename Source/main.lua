@@ -1,32 +1,32 @@
 --[[
-	Copyright (C) 2011-2012 G. Bajlekov
+Copyright (C) 2011-2012 G. Bajlekov
 
-	ImageFloat is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+ImageFloat is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-	ImageFloat is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+ImageFloat is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
 -- setup paths if not loading bytecode
 package.path = 	"./?.lua;"..
-				"./Setup/?.lua;"..
-				"./Build/?.lua;"..
-				"./Draw/?.lua;"..
-				"./Include/?.lua;"..
-				"./Interop/?.lua;"..
-				"./Math/?.lua;"..
-				"./Node/?.lua;"..
-				"./Ops/?.lua;"..
-				"./Threads/?.lua;"..
-				"./Tools/?.lua;"..package.path
+"./Setup/?.lua;"..
+"./Build/?.lua;"..
+"./Draw/?.lua;"..
+"./Include/?.lua;"..
+"./Interop/?.lua;"..
+"./Math/?.lua;"..
+"./Node/?.lua;"..
+"./Ops/?.lua;"..
+"./Threads/?.lua;"..
+"./Tools/?.lua;"..package.path
 
 local ffi = require("ffi")
 _G.ffi = ffi
@@ -38,8 +38,6 @@ _G.ffi = ffi
 --	fix add-node
 -- 	segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
 -- 	connect color HCLAB to output, then switch to split directly ?? still
--- 
-
 
 print([[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
@@ -131,7 +129,7 @@ local readFun = readFunTable[__global.setup.imageLoadType]
 
 local imageTemp = ppm.toBuffer(readFun(__global.loadFile, __global.setup.imageLoadParams))
 local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
-	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
+math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
 local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
 sdl.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
@@ -204,14 +202,14 @@ local hist = require("histogram")
 function funProcess()
 	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 					--initialise node, move to other location!
-	
+
 	-- find output node, make selector for this.../one fixed output node
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
-	
+
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
-	
+
 	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
-	
+
 	for k, v in ipairs(node.execOrder) do
 		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name) end
 		node[v]:processRun(k)
@@ -251,7 +249,7 @@ local function imageProcess(flag)
 
 	-- put histogram buffer
 	for i=1, 255 do
-	--wrap graphics
+		--wrap graphics
 		--dbg.warn("HISTOGRAM DRAWING")
 		-- hist to buffer after calc, only put to screen here!!
 		-- why isn't background always drawn below histogram??
@@ -265,29 +263,29 @@ local function imageProcess(flag)
 		vLineAdd(i+10, __global.setup.windowSize[2]-310 - math.floor(hist.h[i]), math.floor(hist.h[i]), r*128, g*128, b*128)
 	end
 
-		vLineAdd(266, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
-		vLineAdd(10, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
+	vLineAdd(266, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
+	vLineAdd(10, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
 
-		vLineAdd(197, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-		vLineAdd(147, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-		vLineAdd(110, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-		vLineAdd(83, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-		vLineAdd(64, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-		vLineAdd(49, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+	vLineAdd(197, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+	vLineAdd(147, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+	vLineAdd(110, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+	vLineAdd(83, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+	vLineAdd(64, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
+	vLineAdd(49, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
 
-		vLineAdd(53, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-		vLineAdd(95, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-		vLineAdd(138, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-		vLineAdd(180, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-		vLineAdd(223, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+	vLineAdd(53, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+	vLineAdd(95, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+	vLineAdd(138, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+	vLineAdd(180, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
+	vLineAdd(223, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
 
-		hLineAdd(10, __global.setup.windowSize[2]-411, 257, 64, 64, 64)
-		hLineAdd(10, __global.setup.windowSize[2]-10, 257, 64, 64, 64)
+	hLineAdd(10, __global.setup.windowSize[2]-411, 257, 64, 64, 64)
+	hLineAdd(10, __global.setup.windowSize[2]-10, 257, 64, 64, 64)
 
-		__sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
-		__sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
-		__sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
-		__sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
+	__sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
+	__sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
+	__sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
+	__sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
 end
 
 --register imageProcess
@@ -321,7 +319,7 @@ function node:click()
 					self:noodleDrag(n, p)
 					lua.threadStop() -- stop processing
 					self:calcLevels()
-					
+
 					calcUpdate = true
 					bufSet("L")
 					coProcess=coroutine.wrap(funProcess) -- reset coroutine
@@ -330,9 +328,9 @@ function node:click()
 				end
 			elseif t=="title" then
 				if self.mouse.x>=self[n].ui.x+130 and --delete node
-						self.mouse.x<=self[n].ui.x+146 and
-						self.mouse.y>=self[n].ui.y+2 and
-						self.mouse.y<=self[n].ui.y+18 then
+				self.mouse.x<=self[n].ui.x+146 and
+				self.mouse.y>=self[n].ui.y+2 and
+				self.mouse.y<=self[n].ui.y+18 then
 					self:remove(n)
 					self:draw()
 					self:calcLevels()
@@ -349,9 +347,9 @@ function node:click()
 					bufSet("S")
 					coProcess=coroutine.wrap(funProcess) --create coroutine process
 					cp = coProcess()	--start coroutine process
-					
+
 					self:paramDrag(n, p) --loop while dragging slider
-					
+
 					lua.threadStop() -- stop processing
 					calcUpdate = true
 					bufSet("L")
@@ -380,7 +378,7 @@ node:draw()
 sdl.flip()
 while true do
 	mouse:update()
-	
+
 	-- some simple interface handling, move to separate function!
 	if mouse.key.num==115 then--"S"
 		print("Saving image: "..__global.saveFile)
@@ -420,7 +418,7 @@ while true do
 	else
 		--draw progress bar
 		if calcUpdate then
-		 	local size = buf.x
+			local size = buf.x
 			local progress = math.floor(size*lua.threadGetProgress())
 			boxFill(350,8,350+progress,12,128,128,128)
 			boxFill(350+progress,8,350+size,12,32,32,32)
@@ -437,8 +435,8 @@ while true do
 				--slow hist calc...multithreaded and in separate instance + interruptable!
 				--effect of partly slow cpu speedup and inefficient compilation. flushing compiled code avoids 1000ms+ times
 				--still, perform non-blocking and possibly threaded!
-					--improve interface for non-blocking ops with extra data passing!
-					--additional non-MT thread for non-blocking ops?
+				--improve interface for non-blocking ops with extra data passing!
+				--additional non-MT thread for non-blocking ops?
 				--img.toSurface(bufout, surf)
 				node:draw() -- does not redraw automatically
 				--node:draw()
