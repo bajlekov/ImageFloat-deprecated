@@ -24,17 +24,22 @@ ffi.cdef[[
 	void * calloc ( size_t num, size_t size );
 	void * realloc ( void * ptr, size_t size );
 	void free ( void * ptr );
-]]
+	typedef float float_a __attribute__ ((aligned (16)));
+	typedef double double_a __attribute__ ((aligned (16)));
+]] -- allocate aligned memory for use with SSE
 
-local function allocf(size)
-	return ffi.gc(ffi.cast("float*", ffi.C.calloc(size, 4)), ffi.C.free)
+-- allocate aligned floats
+local function allocF(size)
+	return ffi.gc(ffi.cast("float_a*", ffi.C.calloc(size, 4)), ffi.C.free)
 end
 
-local function allocd(size)
-	return ffi.gc(ffi.cast("double*", ffi.C.calloc(size, 8)), ffi.C.free)
+-- allocate aligned doubles
+local function allocD(size)
+	return ffi.gc(ffi.cast("double_a*", ffi.C.calloc(size, 8)), ffi.C.free)
 end
 
-local alloc = allocf
+-- set default allocator
+local alloc = allocF
 
 local buffer = {}
 buffer.meta={}
@@ -93,14 +98,46 @@ function buffer:new(x, y, z, ...)
 	local size = x*y*z
 	
 	local o = {
-		new = buffer.new,
+		__type = "buffer",
 		data = alloc(size),
+		cs = z==3 and "SRGB" or "MAP",
 		x = x,
 		y = y,
-		z = z,
+		z = z,		-- derive buffer type from coordinates
+		
+		xoff = 0,	-- sub-regions for partial processing
+		yoff = 0,
+		xlen = x,
+		ylen = y,
+		
+		new = buffer.new,		-- overload with grayscale/color
+		copy = buffer.copy,		-- overload with grayscale/color
 		free = buffer.clean,
-		i = buffer.get,
-		a = buffer.set,
+		i = buffer.get,			-- simple getter
+		a = buffer.set,			-- simple setter
+			
+			--toScreen
+			--toScreenQ
+			--saveHD
+			--loadHD
+			--save		-- from image file, generic
+			--load		-- to image file, generic
+			
+			--pixelOp
+			-- other ops:
+				-- add (+)
+				-- sub (-)
+				-- mul (*)
+				-- div (/)
+				-- inv (-)
+				-- concat (..) ??
+				-- compare (create map)
+				-- threshold (%)
+				-- pow (^)
+				-- call ()
+				-- tostring method
+				-- other useful methods
+			--csConv
 		}
 	setmetatable(o, buffer.meta)
 	return o
@@ -192,8 +229,6 @@ print(os.clock() - t, "raw data assignment")
 			- get3(x,y)
 			-- check performance difference when overloading
 --]==]
-
-print(17.27/.35)
 
 -- tests alloc/collect tests
 --[[
