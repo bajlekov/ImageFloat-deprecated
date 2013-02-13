@@ -38,26 +38,123 @@ local function allocD(size)
 	return ffi.gc(ffi.cast("double_a*", ffi.C.calloc(size, 8)), ffi.C.free)
 end
 
--- set default allocator
-local alloc = allocF
 
 local buffer = {}
-buffer.meta={}
-buffer.metaDebug={}
+buffer.alloc = allocF
+buffer.meta={__index = buffer}
 
--- indexing with array bounds checking
-function buffer.metaDebug.__newindex(t, k, v) --set
-	if k>(t.x*t.y*t.z-1) or k<0 then
-		print(debug.traceback("WARNING: Assignment outside array bounds, element "..k.." of "..t.x*t.y*t.z.."."))
-		-- automatic resizing for array lib
+function buffer.meta.__add(a, b)
+	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+		return nil
 	else
-		t.data[k] = v
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )				
+				end
+			end
+		end
+		return o
 	end
 end
 
-function buffer.meta.__newindex(t, k, v) --set
-	k = type(k)=="table" and (k[1]*t.y*t.z + k[2]*t.z + k[3]) or k
-	t.data[k] = v
+function buffer.meta.__sub(a, b)
+	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+		return nil
+	else
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )				
+				end
+			end
+		end
+		return o
+	end
+end
+
+function buffer.meta.__mul(a, b)
+	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+		return nil
+	else
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )				
+				end
+			end
+		end
+		return o
+	end
+end
+
+function buffer.meta.__div(a, b)
+	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+		return nil
+	else
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )				
+				end
+			end
+		end
+		return o
+	end
+end
+
+-- use metatable to call methods from base table
+			-- new
+			-- copy
+			-- clean
+			-- set
+			-- get
+			
+		--toScreen
+		--toScreenQ
+		--saveHD
+		--loadHD
+		--save		-- from image file, generic
+		--load		-- to image file, generic
+			
+		--pixelOp
+		-- other ops:
+			-- inv (-)
+			-- concat (..) ??
+			-- compare (create map)
+			-- threshold (%)
+			-- pow (^)
+			-- call ()
+			-- tostring method
+			-- other useful methods
+			--csConv
+
+
+
+function buffer:getABC(x,y,z)
+	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
+		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
+		return 0
+	else
+		return self.data[x*self.y*self.z + y*self.z + z]
+	end
+end
+
+function buffer:setABC(x,y,z, v)
+	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
+		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
+		return nil
+	else
+		self.data[x*self.y*self.z + y*self.z + z] = v
+	end
 end
 
 function buffer:get(x,y,z)
@@ -68,107 +165,96 @@ function buffer:set(x,y,z, v)
 	self.data[x*self.y*self.z + y*self.z + z] = v
 end
 
-
-function buffer.metaDebug.__index(t, k) --get
-	if k>(t.x*t.y*t.z-1) or k<0 then
-		print(debug.traceback("WARNING: Index outside array bounds, element "..k.." of "..t.x*t.y*t.z.."."))
-		return 0
-		-- automatic resizing for array lib
-	else
-		return t.data[k]
-	end
+function buffer:get3(x,y,z)
+	local c = x*self.y*self.z + y*self.z
+	return self.data[c], self.data[c+1], self.data[c+2] 
 end
 
-function buffer.meta.__index(t, k) --get
-	return t.data[k]
+function buffer:set3(x,y,z, v1,v2,v3)
+	local c = x*self.y*self.z + y*self.z
+	self.data[c] = v1
+	self.data[c+1] = v2
+	self.data[c+2] = v3
 end
 
-function buffer:clean()
-	ffi.C.realloc(self.data, 1)
-	self.x=0
-	self.y=0
-	self.z=0
-end
 
-function buffer:new(x, y, z, ...)
+function buffer:new(x, y, z)
 	x = x or self.x or 1
 	y = y or self.y or 1
-	z = z or self.z or 1
-	
+	z = z or self.z or 1	
 	local size = x*y*z
 	
 	local o = {
 		__type = "buffer",
-		data = alloc(size),
-		cs = z==3 and "SRGB" or "MAP",
-		x = x,
-		y = y,
-		z = z,		-- derive buffer type from coordinates
+		data = self.alloc(size),
+		cs = "MAP",
+		x = x, y = y, z = z,	-- derive buffer type from coordinates
 		
-		xoff = 0,	-- sub-regions for partial processing
-		yoff = 0,
-		xlen = x,
-		ylen = y,
-		
-		new = buffer.new,		-- overload with grayscale/color
-		copy = buffer.copy,		-- overload with grayscale/color
-		free = buffer.clean,
-		i = buffer.get,			-- simple getter
-		a = buffer.set,			-- simple setter
-			
-			--toScreen
-			--toScreenQ
-			--saveHD
-			--loadHD
-			--save		-- from image file, generic
-			--load		-- to image file, generic
-			
-			--pixelOp
-			-- other ops:
-				-- add (+)
-				-- sub (-)
-				-- mul (*)
-				-- div (/)
-				-- inv (-)
-				-- concat (..) ??
-				-- compare (create map)
-				-- threshold (%)
-				-- pow (^)
-				-- call ()
-				-- tostring method
-				-- other useful methods
-			--csConv
-		}
-	setmetatable(o, buffer.meta)
+		xoff = 0, yoff = 0,		-- sub-regions for partial processing
+		xlen = x, ylen = y,
+	}
+	setmetatable(o, buffer.meta)	
 	return o
 end
 
+function buffer:copy()
+	local x = self.x
+	local y = self.y
+	local z = self.z	
+	local size = x*y*z
+	
+	local o = {
+		__type = "buffer",
+		data = self.alloc(size),
+		cs = self.cs,
+		x = x, y = y, z = z,	-- derive buffer type from coordinates
+		
+		xoff = 0, yoff = 0,		-- sub-regions for partial processing
+		xlen = x, ylen = y,
+	}
+	setmetatable(o, buffer.meta)	
+	ffi.copy(o.data, self.data, size*4) -- switch to 8 for double		
+	return o
+end
+
+function buffer:clean()
+	ffi.C.realloc(self.data, 1)
+	self.x=1
+	self.y=1
+	self.z=1
+end
+
+
+---[[
+local b = buffer:new(6000,4000,3)
+b:set(1,2,3,4)
+
+local t = os.clock()
+local c = b:copy()
+print((os.clock() - t), "copy")
+
+local t = os.clock()
+local d = b+c
+print((os.clock() - t), "add")
+assert(d:get(1,2,3)==8)
+
+local t = os.clock()
+local d = b-c
+print((os.clock() - t), "sub")
+assert(d:get(1,2,3)==0)
+
+local t = os.clock()
+local d = b*c
+print((os.clock() - t), "mul")
+assert(d:get(1,2,3)==16)
+
+local t = os.clock()
+local d = b/c
+print((os.clock() - t), "div")
+assert(d:get(1,2,3)==1)
+
+
 local b = buffer:new(128,128,128)
-
-local t = os.clock()
-for i = 1, 25 do
-	for x=0,127 do
-		for y=0,127 do
-			for z=0,127 do
-				b[x*b.y*b.z + y*b.z + z] = x+y+z
-			end
-		end
-	end
-end
-print((os.clock() - t)*4, "array assignment")
-
-local t = os.clock()
-for i = 1, 100 do
-	for x=0,127 do
-		for y=0,127 do
-			for z=0,127 do
-				--b[{x,y,z}] = x+y+z
-				b:a(x,y,z,x+y+z)
-			end
-		end
-	end
-end
-print((os.clock() - t), "array assignment with table index")
 
 local t = os.clock()
 for i = 1, 100 do
@@ -180,7 +266,24 @@ for i = 1, 100 do
 		end
 	end
 end
-print(os.clock() - t, "raw data assignment")
+print((os.clock() - t), "array assignment")
+
+
+local t = os.clock()
+for i = 1, 100 do
+	for x=0,127 do
+		for y=0,127 do
+			for z=0,127 do
+				local t = x+y+z
+				b:set(x,y,z, t)
+			end
+		end
+	end
+end
+print(os.clock() - t, "setter function")
+
+--]]
+
 
 --implement:
 --[==[
@@ -213,21 +316,17 @@ print(os.clock() - t, "raw data assignment")
 		- :clean()		(manually realloc to 1 element)	
 		- array bounds checking optional -- no significant effect on indexing
 	
-	- indexing:	-- setting/getting is up to 4 times slower than raw access, but is convenient for prototyping
-				-- indexing with arrays is up to 50 times slower!!!
-				-- shorthand i indexing function, a assignment function? assignment is more difficult -> yields same performance as direct raw indexing/assignment, yay!
+	- indexing:
+		- shorthand :get(x,y,z) indexing function, :set(x,y,z,v) assignment function
+		- use temporaries for assignment readability
+		- optional bounds checking wit :getABC, :setABC
+		
+		-- indexing using __index and __newindex is prohibitively slow for efficient work with buffers
 		- [{ X, Y, Z}] = V
-		- [{ {minX, maxX}, Y, Z}] = I/G
-		- [{ {minX}, Y, Z}]
-		- [{ {0, maxX}, Y, Z}]
-		- [{ X, Y }] = {}/C/V
-		- [{Z}] => copyG
-		- also functional getters and setters:
-			- set(x,y,z,v)
-			- set3(x,y,z,c1,c2,c3)
-			- get(x,y,z)
-			- get3(x,y)
-			-- check performance difference when overloading
+		
+		-- also:
+		- :set3(x,y,z,c1,c2,c3)
+		- :get3(x,y)
 --]==]
 
 -- tests alloc/collect tests
