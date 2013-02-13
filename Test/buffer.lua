@@ -16,6 +16,7 @@
 ]]
 
 -- new buffer class with c memory allocation
+-- TODO: mixed precision handling??
 
 local ffi = require "ffi"
 
@@ -115,34 +116,6 @@ function buffer.meta.__div(a, b)
 	end
 end
 
--- use metatable to call methods from base table
-			-- new
-			-- copy
-			-- clean
-			-- set
-			-- get
-			
-		--toScreen
-		--toScreenQ
-		--saveHD
-		--loadHD
-		--save		-- from image file, generic
-		--load		-- to image file, generic
-			
-		--pixelOp
-		-- other ops:
-			-- inv (-)
-			-- concat (..) ??
-			-- compare (create map)
-			-- threshold (%)
-			-- pow (^)
-			-- call ()
-			-- tostring method
-			-- other useful methods
-			--csConv
-
-
-
 function buffer:getABC(x,y,z)
 	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
 		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
@@ -169,18 +142,87 @@ function buffer:set(x,y,z, v)
 	self.data[x*self.y*self.z + y*self.z + z] = v
 end
 
-function buffer:get3(x,y,z)
+function buffer:get3(x,y)
 	local c = x*self.y*self.z + y*self.z
 	return self.data[c], self.data[c+1], self.data[c+2] 
 end
 
-function buffer:set3(x,y,z, v1,v2,v3)
+function buffer:set3(x,y, v1,v2,v3)
 	local c = x*self.y*self.z + y*self.z
 	self.data[c] = v1
 	self.data[c+1] = v2
 	self.data[c+2] = v3
 end
 
+
+function buffer:newI(x, y, c1, c2, c3)
+	x = x or self.x or 1
+	y = y or self.y or 1
+	local o = self:new(x, y, 3)
+	if c1 then
+		c2 = c2 or c1
+		c3 = c3 or c1
+		for i = 0, x-1 do
+			for j = 0, y-1 do
+				o:set3(i,j, c1,c2,c3)
+			end
+		end
+	end
+	return o
+end
+
+function buffer:newM(x, y, v1)
+	x = x or self.x or 1
+	y = y or self.y or 1
+	local o = self:new(x, y, 1)
+	if v1 then
+		for i = 0, x-1 do
+			for j = 0, y-1 do
+				o:set(i,j,0, v1)
+			end
+		end
+	end
+	return o
+end
+function buffer:getM(x,y) return self.data[x*self.y*self.z + y*self.z] end
+function buffer:setM(x,y, v) self.data[x*self.y*self.z + y*self.z] = v end
+
+function buffer:newC(c1, c2, c3)
+	local o = self:new(1, 1, 3)
+	if c1 then
+		c2 = c2 or c1
+		c3 = c3 or c1
+		o:set3(0,0, c1,c2,c3)
+	end
+	return o
+end
+function buffer:getC(i) return self.data[i-1] end
+function buffer:setC(i, v) self.data[i-1] = v end
+function buffer:getC3() return self.data[0], self.data[1], self.data[2] end
+function buffer:setC3(c1, c2, c3)
+	self.data[0] = c1
+	self.data[1] = c2
+	self.data[2] = c3
+end
+
+function buffer:newV(v1)
+	local o = self:new(1, 1, 1)
+	if v1 then o:set(0,0,0, v1) end
+	return o
+end
+function buffer:getV() return self.data[0] end
+function buffer:setV(v) self.data[0] = v end
+
+function buffer:newA(a)
+	local l = #a
+	local o = self:new(l, 1, 1)
+	for i = 0, l-1 do
+		o:set(i,0,0, a[i+1])
+	end
+	return o
+end
+function buffer:getA(i) return self.data[i] end
+function buffer:setA(i, v) self.data[i] = v end
 
 function buffer:new(x, y, z)
 	x = x or self.x or 1
@@ -192,7 +234,6 @@ function buffer:new(x, y, z)
 		data = self.alloc(size),
 		cs = "MAP",
 		x = x, y = y, z = z,	-- derive buffer type from coordinates
-		
 		xoff = 0, yoff = 0,		-- sub-regions for partial processing
 		xlen = x, ylen = y,
 	}
@@ -200,23 +241,63 @@ function buffer:new(x, y, z)
 	return o
 end
 
-function buffer:copy()
-	local x = self.x
-	local y = self.y
-	local z = self.z	
-	local size = x*y*z
-	
-	local o = {
-		data = self.alloc(size),
-		cs = self.cs,
-		x = x, y = y, z = z,	-- derive buffer type from coordinates
-		
-		xoff = 0, yoff = 0,		-- sub-regions for partial processing
-		xlen = x, ylen = y,
-	}
-	setmetatable(o, buffer.meta)	
-	ffi.copy(o.data, self.data, size*4) -- switch to 8 for double		
-	return o
+function buffer:copy(t)
+	if t then
+		if self.x==t.x and self.y==t.y and self.z==t.z then
+			ffi.copy(self.data, t.data, self.x*self.y*self.z*4)
+		else
+			print(debug.traceback("WARNING: Buffer size mismatch! Target: ["..self.x..", "..self.y..", "..self.z.."], source: ["..t.x..", "..t.y..", "..t.z.."]."))
+		end
+	else
+		local o = self:new()	
+		ffi.copy(o.data, self.data, self.x*self.y*self.z*4) -- switch to 8 for double		
+		return o
+	end
+end
+
+local function mean(c1, c2, c3) return (c1+c2+c3)/3 end
+function buffer:copyG() -- only from image data!
+	if self.z==3 then
+		local o = self:new(self.x, self.y, 1)	
+		for i = 0, self.x-1 do
+			for j = 0, self.y-1 do
+				o:setM(i,j, mean(self:get3(i, j)))
+			end
+		end
+		return o
+	elseif self.z==1 then
+		return self:copy()
+	else
+		local o = self:new(self.x, self.y, 1)
+		for i = 0, self.x-1 do
+			for j = 0, self.y-1 do
+				local s = 0
+				for k = 0, self.z-1 do
+					s = s + self:get(i, j, k)
+				end
+				o:setM(i,j, s/self.z)
+			end
+		end
+		return o
+	end
+end
+
+function buffer:copyC()
+	if self.z==1 then
+		local o = self:new(self.x, self.y, 3)
+		for i = 0, self.x-1 do
+			for j = 0, self.y-1 do
+				local m = self:getM(i, j)
+				o:set3(i,j, m,m,m)
+			end
+		end 
+		return o
+	elseif self.z==3 then
+		return self:copy()
+	else
+		print(debug.traceback("WARNING: Non-standard Z dimension of "..self.z..", converting through grayscale"))
+		return self:copyG():copyC()
+	end
 end
 
 function buffer:clean()
@@ -228,37 +309,40 @@ end
 
 
 ---[[
-local b = buffer:new(6000,4000,3)
-b:set(1,2,3,4)
+local b = buffer:newI(6000,4000,5)
+b:set(1,3,2, 4)
 
+-- FIXME: weird delay if jit is not flushed!!
+jit.flush()
 local t = os.clock()
 local c = b:copy()
 print((os.clock() - t), "copy")
 
+jit.flush()
 local t = os.clock()
 local d = b+c
 print((os.clock() - t), "add")
-assert(d:get(1,2,3)==8)
+assert(d:get(1,3,2)==8)
 
+jit.flush()
 local t = os.clock()
 local d = b-c
 print((os.clock() - t), "sub")
-assert(d:get(1,2,3)==0)
+assert(d:get(1,3,2)==0)
 
+jit.flush()
 local t = os.clock()
 local d = b*c
 print((os.clock() - t), "mul")
-assert(d:get(1,2,3)==16)
+assert(d:get(1,3,2)==16)
 
+jit.flush()
 local t = os.clock()
 local d = b/c
 print((os.clock() - t), "div")
-assert(d:get(1,2,3)==1)
-
+assert(d:get(1,3,2)==1)
 
 local b = buffer:new(128,128,128)
-
-print(b)
 
 local t = os.clock()
 for i = 1, 100 do
@@ -289,51 +373,46 @@ print(os.clock() - t, "setter function")
 --]]
 
 
---implement:
+-- TODO buffer methods:
 --[==[
-	- creation:
-		- :new()								(size from parent)
-		- :new(old)								(size from old)
-		- :new(sizeX, sizeY, size.Z, c1...cZ)	(any dim)
-		- :newI(sizeX, sizeY, c1, c2, c3)		(image)
-		- :newM(sizeX, sizeY, v1)				(map)
-		- :newC(c1, c2, c3)						(color)
-		- :newV(v1)								(value)
-		- :newA(sizeX, v1...vX)							(array)
 	- coercion:
 		- :convert(source, "target") (with realloc, correctly interlaced RGB)
 		- I>M, M>I
 		- C>V, V>C
 		- C>I, V>M
-	- copy:
-		- :copy
-		- :copy("target")
-		- :copyI(I/M)
-		- :copyG(I/M)
-`		- :copyC(C/V)
-		- :copyV(C/V)
 	- data:
-		- .rawData		(pointer to original allocated mem)
-		- .data			(pointer to cast data)
-		- .precision	("single" or "double")
-		- .type			(I/M/C/V/A/"empty")
-		- :clean()		(manually realloc to 1 element)	
-		- array bounds checking optional -- no significant effect on indexing
+		- .precision	("single" or "double")	
 	
 	- indexing:
 		- shorthand :get(x,y,z) indexing function, :set(x,y,z,v) assignment function
 		- use temporaries for assignment readability
 		- optional bounds checking wit :getABC, :setABC
 		
-		-- indexing using __index and __newindex is prohibitively slow for efficient work with buffers
-		- [{ X, Y, Z}] = V
+	- methods
+		- toScreen	-- put to screen (portion?)
+		- toScreenQ	-- put to screen scaled down
+		- saveHD	-- direct save buffer
+		- loadHD	-- direct read buffer
+		- save		-- from image file, generic interface for ppmtools
+		- load		-- to image file, generic interface for ppmtools
+			
+		- pixelOp
+		- pixelOp!
+		- csConv
+		- csConv!
 		
-		-- also:
-		- :set3(x,y,z,c1,c2,c3)
-		- :get3(x,y)
+		- other ops:
+			- inv (-)		??
+			- concat (..) 	??
+			- compare		(create map)
+			- threshold (%)
+			- pow (^)
+			- call ()		??
+			
+		- other useful methods
 --]==]
 
--- tests alloc/collect tests
+-- alloc/collect tests
 --[[
 local p
 local size = 1024*1024*1024
