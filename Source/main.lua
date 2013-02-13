@@ -31,10 +31,10 @@ package.path = 	"./?.lua;"..
 local ffi = require("ffi")
 _G.ffi = ffi
 
--- TODO
+-- TODO main points:
 --	refactor code
 --	check efficiency of passing processing arguments in buffers?
--- FIXME
+-- FIXME main points:
 --	fix add-node
 -- 	segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
 -- 	connect color HCLAB to output, then switch to split directly ?? still
