@@ -19,6 +19,7 @@
 -- TODO: mixed precision handling??
 
 local ffi = require "ffi"
+jit.flush()
 
 ffi.cdef[[
 	void * malloc ( size_t size );
@@ -49,71 +50,175 @@ function buffer.meta.__tostring(a)
 end
 
 function buffer.meta.__add(a, b)
-	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
-		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
-		return nil
-	else
+	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
 				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )				
+					o:set(i,j,k, a:get(i,j,k) + b)				
 				end
 			end
 		end
 		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
 	end
 end
 
 function buffer.meta.__sub(a, b)
-	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
-		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
-		return nil
-	else
+	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
 				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )				
+					o:set(i,j,k, a:get(i,j,k) - b)				
 				end
 			end
 		end
 		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
 	end
 end
 
 function buffer.meta.__mul(a, b)
-	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
-		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
-		return nil
-	else
+	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
 				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )				
+					o:set(i,j,k, a:get(i,j,k) * b)				
 				end
 			end
 		end
 		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
 	end
 end
 
 function buffer.meta.__div(a, b)
-	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
-		print(debug.traceback("WARNING: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
-		return nil
-	else
+	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
 				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )				
+					o:set(i,j,k, a:get(i,j,k) / b)				
 				end
 			end
 		end
 		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
 	end
+end
+
+function buffer.meta.__pow(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) ^ b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) ^ b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
+function buffer.meta.__unm(a)
+	local o = a:new()
+	for i = 0, a.x-1 do
+		for j = 0, a.y-1 do
+			for k = 0, a.z-1 do
+				o:set(i,j,k, - a:get(i,j,k))				
+			end
+		end
+	end
+	return o
 end
 
 function buffer:getABC(x,y,z)
@@ -246,7 +351,8 @@ function buffer:copy(t)
 		if self.x==t.x and self.y==t.y and self.z==t.z then
 			ffi.copy(self.data, t.data, self.x*self.y*self.z*4)
 		else
-			print(debug.traceback("WARNING: Buffer size mismatch! Target: ["..self.x..", "..self.y..", "..self.z.."], source: ["..t.x..", "..t.y..", "..t.z.."]."))
+			print(debug.traceback("ERROR: Buffer size mismatch! Target: ["..self.x..", "..self.y..", "..self.z.."], source: ["..t.x..", "..t.y..", "..t.z.."]."))
+			return nil
 		end
 	else
 		local o = self:new()	
@@ -312,7 +418,8 @@ end
 local b = buffer:newI(6000,4000,5)
 b:set(1,3,2, 4)
 
--- FIXME: weird delay if jit is not flushed!!
+-- FIXME: weird delay at random ponts (if jit is not flushed?)
+
 jit.flush()
 local t = os.clock()
 local c = b:copy()
@@ -375,41 +482,80 @@ print(os.clock() - t, "setter function")
 
 -- TODO buffer methods:
 --[==[
-	- coercion:
-		- :convert(source, "target") (with realloc, correctly interlaced RGB)
-		- I>M, M>I
-		- C>V, V>C
-		- C>I, V>M
-	- data:
-		- .precision	("single" or "double")	
-	
-	- indexing:
-		- shorthand :get(x,y,z) indexing function, :set(x,y,z,v) assignment function
-		- use temporaries for assignment readability
-		- optional bounds checking wit :getABC, :setABC
+	- :crop(x1,x2,y1,y2)
+		- partial copy of area
+		- both in-place and as copies
+	- :convert(source, "target") (with realloc, correctly interlaced RGB)
+		- in-place copyG/copyC => convertC/convertG
+		- expand x,y,1 to x,y,3, move values
+		- contract x,y,3 to x,y,1, move values
+	- :gget()
+		- generic getters for data, independent of dimensions
+		- similar to the functions generated for use in threads
+		- set on creation
+	- .precision	("single" or "double")
+		- is that needed, as only one type exists throughout a session?
 		
 	- methods
-		- toScreen	-- put to screen (portion?)
-		- toScreenQ	-- put to screen scaled down
-		- saveHD	-- direct save buffer
-		- loadHD	-- direct read buffer
-		- save		-- from image file, generic interface for ppmtools
-		- load		-- to image file, generic interface for ppmtools
+		- readHD	-- direct save buffer
+		- writeHD	-- direct read buffer
+		
+		- interface to ppmtools:
+			- read		-- from image file, generic interface
+			- write		-- to image file, generic interface
+			
+			- iotools offering:
+				- io.readPPM	-- ppm interface
+				- io.writePPM
+				- io.readPFM	-- improvised float map
+				- io.writePFM
+				- io.readBIN	-- Compatible with IM rgb data, headerless
+				- io.writeBIN
+				- io.readIM		-- ImageMagick interface
+				- io.writeIM
+				- io.readRAW	-- DCRaw interface
+				
+				- io.readJPG	-- implemented through sdl_image, only 8-bits fallback
+				- io.readPNG
+				- io.readTIF
+				- io.readTGA
+				- io.readBMP
+				- io.writeBMP
+				
+				- interfaces to Python, Octave, R, Julia
+				- interaction with Python, Octave, R, Julia
+				- IM processing
+		
+		- scaleDown		-- argument controls quality (binning/weighted)
+		- scaleDownFast -- NN
+		- scaleUpFast	-- NN
+		- scaleDownQuad	-- NN
+		- scaleUpQuad	-- NN
+		
+		- toSurface		-- put to surface (portion)
+		- toSurfaceQuad -- put to surface scaled down
+		- toScreen		-- put to screen (portion)
+		- toScreenQuad	-- put to screen scaled down
 			
 		- pixelOp
 		- pixelOp!
 		- csConv
 		- csConv!
+		- invert
+		- invert!
+		
+		- max
+		- min
+		- mean
+		- sd
 		
 		- other ops:
-			- inv (-)		??
 			- concat (..) 	??
 			- compare		(create map)
-			- threshold (%)
-			- pow (^)
+			- threshold (%) ?? same as compare?
 			- call ()		??
 			
-		- other useful methods
+		- other useful methods ??
 --]==]
 
 -- alloc/collect tests
