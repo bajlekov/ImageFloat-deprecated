@@ -39,9 +39,13 @@ local function allocD(size)
 end
 
 
-local buffer = {}
+local buffer = {__type = "buffer"}
 buffer.alloc = allocF
 buffer.meta={__index = buffer}
+
+function buffer.meta.__tostring(a)
+	return "Image buffer ["..a.x..", "..a.y..", "..a.z.."], CS: "..a.cs.."."
+end
 
 function buffer.meta.__add(a, b)
 	if a.x~=b.x or a.y~=b.y or a.z~=b.z then
@@ -185,7 +189,6 @@ function buffer:new(x, y, z)
 	local size = x*y*z
 	
 	local o = {
-		__type = "buffer",
 		data = self.alloc(size),
 		cs = "MAP",
 		x = x, y = y, z = z,	-- derive buffer type from coordinates
@@ -204,7 +207,6 @@ function buffer:copy()
 	local size = x*y*z
 	
 	local o = {
-		__type = "buffer",
 		data = self.alloc(size),
 		cs = self.cs,
 		x = x, y = y, z = z,	-- derive buffer type from coordinates
@@ -255,6 +257,8 @@ assert(d:get(1,2,3)==1)
 
 
 local b = buffer:new(128,128,128)
+
+print(b)
 
 local t = os.clock()
 for i = 1, 100 do
