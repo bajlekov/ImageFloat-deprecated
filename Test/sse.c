@@ -190,38 +190,38 @@ void SRGBtoLRGB(float* x, float* z) {
 	_mm_store_ps(z, m);
 }
 
-void dilate(float* x) {
+void dilate(float* x, float* y) {
 	__m128 m;
 	m = _mm_load_ps(x);
 	m = _mm_max_ps(m, _mm_loadu_ps(x-2));
 	m = _mm_max_ps(m, _mm_loadu_ps(x-1));
 	m = _mm_max_ps(m, _mm_loadu_ps(x+1));
 	m = _mm_max_ps(m, _mm_loadu_ps(x+2));
-	_mm_store_ps(x, m);
+	_mm_store_ps(y, m);
 }
 
-void erode(float* x) {
+void erode(float* x, float* y) {
 	__m128 m;
 	m = _mm_load_ps(x);
 	m = _mm_min_ps(m, _mm_loadu_ps(x-2));
 	m = _mm_min_ps(m, _mm_loadu_ps(x-1));
 	m = _mm_min_ps(m, _mm_loadu_ps(x+1));
 	m = _mm_min_ps(m, _mm_loadu_ps(x+2));
-	_mm_store_ps(x, m);
+	_mm_store_ps(y, m);
 }
 
-void dilateSSE(float* x, int start, int end) {
+void dilateSSE(float* x, float* y, int start, int end) {
 	int i;
 	for (i=start; i<=end; i+=4) {
-		dilate(x+i);
+		dilate(x+i, y+i);
 	}
 }
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
-void dilateC(float* x, int start, int end) {
+void dilateC(float* x, float* y, int start, int end) {
 	int i;
 	for (i=start; i<=end; i++) {
-		x[i] = MAX(x[i-2], MAX(x[i-1], MAX(x[i], MAX(x[i+1], x[i+2]))));
+		y[i] = MAX(x[i-2], MAX(x[i-1], MAX(x[i], MAX(x[i+1], x[i+2]))));
 	}
 }

@@ -126,51 +126,61 @@ print((t2-t1)/4)
 -- dilation example:
 local size = 1024000
 local a = ffi.new("float_a[?]", size)
+local b = ffi.new("float_a[?]", size)
+
+-- randomize a
 
 -- closing is dilation followed by erosion
 -- can be combined in a single SSE function where erosion lags by 1 and reuses registers?
 
 -- native lua approach
-local function dilate()
+local function dilate(a, b)
 	for i = 4, size-4 do
-		a[i] = math.max(a[i-2], a[i-1], a[i], a[i+1], a[i+2])
+		b[i] = math.max(a[i-2], a[i-1], a[i], a[i+1], a[i+2])
 	end
+end
+
+-- warmup
+for i = 1, 500 do
+	dilate(a, b)
 end
 
 local t = os.clock()
 for i = 1, 500 do
-	dilate()
+	dilate(a, b)
 end
 print(os.clock()-t, "Lua native dilate")
 
 ffi.cdef[[
-	void dilate(float* x);
-	void erode(float* x);
-	void dilateC(float* x, int start, int end);
-	void dilateSSE(float* x, int start, int end);
+	void dilate(float* x, float* y);
+	void erode(float* x, float* y);
+	void dilateC(float* x, float* y, int start, int end);
+	void dilateSSE(float* x, float* y, int start, int end);
 ]]
 
-local function dilateSSE()
+local function dilateSSE(a, b)
 	for i = 4, size-4, 4 do
-		sse.dilate(a+i)
+		sse.dilate(a+i, b+i)
 	end
 end
 
 local t = os.clock()
 for i = 1, 500 do
-	dilateSSE()
+	dilateSSE(a, b)
 end
 print(os.clock()-t, "Lua SSE dilate")
+-- about 3x improvement
 
 local t = os.clock()
 for i = 1, 500 do
-	sse.dilateC(a, 4, size-4)
+	sse.dilateC(a, b, 4, size-4)
 end
 print(os.clock()-t, "C native dilate")
+-- very slow native C, due to MAX macro?
 
 local t = os.clock()
 for i = 1, 500 do
-	sse.dilateSSE(a, 4, size-4)
+	sse.dilateSSE(a, b, 4, size-4)
 end
 print(os.clock()-t, "C SSE dilate")
--- lua SSE loop is near optimal
+-- lua SSE loop at same performance
