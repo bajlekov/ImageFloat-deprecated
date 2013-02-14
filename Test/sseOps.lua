@@ -129,6 +129,9 @@ local a = ffi.new("float_a[?]", size)
 local b = ffi.new("float_a[?]", size)
 
 -- randomize a
+for i = 0, size-1 do
+	a[i] = math.random()
+end
 
 -- closing is dilation followed by erosion
 -- can be combined in a single SSE function where erosion lags by 1 and reuses registers?
@@ -176,7 +179,7 @@ for i = 1, 500 do
 	sse.dilateC(a, b, 4, size-4)
 end
 print(os.clock()-t, "C native dilate")
--- very slow native C, due to MAX macro?
+-- why is the native c loop so much slower?
 
 local t = os.clock()
 for i = 1, 500 do
