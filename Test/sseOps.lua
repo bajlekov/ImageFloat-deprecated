@@ -15,31 +15,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-os.execute('pwd')
-
--- check accuracy of power calculations
-
--- example code for gamma transform from opsCS
-local aa = 0.099
-local G = 1/0.45
-
-local a_1 = 1/(1+aa)
-local G_1 = 1/G
-
-local f = ((1+aa)^G*(G-1)^(G-1))/(aa^(G-1)*G^G)
-local k = aa/(G-1)
-local k_f = k/f
-local f_1 = 1/f
-
-local function LRGBtoSRGB(i)
-	return i<=k_f and i*f or (aa+1)*i^G_1-aa
-end
-local function SRGBtoLRGB(i)
-	return i<=k and i*f_1 or ((i+aa)*a_1)^G
-end
-
 -- create c library for vectorised calculation of above functions
-os.execute ("gcc -O2 -march=native -fPIC -c Test/sse.c -o Test/sse.o")
+os.execute ("gcc -O3 -march=native -fPIC -c Test/sse.c -o Test/sse.o")
 os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
 
 -- test library
@@ -57,6 +34,28 @@ ffi.cdef[[
 	typedef float float_a __attribute__ ((aligned (16)));
 	int printf ( const char * format, ... );
 ]]
+
+-- check accuracy of power calculations
+
+-- example code for gamma transform from opsCS
+--[[
+local aa = 0.099
+local G = 1/0.45
+
+local a_1 = 1/(1+aa)
+local G_1 = 1/G
+
+local f = ((1+aa)^G*(G-1)^(G-1))/(aa^(G-1)*G^G)
+local k = aa/(G-1)
+local k_f = k/f
+local f_1 = 1/f
+
+local function LRGBtoSRGB(i)
+	return i<=k_f and i*f or (aa+1)*i^G_1-aa
+end
+local function SRGBtoLRGB(i)
+	return i<=k and i*f_1 or ((i+aa)*a_1)^G
+end
 
 local a = ffi.new("float_a[4]",{0.3,0.5,0.7,0.9})
 local b = ffi.new("float_a[4]",{2.25,2.25,2.25,2.25})
@@ -122,3 +121,56 @@ end
 t2 = os.clock()
 print(s, c[0], c[1], c[2], c[3])
 print((t2-t1)/4)
+--]]
+
+-- dilation example:
+local size = 1024000
+local a = ffi.new("float_a[?]", size)
+
+-- closing is dilation followed by erosion
+-- can be combined in a single SSE function where erosion lags by 1 and reuses registers?
+
+-- native lua approach
+local function dilate()
+	for i = 4, size-4 do
+		a[i] = math.max(a[i-2], a[i-1], a[i], a[i+1], a[i+2])
+	end
+end
+
+local t = os.clock()
+for i = 1, 500 do
+	dilate()
+end
+print(os.clock()-t, "Lua native dilate")
+
+ffi.cdef[[
+	void dilate(float* x);
+	void erode(float* x);
+	void dilateC(float* x, int start, int end);
+	void dilateSSE(float* x, int start, int end);
+]]
+
+local function dilateSSE()
+	for i = 4, size-4, 4 do
+		sse.dilate(a+i)
+	end
+end
+
+local t = os.clock()
+for i = 1, 500 do
+	dilateSSE()
+end
+print(os.clock()-t, "Lua SSE dilate")
+
+local t = os.clock()
+for i = 1, 500 do
+	sse.dilateC(a, 4, size-4)
+end
+print(os.clock()-t, "C native dilate")
+
+local t = os.clock()
+for i = 1, 500 do
+	sse.dilateSSE(a, 4, size-4)
+end
+print(os.clock()-t, "C SSE dilate")
+-- lua SSE loop is near optimal
