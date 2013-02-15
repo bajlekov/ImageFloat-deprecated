@@ -31,7 +31,7 @@
 #define POLY4(x, c0, c1, c2, c3, c4) _mm_add_ps(_mm_mul_ps(POLY3(x, c1, c2, c3, c4), x), _mm_set1_ps(c0))
 #define POLY5(x, c0, c1, c2, c3, c4, c5) _mm_add_ps(_mm_mul_ps(POLY4(x, c1, c2, c3, c4, c5), x), _mm_set1_ps(c0))
 
-inline __m128 exp2f4(__m128 x)
+__m128 exp2f4(__m128 x)
 {
    __m128i ipart;
    __m128 fpart, expipart, expfpart;
@@ -65,7 +65,7 @@ inline __m128 exp2f4(__m128 x)
 }
 
 
-inline static __m128 log2f4(__m128 x)
+__m128 log2f4(__m128 x)
 {
 	static int init = 0;
 	static __m128i exp, mant;
@@ -101,7 +101,7 @@ inline static __m128 log2f4(__m128 x)
    return _mm_add_ps(p, e);
 }
 
-static inline __m128 _mm_pow_ps(__m128 x, __m128 y) {
+ __m128 _mm_pow_ps(__m128 x, __m128 y) {
    return exp2f4(_mm_mul_ps(log2f4(x), y));
 }
 
@@ -190,7 +190,7 @@ void SRGBtoLRGB(float* x, float* z) {
 	_mm_store_ps(z, m);
 }
 
-void dilate(float* x, float* y) {
+void dilate(float* __restrict x, float* __restrict y) {
 	__m128 m;
 	m = _mm_load_ps(x);
 	m = _mm_max_ps(m, _mm_loadu_ps(x-2));
@@ -200,7 +200,7 @@ void dilate(float* x, float* y) {
 	_mm_store_ps(y, m);
 }
 
-void erode(float* x, float* y) {
+void erode(float* __restrict x, float* __restrict y) {
 	__m128 m;
 	m = _mm_load_ps(x);
 	m = _mm_min_ps(m, _mm_loadu_ps(x-2));
@@ -210,7 +210,7 @@ void erode(float* x, float* y) {
 	_mm_store_ps(y, m);
 }
 
-void dilateSSE(float* x, float* y, int start, int end) {
+void dilateSSE(float* __restrict x, float* __restrict y, int start, int end) {
 	int i;
 	for (i=start; i<=end; i+=4) {
 		dilate(x+i, y+i);
@@ -225,8 +225,12 @@ void dilateC(float* __restrict x, float* __restrict y, int start, int end) {
 	
 	int i;
 	for (i=start; i<=end; i++) {
-		y[i] = MAX(MAX(x[i-2], x[i-1]), MAX(x[i], MAX(x[i+1], x[i+2])));
+		y[i] = MAX(MAX(MAX(MAX(x[i-2], x[i-1]), x[i]), x[i+1]), x[i+2]);
 	}
+}
+
+void dilateCsingle(float* __restrict x, float* __restrict y) {
+	y[0] = MAX(MAX(MAX(MAX(x[-2], x[-1]), x[0]), x[1]), x[2]);
 }
 
 void addSSE(float* x, float* y, float* z, int size) {
@@ -247,9 +251,10 @@ void addC(float* x, float* y, float* z, int size) {
 	}
 }
 
-void memcpySSE(float* dest, float* src, int size) {
-	int i;
-	for (i=0; i<size; i+=4) {
-		_mm_store_ps(dest+i, _mm_load_ps(src+i));
-	}
+void addSSEsingle(float* x, float* y, float* z) {
+	_mm_store_ps(z, _mm_add_ps(_mm_load_ps(x), _mm_load_ps(y)));
+}
+
+void addCsingle(float* x, float* y, float* z) {
+	z[0]=x[0]+y[0];
 }

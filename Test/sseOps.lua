@@ -15,9 +15,31 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+--[[
+	Note:
+	- LuaJIT requires SSE2, assume it's always available
+		- not using it is a waste, still offer fallback options
+	
+	Conclusions:
+	- SSE often improves performance by 2-3x over native lua
+	- C improves performance by about 1-2x, provided -ffast-math is used
+	- lua performs similarly to C when using an SSE operation
+	- the GCC vectoriser is able to optimise some functions better than native SSE
+		- native C routines offers small improvements, unless vectorised
+	- implementing SSE routines is worthwile, easily accessed from lua
+		- needs extra code to handle unaligned array start and ends
+		- needs extra logistics to provide library
+		- code and performance becomes architecture-dependent, allowing native lua feedback is needed 
+	- loops in lua vs C do not matter
+	
+	Actions:
+	- implement fallback mechanisms in pure lua (settings option)
+	- offer optimised library with support for basic vector and element operations
+	- offer specific operations coded in SSE or auto-vectorised by GCC (depending on performance)
+--]]
+
 -- create c library for vectorised calculation of above functions
--- --std=c99
-os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised C")
+os.execute ("gcc -O3 -std=gnu99 -ffast-math -march=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised C")
 --os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -fno-tree-vectorize -c Test/sse.c -o Test/sse.o") print("non-vectorised C")
 os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
 -- test library
@@ -39,7 +61,7 @@ ffi.cdef[[
 -- check accuracy of power calculations
 
 -- example code for gamma transform from opsCS
---[[
+---[[
 local aa = 0.099
 local G = 1/0.45
 
@@ -63,6 +85,7 @@ local b = ffi.new("float_a[4]",{2.25,2.25,2.25,2.25})
 local c = ffi.new("float_a[4]",{0,0,0,0})
 
 -- test precision
+print("\nSSE v. Lua power:")
 sse.vpow(a,b,c)
 ffi.C.printf("%0.10f\t%0.10f\t%0.10f\t%0.10f\n", c[0], c[1], c[2], c[3])
 
@@ -74,6 +97,7 @@ ffi.C.printf("%0.10f\t%0.10f\t%0.10f\t%0.10f\n", c[0], c[1], c[2], c[3])
 
 
 -- test precision
+print("\nSSE v. Lua SRGBtoLRGB:")
 sse.SRGBtoLRGB(a,c)
 ffi.C.printf("%0.10f\t%0.10f\t%0.10f\t%0.10f\n", c[0], c[1], c[2], c[3])
 
@@ -85,8 +109,9 @@ ffi.C.printf("%0.10f\t%0.10f\t%0.10f\t%0.10f\n", c[0], c[1], c[2], c[3])
 
 sse.LRGBtoSRGB(a,c)
 sse.SRGBtoLRGB(c,c)
+print("\nRoundtrip:")
 ffi.C.printf("%0.10f\t%0.10f\t%0.10f\t%0.10f\n", c[0], c[1], c[2], c[3])
-
+print("")
 local s = 0
 
 local t1, t2
@@ -97,12 +122,11 @@ for i = 1,10000000 do
 	a[1]=i+2
 	a[2]=i+1
 	a[3]=i
-	sse.SRGBtoLRGB(a, c)
+	sse.vpow(a, b, c)
 	s = s + c[0] + c[1] + c[2] + c[3]
 end
 t2 = os.clock()
-print(s, c[0], c[1], c[2], c[3])
-print(t2-t1)
+print(t2-t1, "Lua SSE power")
 
 s = 0
 local sqrt = math.sqrt
@@ -113,19 +137,20 @@ for i = 1,10000000 do
 	a[1]=i+2
 	a[2]=i+1
 	a[3]=i
-	c[0] = SRGBtoLRGB(a[0])
-	c[1] = SRGBtoLRGB(a[1])
-	c[2] = SRGBtoLRGB(a[2])
-	c[3] = SRGBtoLRGB(a[3])
+	c[0] = a[0]^b[0]
+	c[1] = a[1]^b[1]
+	c[2] = a[2]^b[2]
+	c[3] = a[3]^b[3]
 	s = s + c[0] + c[1] + c[2] + c[3]
 end
 t2 = os.clock()
-print(s, c[0], c[1], c[2], c[3])
-print((t2-t1)/4)
+print(t2-t1, "Lua native power")
+print("============================")
 --]]
 
 -- dilation example:
 local size = 1024000
+local iter = 500
 local a = ffi.new("float_a[?]", size)
 local b = ffi.new("float_a[?]", size)
 local c = ffi.new("float_a[?]", size)
@@ -151,19 +176,29 @@ for i = 1, 500 do
 end
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter/3 do
 	dilate(a, b)
 end
-print(os.clock()-t, "Lua native dilate")
+print((os.clock()-t)*3, "Lua native dilate")
 
 ffi.cdef[[
 	void dilate(float* x, float* y);
 	void erode(float* x, float* y);
 	void dilateC(float* x, float* y, int start, int end);
 	void dilateSSE(float* x, float* y, int start, int end);
+	void dilateCsingle(float* x, float* y);
+	
 	void addSSE(float* x, float* y, float* z, int size);
 	void addC(float* x, float* y, float* z, int size);
+	void addSSEsingle(float* x, float* y, float* z);
+	void addCsingle(float* x, float* y, float* z);
 ]]
+
+local function dilateC(a, b)
+	for i = 4, size-4 do
+		sse.dilateCsingle(a+i, b+i)
+	end
+end
 
 local function dilateSSE(a, b)
 	for i = 4, size-4, 4 do
@@ -172,46 +207,54 @@ local function dilateSSE(a, b)
 end
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	dilateSSE(a, b)
 end
 print(os.clock()-t, "Lua SSE dilate")
 -- about 3x improvement
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
+	dilateSSE(a, b)
+end
+print(os.clock()-t, "Lua C-lib dilate")
+
+local t = os.clock()
+for i = 1, iter do
 	sse.dilateC(a, b, 4, size-4)
 end
-print(os.clock()-t, "C native dilate (very slow without -ffast-math, otherwise vectorised, very fast when explicit non-aliasing is indicated)")
+print(os.clock()-t, "C native dilate (slow without -ffast-math, vectorised")
 -- why is the native c loop so much slower?
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	sse.dilateSSE(a, b, 4, size-4)
 end
 print(os.clock()-t, "C SSE dilate")
 -- lua SSE loop at same performance
 
+print("============================")
+
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	sse.addSSE(a, b, a, size)
 end
 print(os.clock()-t, "C SSE add in-place")
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	sse.addSSE(a, b, c, size)
 end
 print(os.clock()-t, "C SSE add out-of-place")
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	sse.addC(a, b, a, size)
 end
 print(os.clock()-t, "C native add in-place (vectorised)")
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	sse.addC(a, b, c, size)
 end
 print(os.clock()-t, "C native add out-of-place (vectorised)")
@@ -222,16 +265,53 @@ local function add(a, b, c)
 	end
 end
 
+local function addSSE(a, b, c)
+	for i = 4, size-4, 4 do
+		sse.addSSEsingle(a+i, b+i, c+i)
+	end
+end
+
+local function addC(a, b, c)
+	for i = 4, size-4 do
+		sse.addCsingle(a+i, b+i, c+i)
+	end
+end
+
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	add(a, b, a)
 end
 print(os.clock()-t, "Lua native add in-place")
 
 local t = os.clock()
-for i = 1, 500 do
+for i = 1, iter do
 	add(a, b, c)
 end
 print(os.clock()-t, "Lua native add out-of-place")
--- native lua is some 20% slower than native C, SSE improves in-place add
+-- native lua is some 30% slower than native C, SSE improves in-place add
+
+local t = os.clock()
+for i = 1, iter do
+	addSSE(a, b, a)
+end
+print(os.clock()-t, "Lua SSE add in-place")
+
+local t = os.clock()
+for i = 1, iter do
+	addSSE(a, b, c)
+end
+print(os.clock()-t, "Lua SSE add out-of-place")
+
+local t = os.clock()
+for i = 1, iter do
+	addC(a, b, a)
+end
+print(os.clock()-t, "Lua C-lib add in-place")
+
+local t = os.clock()
+for i = 1, iter do
+	addC(a, b, c)
+end
+print(os.clock()-t, "Lua C-lib add out-of-place")
+
 
