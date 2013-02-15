@@ -16,9 +16,10 @@
 ]]
 
 -- create c library for vectorised calculation of above functions
-os.execute ("gcc -O3 -march=native -fPIC -c Test/sse.c -o Test/sse.o")
+-- --std=c99
+os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised C")
+--os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -fno-tree-vectorize -c Test/sse.c -o Test/sse.o") print("non-vectorised C")
 os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
-
 -- test library
 
 ffi = require("ffi")
@@ -127,6 +128,7 @@ print((t2-t1)/4)
 local size = 1024000
 local a = ffi.new("float_a[?]", size)
 local b = ffi.new("float_a[?]", size)
+local c = ffi.new("float_a[?]", size)
 
 -- randomize a
 for i = 0, size-1 do
@@ -159,6 +161,8 @@ ffi.cdef[[
 	void erode(float* x, float* y);
 	void dilateC(float* x, float* y, int start, int end);
 	void dilateSSE(float* x, float* y, int start, int end);
+	void addSSE(float* x, float* y, float* z, int size);
+	void addC(float* x, float* y, float* z, int size);
 ]]
 
 local function dilateSSE(a, b)
@@ -178,7 +182,7 @@ local t = os.clock()
 for i = 1, 500 do
 	sse.dilateC(a, b, 4, size-4)
 end
-print(os.clock()-t, "C native dilate")
+print(os.clock()-t, "C native dilate (very slow without -ffast-math, otherwise vectorised, very fast when explicit non-aliasing is indicated)")
 -- why is the native c loop so much slower?
 
 local t = os.clock()
@@ -187,3 +191,47 @@ for i = 1, 500 do
 end
 print(os.clock()-t, "C SSE dilate")
 -- lua SSE loop at same performance
+
+local t = os.clock()
+for i = 1, 500 do
+	sse.addSSE(a, b, a, size)
+end
+print(os.clock()-t, "C SSE add in-place")
+
+local t = os.clock()
+for i = 1, 500 do
+	sse.addSSE(a, b, c, size)
+end
+print(os.clock()-t, "C SSE add out-of-place")
+
+local t = os.clock()
+for i = 1, 500 do
+	sse.addC(a, b, a, size)
+end
+print(os.clock()-t, "C native add in-place (vectorised)")
+
+local t = os.clock()
+for i = 1, 500 do
+	sse.addC(a, b, c, size)
+end
+print(os.clock()-t, "C native add out-of-place (vectorised)")
+
+local function add(a, b, c)
+	for i = 0, size-1 do
+		c[i] = a[i]+b[i]
+	end
+end
+
+local t = os.clock()
+for i = 1, 500 do
+	add(a, b, a)
+end
+print(os.clock()-t, "Lua native add in-place")
+
+local t = os.clock()
+for i = 1, 500 do
+	add(a, b, c)
+end
+print(os.clock()-t, "Lua native add out-of-place")
+-- native lua is some 20% slower than native C, SSE improves in-place add
+

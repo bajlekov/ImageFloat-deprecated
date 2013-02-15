@@ -17,6 +17,7 @@
 
 -- new buffer class with c memory allocation
 -- TODO: mixed precision handling??
+-- TODO: multithreaded and SSE-optimised methods
 
 local ffi = require "ffi"
 jit.flush()
@@ -355,8 +356,9 @@ function buffer:copy(t)
 			return nil
 		end
 	else
-		local o = self:new()	
-		ffi.copy(o.data, self.data, self.x*self.y*self.z*4) -- switch to 8 for double		
+		local o = self:new()
+		ffi.copy(o.data, self.data, self.x*self.y*self.z*4) -- switch to 8 for double
+		-- fast SSE memcopy?
 		return o
 	end
 end
@@ -548,6 +550,8 @@ print(os.clock() - t, "setter function")
 		- min
 		- mean
 		- sd
+		
+		- optional: ops using SSE instructions
 		
 		- other ops:
 			- concat (..) 	??

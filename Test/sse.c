@@ -65,7 +65,7 @@ inline __m128 exp2f4(__m128 x)
 }
 
 
-inline __m128 log2f4(__m128 x)
+inline static __m128 log2f4(__m128 x)
 {
 	static int init = 0;
 	static __m128i exp, mant;
@@ -101,7 +101,7 @@ inline __m128 log2f4(__m128 x)
    return _mm_add_ps(p, e);
 }
 
-inline __m128 _mm_pow_ps(__m128 x, __m128 y) {
+static inline __m128 _mm_pow_ps(__m128 x, __m128 y) {
    return exp2f4(_mm_mul_ps(log2f4(x), y));
 }
 
@@ -219,9 +219,37 @@ void dilateSSE(float* x, float* y, int start, int end) {
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
-void dilateC(float* x, float* y, int start, int end) {
+void dilateC(float* __restrict x, float* __restrict y, int start, int end) {
+	x = __builtin_assume_aligned (x, 16);
+	y = __builtin_assume_aligned (y, 16);
+	
 	int i;
 	for (i=start; i<=end; i++) {
-		y[i] = MAX(x[i-2], MAX(x[i-1], MAX(x[i], MAX(x[i+1], x[i+2]))));
+		y[i] = MAX(MAX(x[i-2], x[i-1]), MAX(x[i], MAX(x[i+1], x[i+2])));
+	}
+}
+
+void addSSE(float* x, float* y, float* z, int size) {
+	int i;
+	for (i=0; i<size; i+=4) {
+		_mm_store_ps(z+i, _mm_add_ps(_mm_load_ps(x+i), _mm_load_ps(y+i)));
+	}
+}
+
+void addC(float* x, float* y, float* z, int size) {
+	x = __builtin_assume_aligned (x, 16);
+	y = __builtin_assume_aligned (y, 16);
+	z = __builtin_assume_aligned (z, 16);
+	
+	int i;
+	for (i=0; i<size; i++) {
+		z[i]=x[i]+y[i];
+	}
+}
+
+void memcpySSE(float* dest, float* src, int size) {
+	int i;
+	for (i=0; i<size; i+=4) {
+		_mm_store_ps(dest+i, _mm_load_ps(src+i));
 	}
 }
