@@ -39,8 +39,9 @@
 --]]
 
 -- create c library for vectorised calculation of above functions
-os.execute ("gcc -O3 -std=gnu99 -ffast-math -march=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised C")
---os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -fno-tree-vectorize -c Test/sse.c -o Test/sse.o") print("non-vectorised C")
+os.execute ("clang -mllvm -vectorize-loops -mllvm -vectorize -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/sse.c -o Test/sse.o") print("LLVM")
+--os.execute ("gcc -O3 -std=gnu99 -ffast-math -march=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised GCC")
+--os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -fno-tree-vectorize -c Test/sse.c -o Test/sse.o") print("non-vectorised GCC")
 os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
 -- test library
 
@@ -61,7 +62,7 @@ ffi.cdef[[
 -- check accuracy of power calculations
 
 -- example code for gamma transform from opsCS
----[[
+--[[
 local aa = 0.099
 local G = 1/0.45
 
@@ -149,6 +150,7 @@ print("============================")
 --]]
 
 -- dilation example:
+---[=[
 local size = 1024000
 local iter = 500
 local a = ffi.new("float_a[?]", size)
@@ -302,6 +304,7 @@ for i = 1, iter do
 end
 print(os.clock()-t, "Lua SSE add out-of-place")
 
+--[[
 local t = os.clock()
 for i = 1, iter do
 	addC(a, b, a)
@@ -313,5 +316,5 @@ for i = 1, iter do
 	addC(a, b, c)
 end
 print(os.clock()-t, "Lua C-lib add out-of-place")
-
-
+--]]
+--]=]

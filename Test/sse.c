@@ -220,8 +220,8 @@ void dilateSSE(float* __restrict x, float* __restrict y, int start, int end) {
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 void dilateC(float* __restrict x, float* __restrict y, int start, int end) {
-	x = __builtin_assume_aligned (x, 16);
-	y = __builtin_assume_aligned (y, 16);
+	//x = __builtin_assume_aligned (x, 16);
+	//y = __builtin_assume_aligned (y, 16);
 	
 	int i;
 	for (i=start; i<=end; i++) {
@@ -241,9 +241,9 @@ void addSSE(float* x, float* y, float* z, int size) {
 }
 
 void addC(float* x, float* y, float* z, int size) {
-	x = __builtin_assume_aligned (x, 16);
-	y = __builtin_assume_aligned (y, 16);
-	z = __builtin_assume_aligned (z, 16);
+	//x = __builtin_assume_aligned (x, 16);
+	//y = __builtin_assume_aligned (y, 16);
+	//z = __builtin_assume_aligned (z, 16);
 	
 	int i;
 	for (i=0; i<size; i++) {
