@@ -39,16 +39,17 @@
 --]]
 
 -- create c library for vectorised calculation of above functions
-os.execute ("clang -mllvm -vectorize-loops -mllvm -vectorize -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/sse.c -o Test/sse.o") print("LLVM")
---os.execute ("gcc -O3 -std=gnu99 -ffast-math -march=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised GCC")
+--os.execute ("clang -mllvm -vectorize-loops -mllvm -vectorize -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/sse.c -o Test/sse.o") print("LLVM")
+os.execute ("gcc -m64 -O3 -std=gnu99 -ffast-math -march=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised GCC")
 --os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -fno-tree-vectorize -c Test/sse.c -o Test/sse.o") print("non-vectorised GCC")
-os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
+--os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
+os.execute ("gcc -m64 -shared -o Test/libsse.dll Test/sse.o")
 -- test library
 
 ffi = require("ffi")
 --lib = ffi.load("./Test/libsse.so")
-lib = ffi.load("./Test/libadd.so")
-sse = ffi.load("./Test/libsse.so")
+--lib = ffi.load("./Test/libadd.so")
+sse = ffi.load("./Test/libsse.dll")
 
 ffi.cdef[[
 	void vpow(float* x, float* y, float* z);
