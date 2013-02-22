@@ -67,11 +67,13 @@ local function compileShaders(vsFilename, fsFilename)
 	v = gl.CreateShader(gl.VERTEX_SHADER)
 	gl.ShaderSource(v, vs)
 	gl.CompileShader(v)
+	print(gl.GetShaderInfoLog(v))
 	
 	fs = readFile(fsFilename);
 	f = gl.CreateShader(gl.FRAGMENT_SHADER)
 	gl.ShaderSource(f, fs)
 	gl.CompileShader(f)
+	print(gl.GetShaderInfoLog(f))
 
 	p = gl.CreateProgram()
 	gl.AttachShader(p,v)
@@ -192,8 +194,11 @@ gl.Disable(gl.CULL_FACE);
 gl.Flush();
 
 -- texture size
-local n = 2048
-local m = 2048
+local n = math.floor(math.random()*1000)
+local m = math.floor(math.random()*1000)
+local z = 1
+local maxiter = 100
+print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 reshape(n, m)				-- setup viewport, important! 
 
 -- setup data input and output
@@ -204,34 +209,85 @@ for i = 0, 4*m*n-1 do
 end
 
 -- setup textures and framebuffers
-local tex1 = newTex(m,n, 4)
-local tex2 = newTex(m,n, 4)
+local tex1 = newTex(m,n, z)
+local tex2 = newTex(m,n, z)
 local fbo1 = newFB(tex1, 0)
 
 local program = compileShaders("shader.vs", "shader.fs") -- compile shader
 setUniformTex(program, 0, "texUnit") -- pass uniform variables
 setUniform4f(program, "powVec", 2.25, 2.25, 2.25, 2.25)
+
+do
+	local a = 0.099
+	local G = 1/0.45
+	
+	local a_1 = 1/(1+a)
+	local G_1 = 1/G
+	
+	local f = ((1+a)^G*(G-1)^(G-1))/(a^(G-1)*G^G)
+	local k = a/(G-1)
+	local k_f = k/f
+	local f_1 = 1/f
+
+	setUniform4f(program, "k_f", k_f, k_f, k_f, k_f)
+	setUniform4f(program, "f", f, f, f, f)
+	setUniform4f(program, "a", a, a, a, a)
+	setUniform4f(program, "g_1", G_1, G_1, G_1, G_1)
+end
+
 bindFB(fbo1)				-- bind framebuffer
 bindTex(tex2, 0)			-- bind textures
 
 -- shading loop:
 print("start GLSL ...")
 local t = os.clock()
-for i = 1, 25 do
-	setTex(tex2, data, m, n, 4)		-- set data to texture
+for i = 1, maxiter do
+	setTex(tex2, data, m, n, z)		-- set data to texture
 	applyProgram(program, m, n)		-- apply shader
-	getTex(tex1, result, 4)			-- get output data
+	getTex(tex1, result, z)			-- get output data
 end
 print(os.clock() - t, "GLSL")
-print(result[128], 129^2.25)
 
+--[[
+print("start GLSL ...")
 local t = os.clock()
-for i = 1, 25 do
-	for j = 0, m*n*4-1 do
-		result[j] = data[j]^2.25
+setTex(tex2, data, m, n, 4)		-- set data to texture
+for i = 1, 250 do	
+	applyProgram(program, m, n)		-- apply shader
+end
+getTex(tex1, result, 4)			-- get output data
+print((os.clock() - t)/10, "GLSL process only")
+print(result[128], 129^2.25)
+--]]
+
+local LRGBtoSRGB
+local SRGBtoLRGB
+do
+	local a = 0.099
+	local G = 1/0.45
+	
+	local a_1 = 1/(1+a)
+	local G_1 = 1/G
+	
+	local f = ((1+a)^G*(G-1)^(G-1))/(a^(G-1)*G^G)
+	local k = a/(G-1)
+	local k_f = k/f
+	local f_1 = 1/f
+	
+	LRGBtoSRGB = function(i)
+		return i<=k_f and i*f or (a+1)*i^G_1-a
+	end
+	SRGBtoLRGB = function(i)
+		return i<=k and i*f_1 or ((i+a)*a_1)^G
 	end
 end
-print(os.clock() - t, "CPU")
-print(result[128], 129^2.25)
 
+local t = os.clock()
+for i = 1, maxiter do
+	for j = 0, m*n*z-1 do
+		result[j] = LRGBtoSRGB(data[j])
+	end
+end
+print((os.clock() - t), "CPU")
+--]]
 print("success!!")
