@@ -59,19 +59,6 @@ local function readFile(name)
 	return str
 end
 
-local function printShaderLog(obj)
-    local infologLength = ffi.new("GLint[1]", 0)
-    local charsWritten = ffi.new("GLint[1]", 0)
-
-	gl.GetShaderiv(obj, gl.INFO_LOG_LENGTH, infologLength);
-
-    if infologLength[0]>0 then
-        local infoLog = ffi.new("char[?]", infologLength[0]) 
-        gl.GetShaderInfoLog(obj, infologLength, charsWritten, infoLog);
-		print(ffi.string(infoLog))
-    end
-end
-
 local function compileShaders(vsFilename, fsFilename)
 	local v, f, p
 	local vs, fs
