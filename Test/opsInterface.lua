@@ -67,28 +67,59 @@ bufIO.set[1] = function(x, y, z, v)	bufData1[x*ySize*zSize + y*zSize + z] = v en
 bufIO.set[2] = function(x, y, z, v)	bufData2[x*ySize + y] = v end
 bufIO.set[3] = function(x, y, z, v)	bufData3[x*ySize*zSize + y*zSize + z] = v end 
 
--- add operation, abstraction through text replacement?
+-- add operation, abstract combination through text replacement?
 local function add(bt, x, y, z)
 	bt.set[3](x,y,z, bt.get[1](x,y,z) + bt.get[2](x,y,z))
 end
 
-local function pixelOp(bt, x, y)
-	add(bt, x, y, 0)
-	add(bt, x, y, 1)
-	add(bt, x, y, 2)
+local function pixelOp(bt, fun, x, y, zSize)
+	if zSize==nil then
+		fun(bt, x, y, 0)
+		fun(bt, x, y, 1)
+		fun(bt, x, y, 2)
+	elseif zSize==1 then
+		fun(bt, x, y, 0)
+	elseif zSize==2 then
+		fun(bt, x, y, 0)
+		fun(bt, x, y, 1)
+	elseif zSize==3 then
+		fun(bt, x, y, 0)
+		fun(bt, x, y, 1)
+		fun(bt, x, y, 2)
+	else
+		for z = 0, zSize-1 do
+			fun(bufIO, x, y, z)
+		end
+	end
 end
 
+-- loop can be problematic to optimize sometimes?
+-- nested loops or short loops inside long loops can show probabilistic changes in performance due to different order of optimization dependent on memory structure
+local function pixelOpLoop(bt, fun, x, y, zSize)
+	for z = 0, zSize-1 do
+		fun(bufIO, x, y, z)
+	end
+end
+
+-- move z-loop outside
+local function pixelOpSingle(bt, fun, x, y, z)
+	fun(bufIO, x, y, z)
+end
+
+-- safest solution: create inlined functions for common sizes of Z
+
+---[[
 -- warmup
 for i = 1, 10 do
 	for xPos = 0, xSize-1 do -- adapt for parallel execution
-		for yPos = 0, ySize-1 do 
-			pixelOp(bufIO, xPos, yPos)
+		for yPos = 0, ySize-1 do
+			pixelOp(bufIO, add, xPos, yPos)
 		end
 	end
 end
 
 local t = os.clock()
-for i = 1, 20 do
+for i = 1, 10 do
 	for xPos = 0, xSize-1 do
 		for yPos = 0, ySize-1 do
 			bufData3[xPos*ySize*zSize + yPos*zSize + 0] = bufData1[xPos*ySize*zSize + yPos*zSize + 0] + bufData2[xPos*ySize + yPos]
@@ -100,11 +131,40 @@ end
 print(os.clock()-t, "naive add")
 
 local t = os.clock()
-for i = 1, 20 do
+for i = 1, 10 do
+	for xPos = 0, xSize-1 do
+		for yPos = 0, ySize-1 do
+			for z = 0, zSize-1 do
+				bufData3[xPos*ySize*zSize + yPos*zSize + z] = bufData1[xPos*ySize*zSize + yPos*zSize + z] + bufData2[xPos*ySize + yPos]
+			end
+		end
+	end
+end
+print(os.clock()-t, "naive add z-loop")
+
+local t = os.clock()
+for i = 1, 10 do
 	for xPos = 0, xSize-1 do -- adapt for parallel execution
 		for yPos = 0, ySize-1 do 
-			pixelOp(bufIO, xPos, yPos)
+			pixelOp(bufIO, add, xPos, yPos)
 		end
 	end
 end
 print(os.clock()-t, "abstract add")
+--]]
+
+local function pixelOp(bt, fun, x, y)
+	fun(bt, x, y, 0)
+	fun(bt, x, y, 1)
+	fun(bt, x, y, 2)
+end
+
+local t = os.clock()
+for i = 1, 10 do
+	for xPos = 0, xSize-1 do -- adapt for parallel execution
+		for yPos = 0, ySize-1 do 
+			pixelOp(bufIO, add, xPos, yPos)
+		end
+	end
+end
+print(os.clock()-t, "abstract add no branch")
