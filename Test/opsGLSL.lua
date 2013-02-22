@@ -20,8 +20,14 @@
 -- using glua bindings for openGL (Copyright (c) 2011-2012 Adam Strzelecki)
 -- https://github.com/nanoant/glua, MIT-license
 -- TODO port minimal bindings for shaders
--- TODO coexistence with SDL
 -- TODO possible multiple instances for parallel data loading?
+
+--[[  coexistence with SDL:
+	- when no GL has been initiated from SDL, it is no problem to run this routine
+	- computations complete without problems
+	- GLSL module can be created and safely called within an SDL program
+--]]
+
 
 local ffi = require("ffi")
 local gl    = require("glua")
@@ -190,17 +196,26 @@ local function getTex(tex, data, z)
 	gl.GetTexImage(gl.TEXTURE_2D, 0, texForm, gl.FLOAT, data);
 end
 
+local function glslInit()
+	print("start GLSL setup ...")
+	gl.utInitDisplayString('rgba double depth>=16 samples~8')
+	gl.utCreateWindow("");
+	gl.utHideWindow()
+	gl.Enable(gl.TEXTURE_2D)
+	gl.Disable(gl.DEPTH_TEST);
+	gl.Disable(gl.CULL_FACE);
+	gl.Flush();
+end
+
 -- main program
 
--- setup
-print("start GLSL setup ...")
-gl.utInitDisplayString('rgba double depth>=16 samples~8')
-gl.utCreateWindow("");
-gl.utHideWindow()
-gl.Enable(gl.TEXTURE_2D)
-gl.Disable(gl.DEPTH_TEST);
-gl.Disable(gl.CULL_FACE);
-gl.Flush();
+-- TODO: create bindings for automatic processing
+-- accept: shader.vt, shader ft, {tex1, tex2, tex3, tex4...}, {out1, out2, out3, out4...}, length
+-- primapily for array and color processing, mainly because tiling needs additional structures to determine offsets
+-- TODO: helper functions for easy access of texture offsets and global position when using tiles
+
+-- setup function
+glslInit()
 
 -- texture size
 local n = math.floor(math.random()*1000)
