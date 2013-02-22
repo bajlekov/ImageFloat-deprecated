@@ -116,6 +116,12 @@ local function setUniform3f(s, name, v1, v2, v3)
     gl.UseProgram(0);
 end
 
+local function setUniform2f(s, name, v1, v2)
+    gl.UseProgram(s);
+    gl.Uniform2f(gl.GetUniformLocation(s, name), v1, v2)  
+    gl.UseProgram(0);
+end
+
 local function setUniform1f(s, name, v1)
     gl.UseProgram(s);
     gl.Uniform1f(gl.GetUniformLocation(s, name), v1)  
@@ -134,17 +140,20 @@ local function newTex(width, height, z)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT,1);
 	gl.TexImage2D(gl.TEXTURE_2D, 0, texFormInt, width, height, 0, texForm, gl.FLOAT, NULL)
 	
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_BORDER) -- clipping to 0 outside of image
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_BORDER)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	
 	return texId
 end
 
-local function newFB(texId, n)
+local function newFB()
 	local fb = ffi.new("GLuint[1]")
 	gl.GenFramebuffers(1, fb)
+	return fb
+end
+local function attachTex(fb, texId, n)
 	gl.BindFramebuffer(gl.FRAMEBUFFER, fb[0])
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl["COLOR_ATTACHMENT"..n], gl.TEXTURE_2D, texId[0], 0);
 	return fb;
@@ -204,6 +213,7 @@ reshape(n, m)				-- setup viewport, important!
 -- setup data input and output
 local data = ffi.new("float[?]", 4*m*n)
 local result = ffi.new("float[?]", 4*m*n)
+local res2 = ffi.new("float[?]", 4*m*n)
 for i = 0, 4*m*n-1 do
 	data[i]=i+1
 end
@@ -211,7 +221,10 @@ end
 -- setup textures and framebuffers
 local tex1 = newTex(m,n, z)
 local tex2 = newTex(m,n, z)
-local fbo1 = newFB(tex1, 0)
+local tex3 = newTex(m,n, z)
+local fbo1 = newFB()
+attachTex(fbo1, tex1, 0)
+attachTex(fbo1, tex3, 1)
 
 local program = compileShaders("shader.vs", "shader.fs") -- compile shader
 setUniformTex(program, 0, "texUnit") -- pass uniform variables
@@ -235,6 +248,9 @@ do
 	setUniform4f(program, "g_1", G_1, G_1, G_1, G_1)
 end
 
+-- set an inverse size for pixel offsets
+setUniform2f(program, "xy", 1/m, 1/n)
+
 bindFB(fbo1)				-- bind framebuffer
 bindTex(tex2, 0)			-- bind textures
 
@@ -245,8 +261,10 @@ for i = 1, maxiter do
 	setTex(tex2, data, m, n, z)		-- set data to texture
 	applyProgram(program, m, n)		-- apply shader
 	getTex(tex1, result, z)			-- get output data
+	getTex(tex3, res2, z)			-- get output data
 end
 print(os.clock() - t, "GLSL")
+print(result[128], res2[0])
 
 --[[
 print("start GLSL ...")
@@ -289,5 +307,5 @@ for i = 1, maxiter do
 	end
 end
 print((os.clock() - t), "CPU")
---]]
+print(result[128])
 print("success!!")
