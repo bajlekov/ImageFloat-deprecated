@@ -22,12 +22,27 @@
 -- TODO port minimal bindings for shaders
 -- TODO possible multiple instances for parallel data loading?
 
---[[  coexistence with SDL:
+--[[
+coexistence with SDL:
 	- when no GL has been initiated from SDL, it is no problem to run this routine
 	- computations complete without problems
 	- GLSL module can be created and safely called within an SDL program
 --]]
 
+--[[
+uses of GLSL shaders
+	- useful when processing exceeds texture copy time
+	- benefits with computations including powers
+	- useful for calculation of kernel convolutions?
+		- parallelizable task
+		- useful 2D structure
+		- unsure how memory model impacts performance, but now processing is less than 5% of GLSL time
+	- possibly fast transforms?
+	- recursive algorithms?
+	- pass-through of buffers to next operations, but limited in memory -> tiling
+	- tiling prevents consecutive dependent non-local operations
+	- fft/convolution
+--]]
 
 local ffi = require("ffi")
 local gl    = require("glua")
@@ -198,7 +213,7 @@ end
 
 local function glslInit()
 	print("start GLSL setup ...")
-	gl.utInitDisplayString('rgba double depth>=16 samples~8')
+	gl.utInitDisplayString("")
 	gl.utCreateWindow("");
 	gl.utHideWindow()
 	gl.Enable(gl.TEXTURE_2D)
@@ -277,6 +292,7 @@ for i = 1, maxiter do
 	applyProgram(program, m, n)		-- apply shader
 	getTex(tex1, result, z)			-- get output data
 	getTex(tex3, res2, z)			-- get output data
+	gl.Finish()
 end
 print(os.clock() - t, "GLSL")
 print(result[128], res2[0])
