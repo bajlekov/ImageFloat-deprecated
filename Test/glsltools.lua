@@ -16,6 +16,23 @@
 ]]
 
 -- minimal GL/GLU/GLUT binding to facilitate execution of GLSL shader
+
+--[[
+uses of GLSL shaders
+	- useful when processing exceeds texture copy time
+	- benefits with computations including powers
+	- useful for calculation of kernel convolutions?
+		- parallelizable task
+		- useful 2D structure
+		- unsure how memory model impacts performance, but now processing is less than 5% of GLSL time
+	- possibly fast transforms?
+	- recursive algorithms?
+	- pass-through of buffers to next operations, but limited in memory -> tiling
+	- tiling prevents consecutive dependent non-local operations
+	- fft/convolution
+--]]
+
+
 local ffi = require("ffi")
 
 -- FIXME: fix windows libs
@@ -378,13 +395,13 @@ function glsl.freeFB(fb)
 	gl.glDeleteFramebuffers(1, fb);
 end
 
---[[ complete shader function, 2-part
+--[[ complete shader function
 shader = glsl.compile(vert, frag)
-program = glsl.setupProgram(shader, {textures in}, {uniforms}, {textures out}, x, y, z)
-glsl.setProgram(program, {textures in}, {uniforms})
+program = glsl.setupProgram(shader, # textures in, # textures out, x, y, z)
+glsl.setProgram(program, {* textures in}, {uniforms})
 glsl.runProgram(program)
-glsl.getProgram(program, {textures out})
-glsl.clearProgram(program)
+glsl.getProgram(program, {* textures out})
+glsl.freeProgram(program)
 --]]
 
 
