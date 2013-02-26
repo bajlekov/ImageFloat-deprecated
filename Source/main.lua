@@ -34,6 +34,8 @@ _G.ffi = ffi
 -- TODO main points:
 --	refactor code
 --	check efficiency of passing processing arguments in buffers?
+--  internal console for debugging etc.
+-- currently not working with luaJIt 2.1 alpha
 -- FIXME main points:
 --	fix add-node
 -- 	segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
