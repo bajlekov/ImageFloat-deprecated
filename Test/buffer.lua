@@ -415,8 +415,9 @@ function buffer:clean()
 	self.z=1
 end
 
+return buffer
 
----[[
+--[[
 local b = buffer:newI(6000,4000,5)
 b:set(1,3,2, 4)
 
