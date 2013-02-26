@@ -105,7 +105,7 @@ end
 
 function l.doFunction(state, name)
 	lua.lua_getfield(state, LUA_GLOBALSINDEX, name);
-	lua.lua_call(state, 0, 0)
+	assert(lua.lua_call(state, 0, 0)==0)
 end
 
 -- function indexing multiple levels of global table "name" with vararg keys
