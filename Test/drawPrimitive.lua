@@ -192,32 +192,72 @@ local function pCheck(a, b, x, y)
 end
 
 
--- draw infinite line
+-- brute-force threshold-line drawing with width parameter
 local function infLine(a, b)
 	for x = 0, d.x-1 do
 		for y = 0, d.y-1 do
-			d:a(x,y, pCheck(a,b,x,y) - pCheck(a-0.6,b-4,x,y))
+			d:a(x,y, pCheck(a,b,x,y))
 		end
+	end
+end
+
+-- efficient line drawing with width parameter
+local function infLineW(a, b, w)
+	local tx, ty = 1, a			-- tangent:	(tx, ty)
+	local l = sqrt(tx^2+ty^2)	-- length:	l
+	tx, ty = tx/l, ty/l
+	local nx, ny = -ty, tx		-- normal:	(nx, ny)
+	
+	local alpha = math.atan(1/a)
+	local yoff = w/math.sin(alpha)
+	
+	local bTop, bBottom = b+yoff, b-yoff
+	
+	for x = 0, d.x-1 do
+		local ymin = math.floor((x+(a<0 and 1 or 0))*a+bBottom)
+		local ymax = math.ceil((x+(a>0 and 1 or 0))*a+bTop)
+		ymin = (ymin<0) and 0 or ymin
+		ymax = (ymax>d.y-1) and (d.y-1) or ymax
+		
+		for y = ymin, ymax do
+			d:a(x,y, pCheck(a, bTop,x,y) - pCheck(a, bBottom,x,y))
+		end
+	end
+end 
+
+
+
+local t = os.clock()
+for i = 1, 10000 do
+infLine(3,-2.4)
+end
+print((os.clock()-t)*10, "seconds\n")
+-- processes ~30MPix/sec, mostly memory access
+
+-- reset
+for x = 0, d.x-1 do
+	for y = 0, d.y-1 do
+		d:a(x,y, 0)
 	end
 end
 
 local t = os.clock()
 for i = 1, 100000 do
-infLine(1.3,-2.4)
+infLineW(3,-2.4, 1)
 end
 print(os.clock()-t, "seconds\n")
--- processes ~30Mpix/sec, mostly memory access
--- improve by only drawing relevant parts, fast filling rest
+-- improve by only drawing relevant parts! ~200MPix/sec depending on line width and span
+
+
 
 -- print output in matlab matrix form
 ---[[
 print("x=[")
-for x = 0, d.x-1 do
-	for y = 0, d.y-1 do
+for y = 0, d.y-1 do
+	for x = 0, d.x-1 do
 		io.write(d:i(x,y), " ")
-		--print(d:i(x,y), " ")
 	end
 	io.write(";\n")
 end
-print("]")
+print("]; imagesc(x)")
 --]]
