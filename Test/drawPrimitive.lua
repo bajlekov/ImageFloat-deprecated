@@ -24,7 +24,7 @@ local buffer = require("buffer")
 
 local f = math.floor
 
-local d = buffer:newM(16, 16)
+local d = buffer:newM(32, 32)
 d.i = function(self, x,y) return d.getM(self, f(x), f(y)) end
 d.a = function(self, x,y,z) d.setM(self, f(x), f(y), z) end
 
@@ -78,7 +78,6 @@ local function drawLineSub(x1, y1, x2, y2, w)
 	end
 end
 
-drawLineSub(5.2,3, 11,4, 3)
 -- sampling works, but is too slow/inaccurate
 --	.filter only relevant pixels for smoothing
 --		.maximal smoothing width is 2 pixel depending on line orientation
@@ -91,9 +90,9 @@ drawLineSub(5.2,3, 11,4, 3)
 --[[
 	For all: first calculate the weight, then apply. image buffers don't have the precision for multiple add/multiply's
 	- single thickness line drawing:
-		- shade all pixels through which the line passes
-		- shade either top or bottom adjecent pixels dependent on direction
-			- either mid-point (inaccurate) or exact
+		- [check] shade all pixels through which the line passes
+		- [check] shade either top or bottom adjecent pixels dependent on direction
+		
 		- for horizontal line: (fix for vertical width of slanted line!!!)
 			- check level at left boundary of pixel column
 			- check level at right boundary of pixel column
@@ -125,7 +124,93 @@ drawLineSub(5.2,3, 11,4, 3)
 	- different fill and stroke colors!!
 --]]
 
+-- determine pixel fill based on entry points of a straight line
+-- nil/false for no crossing
+local function pFill(a, b, c, d)
+	--		+ > C -+
+	--		|      |
+	--		A      B
+	--		^      ^
+	--		+ > D -+		
+	if 			a and b then	return (a+b)/2
+	elseif		a and c then	return 1-(1-a)*c/2
+	elseif		a and d then	return a*d/2
+	elseif		b and c then	return 1-(1-b)*(1-c)/2
+	elseif		b and d then	return b*(1-d)/2
+	elseif		c and d then	return 1-(c+d)/2
+	else 						return false end 	
+end
+
+local function discard(a, b, c)
+	local A, B, C = abs(0.5-a), abs(0.5-b), abs(0.5-c)
+	local M = math.max(A, B, C)
+	
+	if M==A then return nil, b, c
+	elseif M==B then return a, nil, c
+	elseif M==C then return a, b, nil
+	else print("error!!") end
+end
+
+local eps = 0.0001
+--check intersection of pixel bounds and line
+local function pCheck(a, b, x, y)
+	local A, B, C, D = nil, nil, nil, nil
+	
+	--skip if outside of range
+	if		a>0 and y+1<a*(x)+b then	return 1
+	elseif	a<0 and y+1<a*(x+1)+b then	return 1
+	elseif	a>0 and y>a*(x+1)+b then	return 0
+	elseif	a<0 and y>a*(x)+b then		return 0
+	end
+	
+	A = a*x+b - y
+	B = a*(x+1)+b - y
+	C = (y+1-b)/a - x
+	D = (y-b)/a - x
+	
+	-- FIXME: design better way to deal with such inaccuracies
+	-- include edge cases due to inaccuracy
+	if A<-eps or A>1+eps then A=nil end
+	if B<-eps or B>1+eps then B=nil end
+	if C<-eps or C>1+eps then C=nil end
+	if D<-eps or D>1+eps then D=nil end
+	
+	-- discard most deviant edge case 
+	if A and B and C then A, B, C = discard(A, B, C)
+	elseif A and B and D then A, B, D = discard(A, B, D)
+	elseif A and C and D then A, C, D = discard(A, C, D)
+	elseif B and C and D then B, C, D = discard(B, C, D)
+	end
+	
+	-- debug checks
+	--p = (A and 1 or 0) + (B and 1 or 0) + (C and 1 or 0) + (D and 1 or 0)
+	--if p~=2 then print(A,B,C,D) end
+	
+	--local f = pFill(A,B,C,D)
+	--assert(f, tostring(f))
+	return pFill(A,B,C,D)
+end
+
+
+-- draw infinite line
+local function infLine(a, b)
+	for x = 0, d.x-1 do
+		for y = 0, d.y-1 do
+			d:a(x,y, pCheck(a,b,x,y) - pCheck(a-0.6,b-4,x,y))
+		end
+	end
+end
+
+local t = os.clock()
+for i = 1, 100000 do
+infLine(1.3,-2.4)
+end
+print(os.clock()-t, "seconds\n")
+-- processes ~30Mpix/sec, mostly memory access
+-- improve by only drawing relevant parts, fast filling rest
+
 -- print output in matlab matrix form
+---[[
 print("x=[")
 for x = 0, d.x-1 do
 	for y = 0, d.y-1 do
@@ -135,3 +220,4 @@ for x = 0, d.x-1 do
 	io.write(";\n")
 end
 print("]")
+--]]
