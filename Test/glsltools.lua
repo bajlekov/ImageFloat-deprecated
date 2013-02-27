@@ -478,7 +478,7 @@ for i = 1, maxiter do
 	glsl.finish()
 end
 print(os.clock() - t, "GLSL")
-print(result[128], result[129], result[130], result[131])
+print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])
 
 -- timing of native median filter from "./median.lua":
 
@@ -520,5 +520,5 @@ for i = 1, maxiter do
 	median(data, result, m, n)
 end
 print(os.clock() - t, "Lua")
-print(result[128], result[129], result[130], result[131])
+print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])
 -- speedup upwards of 5x
