@@ -79,7 +79,7 @@ local function drawLineSub(x1, y1, x2, y2, w)
 end
 
 drawLineSub(5.2,3, 11,4, 3)
--- sampling works, but is too slow
+-- sampling works, but is too slow/inaccurate
 --	.filter only relevant pixels for smoothing
 --		.maximal smoothing width is 2 pixel depending on line orientation
 --	.fill inside pixels
@@ -88,7 +88,44 @@ drawLineSub(5.2,3, 11,4, 3)
 --	.skip outside pixels
 --	.simplify by measuring distance to line?
 --		.handle corner cases
+--[[
+	For all: first calculate the weight, then apply. image buffers don't have the precision for multiple add/multiply's
+	- single thickness line drawing:
+		- shade all pixels through which the line passes
+		- shade either top or bottom adjecent pixels dependent on direction
+			- either mid-point (inaccurate) or exact
+		- for horizontal line: (fix for vertical width of slanted line!!!)
+			- check level at left boundary of pixel column
+			- check level at right boundary of pixel column
+			- determine which pixels are affected:
+				- pixels in which boundaries fall
+				- pixel above if any boundary in upper half
+				- pixel below if any boundary in lower half
+				- if both below and above then split pixel at mid-line crossing
+			- when moving to next column simply increment crossing (inaccurate) or calculate from equation
+			- for filled structure fill an additional inside point
+		- corners/junctions (sharp):
+			- extend outer edges till crossing at outer vertex
+			- geometric calculation, prevents overlap between edges
+				- scan from top line to bottom line
+				- split pixels at edges or crossings
+			- extent of affected pixels can reach much further than corner
+				- calculate outside lines to determine outside bound
+				- calculate inside lines crossing for inner bound
+				- perform geometric calculations between these bounds 
+		- circle approximation for rounded edges
+			- semi-circle with radius w capping the ends at exact segment length
+			- integrating over circle segments?? worth the trouble?
+			- circles are not a priority, implement fast integration
+		- bevel approximation for joints
+			- straight line capping the outer vertices at exact segment length
+			- inner vertex remains a point
+	- drawing line segments:
+		- pass width, start-, end vertices, inner bound verts, outer bound verts
+	- different fill and stroke colors!!
+--]]
 
+-- print output in matlab matrix form
 print("x=[")
 for x = 0, d.x-1 do
 	for y = 0, d.y-1 do

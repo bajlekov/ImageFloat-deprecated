@@ -99,6 +99,8 @@ function boxAdd(x1,y1,x2,y2,r,g,b)
 end
     
 function drawLine(x1, y1, x2, y2, r, g, b)
+	--TODO: handle overlap of connected vertices in endpoint code
+	--TODO: implement connected vertices draw (polyline)
     --AA line drawing
     local function ipart(x) return math.floor(x) end
     local function round(x) return ipart(x+0.5) end
