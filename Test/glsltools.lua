@@ -418,7 +418,7 @@ glsl.init()
 local n = 512
 local m = 512
 local z = 1
-local maxiter = 1000
+local maxiter = 100
 print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 glsl.reshape(n, m)				-- setup viewport, important! 
 
@@ -439,7 +439,7 @@ glsl.attachTex(fbo1, tex1, 0)
 glsl.attachTex(fbo1, tex3, 1)
 
 --local program = glsl.compileShader("shader.vs", "shader.fs") -- compile shader
-local program = glsl.compileShader("shader.vs", "median.fs") -- compile shader
+local program = glsl.compileShader("Shaders/shader.vs", "Shaders/median.fs") -- compile shader
 glsl.setUniformTex(program, 0, "texUnit") -- pass uniform variables
 glsl.setUniform(program, "powVec", 2.25, 2.25, 2.25, 2.25)
 
@@ -480,7 +480,7 @@ end
 print(os.clock() - t, "GLSL")
 print(result[128], result[129], result[130], result[131])
 
--- timing of native median filter from "median.lua":
+-- timing of native median filter from "./median.lua":
 
 local median
 do

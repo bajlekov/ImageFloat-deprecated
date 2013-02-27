@@ -16,7 +16,7 @@ void sort(int a, int b) {
 }
 
 vec4 get(vec2 texCoord, int x, int y) {
-  return texture2D(texUnit, texCoord + vec2(float(x)*xy.x, float(y)*xy.y));
+  return texture2D(texUnit, texCoord + vec2(x*xy.x, y*xy.y));
 }
 
 void main(void) {
