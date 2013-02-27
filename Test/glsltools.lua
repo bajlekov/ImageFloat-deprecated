@@ -28,8 +28,14 @@ uses of GLSL shaders
 	- possibly fast transforms?
 	- recursive algorithms?
 	- pass-through of buffers to next operations, but limited in memory -> tiling
-	- tiling prevents consecutive dependent non-local operations
-	- fft/convolution
+	- tiling prevents consecutive dependent non-local operations -> horizontal blocks instead of tiles, uses consequtive memory
+	
+	* fft??
+	* piece-wise transpose?
+		- in general make single readout swapping transpose, eliminating multiple partial reads of a single area
+	* convolutions
+	* median filter
+	* IIR gaussian filter
 --]]
 
 
@@ -409,10 +415,10 @@ glsl.freeProgram(program)
 glsl.init()
 
 -- texture size
-local n = math.floor(math.random()*1000)
-local m = math.floor(math.random()*1000)
+local n = 512
+local m = 512
 local z = 1
-local maxiter = 100
+local maxiter = 1000
 print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 glsl.reshape(n, m)				-- setup viewport, important! 
 
@@ -432,7 +438,8 @@ local fbo1 = glsl.newFB()
 glsl.attachTex(fbo1, tex1, 0)
 glsl.attachTex(fbo1, tex3, 1)
 
-local program = glsl.compileShader("shader.vs", "shader.fs") -- compile shader
+--local program = glsl.compileShader("shader.vs", "shader.fs") -- compile shader
+local program = glsl.compileShader("shader.vs", "median.fs") -- compile shader
 glsl.setUniformTex(program, 0, "texUnit") -- pass uniform variables
 glsl.setUniform(program, "powVec", 2.25, 2.25, 2.25, 2.25)
 
@@ -467,8 +474,51 @@ for i = 1, maxiter do
 	glsl.setTex(tex2, data, m, n, z)	-- set data to texture
 	glsl.runShader(program, m, n)		-- apply shader
 	glsl.getTex(tex1, result, z)		-- get output data
-	glsl.getTex(tex3, res2, z)			-- get output data
+	--glsl.getTex(tex3, res2, z)			-- get output data
 	glsl.finish()
 end
 print(os.clock() - t, "GLSL")
-print(result[128], res2[0])
+print(result[128], result[129], result[130], result[131])
+
+-- timing of native median filter from "median.lua":
+
+local median
+do
+	local pix = ffi.new("double[9]")
+	local A = ffi.new("short[19]", 1,4,7,0,3,6,1,4,7,0,5,4,3,1,2,4,4,6,4)
+	local B = ffi.new("short[19]", 2,5,8,1,4,7,2,5,8,3,8,7,6,4,5,7,2,4,2)
+	local function sort(a, b)
+		if pix[a]>pix[b] then
+			pix[a], pix[b] = pix[b], pix[a]
+		end
+	end
+	median = function(i, o, xmax, ymax)
+		for x = 1, xmax-2 do
+			for y = 1, ymax-2 do
+				pix[0] = i[(y-1)*xmax+x-1];
+				pix[1] = i[y*xmax+x-1];
+				pix[2] = i[(y+1)*xmax+x-1];
+				pix[3] = i[(y-1)*xmax+x];
+				pix[4] = i[y*xmax+x];
+				pix[5] = i[(y+1)*xmax+x];
+				pix[6] = i[(y-1)*xmax+x+1];
+				pix[7] = i[y*xmax+x+1];
+				pix[8] = i[(y+1)*xmax+x+1];
+				
+				for i = 0, 18 do
+					sort(A[i], B[i]);
+				end
+				o[y*xmax+x] = pix[4];
+			end
+		end
+	end
+end
+
+print("start Lua ...")
+local t = os.clock()
+for i = 1, maxiter do
+	median(data, result, m, n)
+end
+print(os.clock() - t, "Lua")
+print(result[128], result[129], result[130], result[131])
+-- speedup upwards of 5x
