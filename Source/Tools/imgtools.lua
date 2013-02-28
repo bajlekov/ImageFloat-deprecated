@@ -18,7 +18,7 @@
 local ffi = require "ffi"
 
 local prec = __global.setup.bufferPrecision
-
+print("Using "..(prec[2]*8).."bit precision buffers...")
 
 ffi.cdef[[
 	void * malloc ( size_t size );
@@ -426,208 +426,73 @@ function buffer:clean()
 	self.z=1
 end
 
+do
+	local b = ffi.new("double[5]")  
+	function buffer:dilate()
+		local t = self:new()
+		--TODO: brute-force dilate, remove inner loop!
+		for x= 1, self.x-2 do
+			for y = 1, self.y-2 do
+				for z = 0, self.z-1 do
+					b[0] = self:get(x-1, y, z)
+					b[1] = self:get(x, y, z)
+					b[2] = self:get(x+1, y, z)
+					b[3] = self:get(x, y-1, z)
+					b[4] = self:get(x, y+1, z)
+					
+					t:set(x, y, z, math.max(b[0], b[1], b[2], b[3], b[4]))
+				end
+			end
+		end
+		self:copy(t) -- put back values
+	end
+	function buffer:erode()
+		local t = self:new()
+		--TODO: brute-force dilate, remove inner loop!
+		for x= 1, self.x-2 do
+			for y = 1, self.y-2 do
+				for z = 0, self.z-1 do
+					b[0] = self:get(x-1, y, z)
+					b[1] = self:get(x, y, z)
+					b[2] = self:get(x+1, y, z)
+					b[3] = self:get(x, y-1, z)
+					b[4] = self:get(x, y+1, z)
+					
+					t:set(x, y, z, math.min(b[0], b[1], b[2], b[3], b[4]))
+				end
+			end
+		end
+		self:copy(t) -- put back values
+	end
+end
+
+
 require("imgops")(buffer)
 return buffer
 
 
 --[=[
-local img = {}
+img.newBuffer(x, y, z)		=>	img:new		(x, y, z)
+img.newBuffer(x)			=>	img:newV	(x)
+img.newBuffer({r, g, b})	=>	img:newC	(r, g, b)
+img.pixelOp					==
+img.toScreen				==
+img.toScreenQuad			==
+img.saveHD = img.bufferSaveHD	??
+img.loadHD = img.bufferSaveHD	??
+img.saveIM = img.writeIM		??
+img.loadIM = img.readIM			??
+img.copy					=>	img:copy()
+img.new						=>	img:new()
+img.copyGS					=>	img:copyG()
+img.newGS					=>	img:newM()
+img.copyColor				=>	img:copyC()
+img.newColor				=>	img:newI()
+img.max							??
+img.min							??
+img.csConvert				==
+img.invert					==
 
-function img.newBuffer(a, b, c)
-	local out = {}
-	--properties
-	if type(a)=="number" and b==nil then
-		out.x = 1
-		out.y = 1
-		out.z = 1
-		out.data = ffi.new(prec[1].."[1][1][1]")
-		out.data[0][0][0] = a
-		out.type = 1
-		out.cs = "MAP"
-	elseif type(a)=="number" and type(b)=="number" and type(c)=="number" then
-		out.x = a
-		out.y = b
-		out.z = c
-		out.data = ffi.new(prec[1].."["..a.."]["..b.."]["..c.."]")
-		if a==1 and b==1 then
-			if c==1 then
-				out.type = 1
-				out.cs = "MAP"
-			elseif c==3 then
-				out.type = 2
-				out.cs = "SRGB"
-			end
-		else
-			if c==1 then
-				out.type = 3
-				out.cs = "MAP"
-			elseif c==3 then
-				out.type = 4
-				out.cs = "SRGB"
-			end
-		end
-	elseif type(a)=="table" then
-		out.x = 1
-		out.y = 1
-		out.z = 3
-		out.data = ffi.new(prec[1].."[1][1][3]")
-		out.data[0][0][0] = a[1]
-		out.data[0][0][1] = a[2]
-		out.data[0][0][2] = a[3]
-		out.type = 2
-		out.cs = "SRGB"
-	else
-		out.x = nil
-		out.y = nil
-		out.z = nil
-		out.data = nil
-		out.type = 4
-		out.cs = "SRGB"
-	end
-	out.tile = {
-		tiles = 1,
-		offset = 0,
-	}
-	out.__type = "buffer"
-
-	--methods
-	out.pixelOp = img.pixelOp
-	out.toScreen = img.toScreen
-	out.toScreenQuad = img.toScreenQuad
-	out.saveHD = img.bufferSaveHD
-	out.loadHD = img.bufferSaveHD
-	out.saveIM = img.writeIM
-	out.loadIM = img.readIM
-	out.copy = img.copy
-	out.new = img.new
-	out.copyGS = img.copyGS
-	out.newGS = img.newGS
-	out.copyColor = img.copyColor
-	out.newColor = img.newColor
-	out.max = img.max
-	out.min = img.min
-	out.csConvert = img.csConvert
-	out.invert = img.invert
-	return out
-end
-
-function img.copy(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = buffer.z
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = buffer.cs
-	out.type = buffer.type
-	ffi.copy(out.data, buffer.data, buffer.x*buffer.y*buffer.z*prec[2])
-	return out
-end
-
-function img.new(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = buffer.z
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = buffer.cs
-	out.type = buffer.type
-	return out
-end
-
-function img.copyGS(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 1
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "MAP"
-	out.type = buffer.type
-	if out.type==4 then
-		out.type = 3 
-	elseif out.type==2 then
-		out.type = 1
-	end
-	if buffer.z==3 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = (buffer.data[x][y][0] + buffer.data[x][y][1] + buffer.data[x][y][2])/3
-			end
-		end
-	elseif buffer.z==1 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = buffer.data[x][y][0]
-			end
-		end
-	end
-
-	return out
-end
-
-function img.newGS(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 1
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "MAP"
-	out.type = buffer.type
-	if out.type==4 then
-		out.type = 3 
-	elseif out.type==2 then
-		out.type = 1
-	end
-	return out
-end
-
-function img.copyColor(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 3
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "SRGB"
-	out.type = buffer.type
-	if out.type==3 then
-		out.type = 4 
-	elseif out.type==1 then
-		out.type = 2
-	end
-	if buffer.z==1 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = buffer.data[x][y][0]
-				out.data[x][y][1] = buffer.data[x][y][0]
-				out.data[x][y][2] = buffer.data[x][y][0]
-			end
-		end
-	elseif buffer.z==3 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = buffer.data[x][y][0]
-				out.data[x][y][1] = buffer.data[x][y][1]
-				out.data[x][y][2] = buffer.data[x][y][2]
-			end
-		end
-	end
-	return out
-end
-
-function img.newColor(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 3
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "SRGB"
-	out.type = buffer.type
-	if out.type==3 then
-		out.type = 4 
-	elseif out.type==1 then
-		out.type = 2
-	end
-	return out
-end
 
 --disk io native C functions
 ffi.cdef[[
