@@ -16,205 +16,528 @@
 ]]
 
 local ffi = require "ffi"
-local img = {}
 
 local prec = __global.setup.bufferPrecision
+print("Using "..(prec[2]*8).."bit precision buffers...")
 
-function img.newBuffer(a, b, c)
-	local out = {}
-	--properties
-	if type(a)=="number" and b==nil then
-		out.x = 1
-		out.y = 1
-		out.z = 1
-		out.data = ffi.new(prec[1].."[1][1][1]")
-		out.data[0][0][0] = a
-		out.type = 1
-		out.cs = "MAP"
-	elseif type(a)=="number" and type(b)=="number" and type(c)=="number" then
-		out.x = a
-		out.y = b
-		out.z = c
-		out.data = ffi.new(prec[1].."["..a.."]["..b.."]["..c.."]")
-		if a==1 and b==1 then
-			if c==1 then
-				out.type = 1
-				out.cs = "MAP"
-			elseif c==3 then
-				out.type = 2
-				out.cs = "SRGB"
+ffi.cdef[[
+	void * malloc ( size_t size );
+	void * calloc ( size_t num, size_t size );
+	void * realloc ( void * ptr, size_t size );
+	void free ( void * ptr );
+	typedef float float_a __attribute__ ((aligned (16)));
+	typedef double double_a __attribute__ ((aligned (16)));
+]] -- allocate aligned memory for use with SSE
+
+-- allocate aligned floats
+local function allocF(size)
+	return ffi.gc(ffi.cast("float_a*", ffi.C.calloc(size, 4)), ffi.C.free)
+end
+
+-- allocate aligned doubles
+local function allocD(size)
+	return ffi.gc(ffi.cast("double_a*", ffi.C.calloc(size, 8)), ffi.C.free)
+end
+
+
+local buffer = {__type = "buffer"}
+buffer.alloc = allocF
+buffer.meta={__index = buffer}
+
+function buffer.meta.__tostring(a)
+	return "Image buffer ["..a.x..", "..a.y..", "..a.z.."], CS: "..a.cs.."."
+end
+
+function buffer.meta.__add(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) + b)				
+				end
 			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
 		else
-			if c==1 then
-				out.type = 3
-				out.cs = "MAP"
-			elseif c==3 then
-				out.type = 4
-				out.cs = "SRGB"
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )				
+					end
+				end
 			end
+			return o
 		end
-	elseif type(a)=="table" then
-		out.x = 1
-		out.y = 1
-		out.z = 3
-		out.data = ffi.new(prec[1].."[1][1][3]")
-		out.data[0][0][0] = a[1]
-		out.data[0][0][1] = a[2]
-		out.data[0][0][2] = a[3]
-		out.type = 2
-		out.cs = "SRGB"
 	else
-		out.x = nil
-		out.y = nil
-		out.z = nil
-		out.data = nil
-		out.type = 4
-		out.cs = "SRGB"
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
 	end
-	out.tile = {
-		tiles = 1,
-		offset = 0,
+end
+
+function buffer.meta.__sub(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) - b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
+function buffer.meta.__mul(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) * b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
+function buffer.meta.__div(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) / b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
+function buffer.meta.__pow(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					o:set(i,j,k, a:get(i,j,k) ^ b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						o:set(i,j,k, a:get(i,j,k) ^ b:get(i,j,k) )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
+function buffer.meta.__unm(a)
+	local o = a:new()
+	for i = 0, a.x-1 do
+		for j = 0, a.y-1 do
+			for k = 0, a.z-1 do
+				o:set(i,j,k, - a:get(i,j,k))				
+			end
+		end
+	end
+	return o
+end
+
+function buffer:getABC(x,y,z)
+	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
+		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
+		return 0
+	else
+		return self.data[x*self.y*self.z + y*self.z + z]
+	end
+end
+
+function buffer:setABC(x,y,z, v)
+	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
+		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
+		return nil
+	else
+		self.data[x*self.y*self.z + y*self.z + z] = v
+	end
+end
+
+function buffer:get(x,y,z)
+	return self.data[x*self.y*self.z + y*self.z + z]
+end
+
+function buffer:set(x,y,z, v)
+	self.data[x*self.y*self.z + y*self.z + z] = v
+end
+
+function buffer:get3(x,y)
+	local c = x*self.y*self.z + y*self.z
+	return self.data[c], self.data[c+1], self.data[c+2] 
+end
+
+function buffer:set3(x,y, v1,v2,v3)
+	local c = x*self.y*self.z + y*self.z
+	self.data[c] = v1
+	self.data[c+1] = v2
+	self.data[c+2] = v3
+end
+
+
+function buffer:newI(x, y, c1, c2, c3)
+	x = x or self.x or 1
+	y = y or self.y or 1
+	local o = self:new(x, y, 3)
+	if c1 then
+		c2 = c2 or c1
+		c3 = c3 or c1
+		for i = 0, x-1 do
+			for j = 0, y-1 do
+				o:set3(i,j, c1,c2,c3)
+			end
+		end
+	end
+	return o
+end
+
+function buffer:newM(x, y, v1)
+	x = x or self.x or 1
+	y = y or self.y or 1
+	local o = self:new(x, y, 1)
+	if v1 then
+		for i = 0, x-1 do
+			for j = 0, y-1 do
+				o:set(i,j,0, v1)
+			end
+		end
+	end
+	return o
+end
+function buffer:getM(x,y) return self.data[x*self.y*self.z + y*self.z] end
+function buffer:setM(x,y, v) self.data[x*self.y*self.z + y*self.z] = v end
+
+function buffer:newC(c1, c2, c3)
+	local o = self:new(1, 1, 3)
+	if c1 then
+		c2 = c2 or c1
+		c3 = c3 or c1
+		o:set3(0,0, c1,c2,c3)
+	end
+	return o
+end
+function buffer:getC(i) return self.data[i-1] end
+function buffer:setC(i, v) self.data[i-1] = v end
+function buffer:getC3() return self.data[0], self.data[1], self.data[2] end
+function buffer:setC3(c1, c2, c3)
+	self.data[0] = c1
+	self.data[1] = c2
+	self.data[2] = c3
+end
+
+function buffer:newV(v1)
+	local o = self:new(1, 1, 1)
+	if v1 then o:set(0,0,0, v1) end
+	return o
+end
+function buffer:getV() return self.data[0] end
+function buffer:setV(v) self.data[0] = v end
+
+function buffer:newA(a)
+	local l = #a
+	local o = self:new(l, 1, 1)
+	for i = 0, l-1 do
+		o:set(i,0,0, a[i+1])
+	end
+	return o
+end
+function buffer:getA(i) return self.data[i] end
+function buffer:setA(i, v) self.data[i] = v end
+
+function buffer:type()
+	print("Deprecated buffer property \"type\".")
+	local x, y, z = self.x, self.y, self.z
+	if		x==1 and y==1 and z==1 then		return 1
+	elseif	x==1 and y==1 and z==3 then		return 2
+	elseif	z==1 then						return 3
+	elseif	z==3 then						return 4
+	else
+		print(debug.traceback("WARNING: type is undefined"))
+		return 0
+	end
+end
+
+function buffer:new(x, y, z)
+	x = x or self.x or 1
+	y = y or self.y or 1
+	z = z or self.z or 1	
+	local size = x*y*z
+	
+	local o = {
+		data = self.alloc(size),
+		cs = "MAP",
+		x = x, y = y, z = z,	-- derive buffer type from coordinates
+		xoff = 0, yoff = 0,		-- sub-regions for partial processing
+		xlen = x, ylen = y,
 	}
-	out.__type = "buffer"
-
-	--methods
-	out.pixelOp = img.pixelOp
-	out.toScreen = img.toScreen
-	out.toScreenQuad = img.toScreenQuad
-	out.saveHD = img.bufferSaveHD
-	out.loadHD = img.bufferSaveHD
-	out.saveIM = img.writeIM
-	out.loadIM = img.readIM
-	out.copy = img.copy
-	out.new = img.new
-	out.copyGS = img.copyGS
-	out.newGS = img.newGS
-	out.copyColor = img.copyColor
-	out.newColor = img.newColor
-	out.max = img.max
-	out.min = img.min
-	out.csConvert = img.csConvert
-	out.invert = img.invert
-	return out
+	setmetatable(o, buffer.meta)	
+	return o
 end
 
-function img.copy(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = buffer.z
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = buffer.cs
-	out.type = buffer.type
-	ffi.copy(out.data, buffer.data, buffer.x*buffer.y*buffer.z*prec[2])
-	return out
-end
-
-function img.new(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = buffer.z
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = buffer.cs
-	out.type = buffer.type
-	return out
-end
-
-function img.copyGS(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 1
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "MAP"
-	out.type = buffer.type
-	if out.type==4 then
-		out.type = 3 
-	elseif out.type==2 then
-		out.type = 1
+function buffer:copy(t)
+	if t then
+		if self.x==t.x and self.y==t.y and self.z==t.z then
+			ffi.copy(self.data, t.data, self.x*self.y*self.z*4)
+		else
+			print(debug.traceback("ERROR: Buffer size mismatch! Target: ["..self.x..", "..self.y..", "..self.z.."], source: ["..t.x..", "..t.y..", "..t.z.."]."))
+			return nil
+		end
+	else
+		local o = self:new()
+		ffi.copy(o.data, self.data, self.x*self.y*self.z*4) -- switch to 8 for double
+		-- fast SSE memcopy?
+		return o
 	end
-	if buffer.z==3 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = (buffer.data[x][y][0] + buffer.data[x][y][1] + buffer.data[x][y][2])/3
+end
+
+local function mean(c1, c2, c3) return (c1+c2+c3)/3 end
+function buffer:copyG() -- only from image data!
+	if self.z==3 then
+		local o = self:new(self.x, self.y, 1)	
+		for i = 0, self.x-1 do
+			for j = 0, self.y-1 do
+				o:setM(i,j, mean(self:get3(i, j)))
 			end
 		end
-	elseif buffer.z==1 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = buffer.data[x][y][0]
+		return o
+	elseif self.z==1 then
+		return self:copy()
+	else
+		local o = self:new(self.x, self.y, 1)
+		for i = 0, self.x-1 do
+			for j = 0, self.y-1 do
+				local s = 0
+				for k = 0, self.z-1 do
+					s = s + self:get(i, j, k)
+				end
+				o:setM(i,j, s/self.z)
 			end
 		end
+		return o
 	end
-
-	return out
 end
 
-function img.newGS(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 1
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "MAP"
-	out.type = buffer.type
-	if out.type==4 then
-		out.type = 3 
-	elseif out.type==2 then
-		out.type = 1
+function buffer:copyC()
+	if self.z==1 then
+		local o = self:new(self.x, self.y, 3)
+		for i = 0, self.x-1 do
+			for j = 0, self.y-1 do
+				local m = self:getM(i, j)
+				o:set3(i,j, m,m,m)
+			end
+		end 
+		return o
+	elseif self.z==3 then
+		return self:copy()
+	else
+		print(debug.traceback("WARNING: Non-standard Z dimension of "..self.z..", converting through grayscale"))
+		return self:copyG():copyC()
 	end
-	return out
 end
 
-function img.copyColor(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 3
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "SRGB"
-	out.type = buffer.type
-	if out.type==3 then
-		out.type = 4 
-	elseif out.type==1 then
-		out.type = 2
-	end
-	if buffer.z==1 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = buffer.data[x][y][0]
-				out.data[x][y][1] = buffer.data[x][y][0]
-				out.data[x][y][2] = buffer.data[x][y][0]
+function buffer:clean()
+	ffi.C.realloc(self.data, 1)
+	self.x=1
+	self.y=1
+	self.z=1
+end
+
+do
+	local b = ffi.new("double[9]")  
+	function buffer:mDilate()
+		local t = self:new()
+		--TODO: brute-force dilate, remove inner loop!
+		for x= 1, self.x-2 do
+			for y = 1, self.y-2 do
+				for z = 0, self.z-1 do
+					b[0] = self:get(x-1, y, z)
+					b[1] = self:get(x, y, z)
+					b[2] = self:get(x+1, y, z)
+					b[3] = self:get(x, y-1, z)
+					b[4] = self:get(x, y+1, z)
+					
+					t:set(x, y, z, math.max(b[0], b[1], b[2], b[3], b[4]))
+				end
 			end
 		end
-	elseif buffer.z==3 then
-		for x = 0, out.x-1 do
-			for y = 0, out.y-1 do
-				out.data[x][y][0] = buffer.data[x][y][0]
-				out.data[x][y][1] = buffer.data[x][y][1]
-				out.data[x][y][2] = buffer.data[x][y][2]
+		self:copy(t) -- put back values
+	end
+	function buffer:mErode()
+		local t = self:new()
+		--TODO: brute-force dilate, remove inner loop!
+		for x= 1, self.x-2 do
+			for y = 1, self.y-2 do
+				for z = 0, self.z-1 do
+					b[0] = self:get(x-1, y, z)
+					b[1] = self:get(x, y, z)
+					b[2] = self:get(x+1, y, z)
+					b[3] = self:get(x, y-1, z)
+					b[4] = self:get(x, y+1, z)
+					
+					t:set(x, y, z, math.min(b[0], b[1], b[2], b[3], b[4]))
+				end
 			end
 		end
+		self:copy(t) -- put back values
 	end
-	return out
+	function buffer:mOpen(n)
+		n = n or 1
+		for i = 1, n do
+			self:mErode()
+		end
+		for i = 1, n do
+			self:mDilate()
+		end  
+	end
+	
+	function buffer:mClose(n)
+		n = n or 1
+		for i = 1, n do
+			self:mDilate()
+		end
+		for i = 1, n do
+			self:mErode()
+		end  
+	end
+	function buffer:mClamp()
+		local t = self:new()
+		--TODO: brute-force dilate, remove inner loop!
+		for x= 1, self.x-2 do
+			for y = 1, self.y-2 do
+				for z = 0, self.z-1 do
+					b[0] = self:get(x, y, z)
+					b[1] = self:get(x-1, y, z)
+					b[2] = self:get(x+1, y, z)
+					b[3] = self:get(x, y-1, z)
+					b[4] = self:get(x, y+1, z)
+					b[5] = self:get(x-1, y-1, z)
+					b[6] = self:get(x+1, y+1, z)
+					b[7] = self:get(x+1, y-1, z)
+					b[8] = self:get(x-1, y+1, z)
+					
+					local min = math.min(b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])
+					local max = math.max(b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])
+					b[0] = b[0]>max and max or b[0]
+					b[0] = b[0]<min and min or b[0]
+					t:set(x, y, z, b[0])
+				end
+			end
+		end
+		self:copy(t) -- put back values
+	end
 end
 
-function img.newColor(buffer)
-	local out = img.newBuffer()
-	out.x = buffer.x
-	out.y = buffer.y
-	out.z = 3
-	out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
-	out.cs = "SRGB"
-	out.type = buffer.type
-	if out.type==3 then
-		out.type = 4 
-	elseif out.type==1 then
-		out.type = 2
-	end
-	return out
-end
+
+require("imgops")(buffer)
+return buffer
+
+
+--[=[
+img.newBuffer(x, y, z)		=>	img:new		(x, y, z)
+img.newBuffer(x)			=>	img:newV	(x)
+img.newBuffer({r, g, b})	=>	img:newC	(r, g, b)
+img.pixelOp					==
+img.toScreen				==
+img.toScreenQuad			==
+img.saveHD = img.bufferSaveHD	??
+img.loadHD = img.bufferSaveHD	??
+img.saveIM = img.writeIM		??
+img.loadIM = img.readIM			??
+img.copy					=>	img:copy()
+img.new						=>	img:new()
+img.copyGS					=>	img:copyG()
+img.newGS					=>	img:newM()
+img.copyColor				=>	img:copyC()
+img.newColor				=>	img:newI()
+img.max							??
+img.min							??
+img.csConvert				==
+img.invert					==
+
 
 --disk io native C functions
 ffi.cdef[[
@@ -318,8 +641,4 @@ do
 		os.remove("tempBufferO")
 	end
 end
-
-
-
-require("imgops")(img)
-return img
+--]=]

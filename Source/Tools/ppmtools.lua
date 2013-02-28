@@ -199,18 +199,14 @@ end
 
 --image data to float buffer
 function ppm.toBuffer(header)
-	local buffer = img.newBuffer()
-	buffer.x = header.res.x
-	buffer.y = header.res.y
-	buffer.z = 3
-	buffer.type = 4
-	buffer.data = ffi.new(__global.setup.bufferPrecision[1].."["..tonumber(buffer.x).."]["..tonumber(buffer.y).."][3]")
-	buffer.cs = "SRGB"
+	local buffer = img:new(header.res.x, header.res.y, 3)
 	local scale = header.depth==8 and 1/(2^8-1) or 1/(2^16-1)
+	
 	for x = 0, buffer.x-1 do
 		for y = 0, buffer.y-1 do
 			for c = 0, 2 do
-				buffer.data[x][y][c] = header.data[(x + buffer.x * y) * 3 + c] * scale
+				local t = header.data[(x + buffer.x * y) * 3 + c] * scale
+				buffer:set(x, y, c, t) 
 			end
 		end
 	end
@@ -218,21 +214,16 @@ function ppm.toBuffer(header)
 end
 
 function ppm.toBufferCrop(header, newX, newY)
-	local buffer = img.newBuffer()
-	buffer.x = newX
-	buffer.y = newY
+	local buffer = img:new(newX, newY, 3)
 	local offX = math.floor((header.res.x - buffer.x)/2)
 	local offY = math.floor((header.res.y - buffer.y)/2)
 	local fullX = header.res.x
-	buffer.z = 3
-	buffer.type = 4
-	buffer.data = ffi.new(__global.setup.bufferPrecision[1].."["..tonumber(buffer.x).."]["..tonumber(buffer.y).."][3]")
-	buffer.cs = "SRGB"
 	local scale = header.depth==8 and 1/(2^8-1) or 1/(2^16-1)
 	for x = 0, buffer.x-1 do
 		for y = 0, buffer.y-1 do
 			for c = 0, 2 do
-				buffer.data[x][y][c] = header.data[(offX + x + fullX * (offY + y)) * 3 + c] * scale
+				local t = header.data[(offX + x + fullX * (offY + y)) * 3 + c] * scale
+				buffer:set(x, y, c, t) 
 			end
 		end
 	end
@@ -256,7 +247,7 @@ function ppm.fromBuffer(buffer, depth)
 	for x = 0, buffer.x-1 do
 		for y = 0, buffer.y-1 do
 			for c = 0, 2 do
-				bc = buffer.data[x][y][c]
+				bc = buffer:get(x, y, c)
 				bc = bc>1 and scale or bc*scale
 				bc = bc<0 and 0 or bc
 				header.data[(x + buffer.x * y) * 3 + c] = bc

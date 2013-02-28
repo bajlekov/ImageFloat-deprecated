@@ -62,7 +62,7 @@ function hist.calculate(buffer)
 	--count occurences
 	for x = 0, buffer.x-1 do --buffer.x shows double size
 		for y = 0, buffer.y-1 do
-			local r, g, b = buffer.data[x][y][0], buffer.data[x][y][1], buffer.data[x][y][2]
+			local r, g, b = buffer:get3(x,y)
 			local l, c, h = luma(r, g, b), chroma(r, g, b), hue(r, g, b)
 			r = (r<0 and 0) or (r>1 and size) or floor(r*size)
 			g = (g<0 and 0) or (g>1 and size) or floor(g*size)

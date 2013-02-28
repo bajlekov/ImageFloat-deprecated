@@ -133,12 +133,10 @@ local imageTemp = ppm.toBuffer(readFun(__global.loadFile, __global.setup.imageLo
 local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
 math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
-local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
 sdl.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
 imageTemp = nil
 
 print(bufO.x, bufO.y)
-print(bufZ.x, bufZ.y)
 
 --working buffer pointers
 local buf

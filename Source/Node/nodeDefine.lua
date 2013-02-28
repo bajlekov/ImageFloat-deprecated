@@ -34,7 +34,7 @@ nodeTable["Input"] = function(self)
 		local bo = self.conn_o
 
 		bo[2].buf = self.bufIn:copy()
-		bo[3].buf = self.bufIn:copyGS()
+		bo[3].buf = self.bufIn:copyG()
 	end
 	return n
 end
@@ -49,7 +49,7 @@ nodeTable["Color RGB"] = function(self)
 		local bo = self.conn_o
 		local r, g, b = self.param[1].value[1], self.param[2].value[1], self.param[3].value[1]
 
-		bo[0].buf = img.newBuffer({r,g,b})
+		bo[0].buf = img:newC(r,g,b)
 	end
 	return n
 end
@@ -66,7 +66,7 @@ nodeTable["Color LCH"] = function(self)
 
 		r, g, b = LCHABtoSRGB(r, g, b) 
 
-		bo[0].buf = img.newBuffer({r,g,b})
+		bo[0].buf = img:newC(r,g,b)
 		coroutine.yield("pass")
 	end
 	return n
@@ -84,18 +84,18 @@ nodeTable["Rotate"] = function(self)
 		local bo = self.conn_o
 
 		function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer({1,1,1})
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
 		if bi[0].node then
 			bufsIn[1] = getBufIn(0)			-- input
 			bo[0].buf = getBufIn(0):new()	-- output
 		else
-			bufsIn[1] = img.newBuffer({0,0,0})		-- input
-			bo[0].buf = img.newBuffer({0,0,0})	-- output
+			bufsIn[1] = img:newC()		-- input
+			bo[0].buf = img:newC()		-- output
 		end
 
-		if bufsIn[1].type==3 or bufsIn[1].type==4 then
+		if bufsIn[1]:type()==3 or bufsIn[1]:type()==4 then
 			lua.threadSetup(bufsIn[1], bo[0].buf, {p[1].value[1]})
 			lua.threadRun("ops", "transform", "rotFast")
 			coroutine.yield(num)
@@ -133,32 +133,32 @@ nodeTable["Mixer"] = function(self)
 		local p = self.param
 		--move function to external?
 		function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 		
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0):copyColor()			-- input
-			bo[0].buf = getBufIn(0):newColor()			-- output
+			bufsIn[1] = getBufIn(0):copyC()			-- input
+			bo[0].buf = getBufIn(0):newI()			-- output
 		else
-			bufsIn[1] = img.newBuffer({1,1,1})			-- input
-			bo[0].buf = img.newBuffer({0,0,0})			-- output
+			bufsIn[1] = img:newC(1)			-- input
+			bo[0].buf = img:newC()			-- output
 		end
 
 		-- if no input buffers then create from params
 		if bi[2].node then
 			bufsIn[2] = getBufIn(2)
 		else
-			bufsIn[2] = img.newBuffer({p[1].value[1], p[2].value[1], p[3].value[1]})
+			bufsIn[2] = img:newC(p[1].value[1], p[2].value[1], p[3].value[1])
 		end
 		if bi[5].node then
 			bufsIn[3] = getBufIn(5)
 		else
-			bufsIn[3] = img.newBuffer({p[4].value[1], p[5].value[1], p[6].value[1]})
+			bufsIn[3] = img:newC(p[4].value[1], p[5].value[1], p[6].value[1])
 		end
 		if bi[8].node then
 			bufsIn[4] = getBufIn(8)
 		else
-			bufsIn[4] = img.newBuffer({p[7].value[1], p[8].value[1], p[9].value[1]})
+			bufsIn[4] = img:newC(p[7].value[1], p[8].value[1], p[9].value[1])
 		end
 
 		--execute
@@ -194,13 +194,13 @@ nodeTable["Add"] = function(self)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 		end
 
-		bufsIn[1] = bi[1].node and getBufIn(1) or img.newBuffer(0)
-		bufsIn[2] = bi[2].node and getBufIn(2) or img.newBuffer(0)
+		bufsIn[1] = bi[1].node and getBufIn(1) or img:newV()
+		bufsIn[2] = bi[2].node and getBufIn(2) or img:newV()
 		local x, y, z
 		x = math.max(bufsIn[1].x, bufsIn[2].x)
 		y = math.max(bufsIn[1].y, bufsIn[2].y)
 		z = math.max(bufsIn[1].z, bufsIn[2].z)
-		bo[1].buf = img.newBuffer(x,y,z)
+		bo[1].buf = img:new(x,y,z)
 
 		--execute
 		lua.threadSetup({bufsIn[1], bufsIn[2]}, bo[1].buf)
@@ -229,13 +229,13 @@ nodeTable["Split"] = function(self)
 		local bo = self.conn_o
 
 		function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 
 		if bi[1].node then
 			bufsIn[1] = getBufIn(1)			-- input
 		else
-			bufsIn[1] = img.newBuffer(0)		-- input
+			bufsIn[1] = img:newV(0)		-- input
 		end
 
 		bo[1].buf = bufsIn[1]:copy()
@@ -268,12 +268,12 @@ nodeTable["Decompose"] = function(self)
 		if bi[1].node then
 			bufsIn[1] = getBufIn(1)			-- input
 		else
-			bufsIn[1] = img.newBuffer(0)		-- input
+			bufsIn[1] = img:newV()		-- input
 		end
 
-		bo[1].buf = bufsIn[1]:newGS()
-		bo[2].buf = bufsIn[1]:newGS()
-		bo[3].buf = bufsIn[1]:newGS()
+		bo[1].buf = bufsIn[1]:newM()
+		bo[2].buf = bufsIn[1]:newM()
+		bo[3].buf = bufsIn[1]:newM()
 
 		lua.threadSetup(bufsIn[1], {bo[1].buf, bo[2].buf, bo[3].buf})
 		lua.threadRun("ops", "decompose")
@@ -299,15 +299,15 @@ nodeTable["WhiteBalance"] = function(self)
 		local p = self.param
 
 		function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer({1,1,1})
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
 		-- init output buffer same as input
 		-- collect types of input bufs, choose largest combination
 		if bi[0].node then
-			bo[0].buf = getBufIn(0):copyColor()	-- output
+			bo[0].buf = getBufIn(0):copyC()	-- output
 		else
-			bo[0].buf = img.newBuffer({1,1,1})	-- output
+			bo[0].buf = img:newC(1)	-- output
 		end
 
 		local T, G, A = p[1].value[1], p[2].value[1], p[3].value[1]
@@ -319,7 +319,7 @@ nodeTable["WhiteBalance"] = function(self)
 		gx, gy = gx*G, gy*G
 		ax, ay = ax*A, ay*A
 		x, y, z = XYtoXYZ(x+gx+ax, y+gy+ay)
-		bo[4].buf = img.newBuffer({x,y,z})
+		bo[4].buf = img:newC(x,y,z)
 		
 		--depending on speed it might be better to call just one coroutine.yield() ??
 		lua.threadSetup(bo[0].buf, bo[0].buf)
@@ -347,11 +347,21 @@ nodeTable["Output"] = function(self)
 		local p = self.param
 
 		function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV(1)
 		end
+		
+		--[[
+		if bi[0].node then
+			self.bufOut = getBufIn(0):copyC()
+		else
+			print("*** node not connected")
+			-- needs to refresh buffer!
+		end
+		--]]
+		--FIXME: needs to scale up to full image if only a color or value is passed!!
 
 		if bi[0].node then
-			bufsIn[1]=getBufIn(0)
+			bufsIn[1]=getBufIn(0):copyC() --FIXME: better way to handle GS => color
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
 			lua.threadSetup(bufsIn[1], self.bufOut)
 			lua.threadRun("ops", "copy")
@@ -360,6 +370,7 @@ nodeTable["Output"] = function(self)
 			print("*** node not connected")
 			-- needs to refresh buffer!
 		end
+		
 		bufsIn = {}
 	end
 	return n
@@ -384,28 +395,28 @@ local n=self:new("Compose")
 		local bo = self.conn_o
 
 		function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 
 		if bi[1].node then
 			bufsIn[1] = getBufIn(1)			-- input
 		else
-			bufsIn[1] = img.newBuffer(0)	-- input
+			bufsIn[1] = img:newV()	-- input
 		end
 		if bi[2].node then
 			bufsIn[2] = getBufIn(2)			-- input
 		else
-			bufsIn[2] = img.newBuffer(0)	-- input
+			bufsIn[2] = img:newV()	-- input
 		end
 		if bi[3].node then
 			bufsIn[3] = getBufIn(3)			-- input
 		else
-			bufsIn[3] = img.newBuffer(0)	-- input
+			bufsIn[3] = img:newV()	-- input
 		end
 		local x, y
 		x = math.max(bufsIn[1].x, bufsIn[2].x, bufsIn[3].x)
 		y = math.max(bufsIn[1].y, bufsIn[2].y, bufsIn[3].y)
-		bo[1].buf = img.newBuffer(x,y,3)
+		bo[1].buf = img:new(x,y,3)
 
 		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3]}, bo[1].buf)
 		lua.threadRun("ops", "compose")
@@ -425,15 +436,15 @@ nodeTable["ColorSpace"] = function(self)
 		local bo = self.conn_o
 
 		function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer({1,1,1})
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0):copyColor()			-- input
+			bufsIn[1] = getBufIn(0):copyC()			-- input
 			bo[0].buf = bufsIn[1]:new()	-- output
 		else
-			bufsIn[1] = img.newBuffer({1,1,1})		-- input
-			bo[0].buf = img.newBuffer({1,1,1})	-- output
+			bufsIn[1] = img:newC(1)		-- input
+			bo[0].buf = img:newC(1)	-- output
 		end
 
 		lua.threadSetup(bufsIn[1], bo[0].buf)
