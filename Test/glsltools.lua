@@ -248,7 +248,6 @@ function glsl.init()
 	glut.glutInitContextProfile(def.CORE_PROFILE)
 	glut.glutCreateWindow("");
 	glut.glutHideWindow()
-	gl.glEnable(def.TEXTURE_2D)
 	gl.glDisable(def.DEPTH_TEST);
 	gl.glDisable(def.CULL_FACE);
 	gl.glFlush();
@@ -417,6 +416,9 @@ function glsl.newFB()
 end
 
 function glsl.attachTex(fb, texId, n)
+	if jit.os=="Windows" and n>1 then
+		print("Only gl_FragData[0] support on windows. No output will be written to this texture!")
+	end
 	dep.glBindFramebuffer(def.FRAMEBUFFER, fb[0])
 	dep.glFramebufferTexture2D(def.FRAMEBUFFER, def["COLOR_ATTACHMENT"..n], def.TEXTURE_2D, texId[0], 0);
 	return fb;
@@ -424,20 +426,27 @@ end
 
 function glsl.bindFB(fb)
 	dep.glBindFramebuffer(def.FRAMEBUFFER, fb[0]);
-	local mrt = ffi.new("GLenum[8]", {	def.COLOR_ATTACHMENT0,
-										def.COLOR_ATTACHMENT1,
-										def.COLOR_ATTACHMENT2,
-										def.COLOR_ATTACHMENT3,
-										def.COLOR_ATTACHMENT4,
-										def.COLOR_ATTACHMENT5,
-										def.COLOR_ATTACHMENT6,
-										def.COLOR_ATTACHMENT7, })
-	dep.glDrawBuffers(8, mrt);
+	
+	-- code is problematic on wondows
+	if jit.os=="Windows" then
+		print("Only output at gl_FragData[0] supported on windows!")
+	else
+		local mrt = ffi.new("GLenum[8]", {	def.COLOR_ATTACHMENT0,
+											def.COLOR_ATTACHMENT1,
+											def.COLOR_ATTACHMENT2,
+											def.COLOR_ATTACHMENT3,
+											def.COLOR_ATTACHMENT4,
+											def.COLOR_ATTACHMENT5,
+											def.COLOR_ATTACHMENT6,
+											def.COLOR_ATTACHMENT7, })
+		dep.glDrawBuffers(8, mrt);
+	end
 end
 
 function glsl.bindTex(tex, n)
 	dep.glActiveTexture(def["TEXTURE"..n]);
 	gl.glBindTexture(def.TEXTURE_2D, tex[0]);
+	dep.glActiveTexture(def.TEXTURE0);
 end
 
 function glsl.setTex(tex, data, width, height, z)
@@ -475,10 +484,10 @@ glsl.freeProgram(program)
 glsl.init()
 
 -- texture size
-local n = 512
-local m = 512
-local z = 1
-local maxiter = 100
+local n = 256
+local m = 256
+local z = 4
+local maxiter = 1
 print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 glsl.reshape(n, m)				-- setup viewport, important! 
 
@@ -503,6 +512,7 @@ local program = glsl.compileShader("Shaders/shader.vs", "Shaders/median.fs") -- 
 glsl.setUniformTex(program, 0, "texUnit") -- pass uniform variables
 glsl.setUniform(program, "powVec", 2.25, 2.25, 2.25, 2.25)
 
+--[[
 do
 	local a = 0.099
 	local G = 1/0.45
@@ -520,6 +530,8 @@ do
 	glsl.setUniform(program, "a", a, a, a, a)
 	glsl.setUniform(program, "g_1", G_1, G_1, G_1, G_1)
 end
+--]]
+
 
 -- set an inverse size for pixel offsets
 glsl.setUniform(program, "xy", 1/m, 1/n)
@@ -534,8 +546,8 @@ for i = 1, maxiter do
 	glsl.setTex(tex2, data, m, n, z)	-- set data to texture
 	glsl.runShader(program, m, n)		-- apply shader
 	glsl.getTex(tex1, result, z)		-- get output data
-	--glsl.getTex(tex3, res2, z)			-- get output data
-	glsl.flush()
+	glsl.getTex(tex3, res2, z)			-- get output data
+	glsl.finish()
 end
 print(os.clock() - t, "GLSL")
 print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])

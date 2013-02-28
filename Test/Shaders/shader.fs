@@ -13,14 +13,14 @@ void main(void)
 {
   // LRGBtoSRGB
    vec2 texCoord = gl_TexCoord[0].xy;
-   vec4 texVal  = texture2D(texUnit, texCoord);
-   vec4 texOffL  = texture2D(texUnit, texCoord+vec2(-1.0*xy.x, 0.0));
-   vec4 texOffR  = texture2D(texUnit, texCoord+vec2(xy.x, 0.0));
+   vec4 texVal  = texture(texUnit, texCoord);
+   vec4 texOffL  = texture(texUnit, texCoord+vec2(-1.0*xy.x, 0.0));
+   vec4 texOffR  = texture(texUnit, texCoord+vec2(xy.x, 0.0));
    vec4 mask = vec4(lessThanEqual(texVal, k_f));
    vec4 v1 = texVal*f;
    vec4 v2 = (a+vec4(1.0))*pow(texVal, g_1)-a;
    gl_FragData[0] = mix(v2, v1, mask);
    
    // multiple returns
-   gl_FragData[1] = texOffL;
+   // gl_FragData[1] = texOffL;
 }

@@ -16,12 +16,12 @@ void sort(int a, int b) {
 }
 
 vec4 get(vec2 texCoord, int x, int y) {
-  return texture2D(texUnit, texCoord + vec2(x, y)*xy);
+  return texture(texUnit, texCoord + vec2(x, y)*xy);
 }
 
 void main(void) {
   vec2 tc = gl_TexCoord[0].xy;
-  //vec4 texVal  = texture2D(texUnit, tc);
+  
   pix[0] = get(tc, -1, -1);
   pix[1] = get(tc, 0, -1);
   pix[2] = get(tc, 1, -1);
