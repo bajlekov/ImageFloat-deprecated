@@ -484,10 +484,10 @@ glsl.freeProgram(program)
 glsl.init()
 
 -- texture size
-local n = 256
-local m = 256
-local z = 4
-local maxiter = 1
+local n = 1024
+local m = 1024
+local z = 1
+local maxiter = 30
 print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 glsl.reshape(n, m)				-- setup viewport, important! 
 
@@ -502,17 +502,15 @@ end
 -- setup textures and framebuffers
 local tex1 = glsl.newTex(m,n, z)
 local tex2 = glsl.newTex(m,n, z)
-local tex3 = glsl.newTex(m,n, z)
+
 local fbo1 = glsl.newFB()
 glsl.attachTex(fbo1, tex1, 0)
-glsl.attachTex(fbo1, tex3, 1)
 
---local program = glsl.compileShader("shader.vs", "shader.fs") -- compile shader
 local program = glsl.compileShader("Shaders/shader.vs", "Shaders/median.fs") -- compile shader
-glsl.setUniformTex(program, 0, "texUnit") -- pass uniform variables
-glsl.setUniform(program, "powVec", 2.25, 2.25, 2.25, 2.25)
 
+ -- pass uniform variables
 --[[
+glsl.setUniform(program, "powVec", 2.25, 2.25, 2.25, 2.25)
 do
 	local a = 0.099
 	local G = 1/0.45
@@ -532,12 +530,11 @@ do
 end
 --]]
 
-
 -- set an inverse size for pixel offsets
 glsl.setUniform(program, "xy", 1/m, 1/n)
-
-glsl.bindFB(fbo1)				-- bind framebuffer
+glsl.setUniformTex(program, 0, "texUnit")
 glsl.bindTex(tex2, 0)			-- bind textures
+glsl.bindFB(fbo1)				-- bind framebuffer
 
 -- shading loop:
 print("start GLSL ...")
@@ -546,7 +543,6 @@ for i = 1, maxiter do
 	glsl.setTex(tex2, data, m, n, z)	-- set data to texture
 	glsl.runShader(program, m, n)		-- apply shader
 	glsl.getTex(tex1, result, z)		-- get output data
-	glsl.getTex(tex3, res2, z)			-- get output data
 	glsl.finish()
 end
 print(os.clock() - t, "GLSL")
@@ -593,4 +589,4 @@ for i = 1, maxiter do
 end
 print(os.clock() - t, "Lua")
 print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])
--- speedup upwards of 5x
+-- speedup 5-10x

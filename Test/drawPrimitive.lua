@@ -154,8 +154,6 @@ end
 local eps = 0.0001
 --check intersection of pixel bounds and line
 local function pCheck(a, b, x, y)
-	local A, B, C, D = nil, nil, nil, nil
-	
 	--skip if outside of range
 	if		a>0 and y+1<a*(x)+b then	return 1
 	elseif	a<0 and y+1<a*(x+1)+b then	return 1
@@ -163,10 +161,10 @@ local function pCheck(a, b, x, y)
 	elseif	a<0 and y>a*(x)+b then		return 0
 	end
 	
-	A = a*x+b - y
-	B = a*(x+1)+b - y
-	C = (y+1-b)/a - x
-	D = (y-b)/a - x
+	local A = a*x+b - y
+	local B = a*(x+1)+b - y
+	local C = (y+1-b)/a - x
+	local D = (y-b)/a - x
 	
 	-- FIXME: design better way to deal with such inaccuracies
 	-- include edge cases due to inaccuracy
