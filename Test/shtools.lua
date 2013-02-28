@@ -19,27 +19,26 @@
 
 local ffi = require("ffi")
 
-sh = {}
+local sh = {}
 
+-- fallback functions using bash commands
 local function ls_FB(dir)
 	local f = io.popen("ls -p "..dir)
 	local fl = {}
 	local dl = {}
 	for s in f:lines () do
 		if string.match(s, "(.*)/$") then
-			dl[string.match(s, "(.*)/$")] =true
+			dl[string.match(s, "(.*)/$")] = "dir"
 		else
-			fl[s] = true
+			fl[s] = "file"
 		end
 	end
   f:close()
-	return fl, dl
+	return {fl=fl, dl=dl}
 end
 
 local function cwd_FB()
   local f = io.popen("pwd")
-  local fl = {}
-  local dl = {}
   return f:read("*l")
 end
 
@@ -95,6 +94,7 @@ if ffi.os=="Windows" then
   ]]
 
   function ls_WIN(path, pattern)
+  	path = path or "."
     if not path:sub(-1):find("[\\/]") then
       path = path .. "/*"
     else
@@ -106,12 +106,12 @@ if ffi.os=="Windows" then
     local hFile = ffi.C.FindFirstFileA(path, fd)
     while ffi.C.FindNextFileA(hFile, fd) do
       if ffi.string(fd.cFileName)~=".." and ffi.string(fd.cFileName)~="." then
-        if fd.dwFileAttributes==16 then dt[ffi.string(fd.cFileName)]=true end
-        if fd.dwFileAttributes==32 then ft[ffi.string(fd.cFileName)]=true end
+        if fd.dwFileAttributes==16 then dt[ffi.string(fd.cFileName)] = "file" end
+        if fd.dwFileAttributes==32 then ft[ffi.string(fd.cFileName)] = "dir" end
       end
     end
     ffi.C.FindClose(hFile)
-    return ft, dt
+    return {fl=ft, dl=dt}
   end
 
 else
@@ -133,19 +133,20 @@ else
   ]=])
     
   function ls_POSIX(dir)
+  	dir = dir or "."
     dir = ffi.C.opendir (ffi.cast("char *", dir));
     local ft = {}
     local dt = {}
     local ent = ffi.C.readdir(dir)
     while ent~=nil do
       if ffi.string(ent.d_name):sub(1,1)~="." then
-        if ent.d_type==8 then ft[ffi.string(ent.d_name)] = true end
-        if ent.d_type==4 then dt[ffi.string(ent.d_name)] = true end
+        if ent.d_type==8 then ft[ffi.string(ent.d_name)] = "file" end
+        if ent.d_type==4 then dt[ffi.string(ent.d_name)] = "dir" end
       end
       ent = ffi.C.readdir(dir)
     end
     ffi.C.closedir(dir)
-    return ft, dt
+    return {fl=ft, dl=dt}
   end
 end
 
@@ -158,6 +159,12 @@ else
   sh.ls=ls_POSIX
 end
 
-print(sh.ls(""))
+print(sh.cwd())
+for k, v in pairs(sh.ls().fl) do
+	print(k, v)
+end
+for k, v in pairs(sh.ls().dl) do
+	print(k, v)
+end
 
 return sh
