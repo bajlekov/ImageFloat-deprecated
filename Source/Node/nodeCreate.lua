@@ -33,7 +33,7 @@ local function setup(n, i)
 	nodeTable = require("nodeDefine")
 
 	do
-		local zeroBuf = __img.newBuffer(0)
+		local zeroBuf = __img:new(1,1,1)
 		function generic_clean(i)
 			for k, v in ipairs(n[i].conn_o.list) do
 				v.buf = zeroBuf

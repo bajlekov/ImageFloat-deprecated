@@ -215,7 +215,7 @@ if type(__sdl)=="table" then
 
 		function l.threadSetup(ibufs, obufs, params)
 			local bufs = {}
-			local buftype = {}			
+			local buftype = {}		
 			local x, y, z, i, o
 
 			if type(ibufs)=="table" and ibufs.__type==nil then
@@ -238,9 +238,11 @@ if type(__sdl)=="table" then
 				o = 1
 				x, y, z = obufs.x, obufs.y, obufs.z
 			end
+			
 			for _, v in ipairs(bufs) do
-				table.insert(buftype, v.type)
+				table.insert(buftype, v:type())
 			end
+			
 			l.threadBufferWidth = x
 			l.threadPushBuffers(bufs)
 			l.threadPushNumber(x, "xmax")
@@ -248,6 +250,7 @@ if type(__sdl)=="table" then
 			l.threadPushNumber(z, "zmax")
 			l.threadPushNumber(i, "ibuf")
 			l.threadPushNumber(o, "obuf")
+			--FIXME: deprecated buftype
 			l.threadPushTable(buftype, "buftype")
 			if type(params)=="table" then
 				l.threadPushTable(params, "params")

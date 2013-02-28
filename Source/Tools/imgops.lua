@@ -21,12 +21,7 @@ return function(img)
 
 	--float buffer square aperture scaling
 	function img.scaleDown(buffer, sc)
-		local out = img.newBuffer()
-		out.x = math.ceil(buffer.x / sc)
-		out.y = math.ceil(buffer.y / sc)
-		out.z = buffer.z
-		out.type = buffer.type
-		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]["..tonumber(out.z).."]")
+		local out = img:new(math.ceil(buffer.x / sc), math.ceil(buffer.y / sc), buffer.z)
 		out.cs = buffer.cs
 		local count = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]")
 		for x = 0, buffer.x-1 do
@@ -34,7 +29,8 @@ return function(img)
 			for y = 0, buffer.y-1 do
 				local ny = math.floor(y/sc)
 				for c = 0, buffer.z-1 do
-					out.data[nx][ny][c] = out.data[nx][ny][c] + buffer.data[x][y][c]
+					local t = out:get(nx,ny,c) + buffer:get(x,y,c)
+					out:set(nx,ny,c, t)
 				end
 				count[nx][ny] = count[nx][ny] + 1
 			end
@@ -42,7 +38,7 @@ return function(img)
 		for x = 0, out.x-1 do
 			for y = 0, out.y-1 do
 				for c = 0, buffer.z-1 do
-					out.data[x][y][c] = out.data[x][y][c] / count[x][y]
+					out:set(x,y,c, out.data[x][y][c] / count[x][y])
 				end
 			end
 		end
@@ -51,12 +47,7 @@ return function(img)
 
 	--weighted rescale
 	function img.scaleDownHQ(buffer, sc)
-		local out = img.newBuffer()
-		out.x = math.ceil(buffer.x / sc)
-		out.y = math.ceil(buffer.y / sc)
-		out.z = buffer.z
-		out.type = buffer.type
-		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		local out = img:new(math.ceil(buffer.x / sc), math.ceil(buffer.y / sc), buffer.z)
 		out.cs = buffer.cs
 		local count = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."]")
 		for x = 0, buffer.x-1 do
@@ -66,7 +57,8 @@ return function(img)
 				local ny = math.floor(y/sc)
 				local ry = math.abs(y % sc - 0.5 * sc)
 				for c = 0, 2 do
-					out.data[nx][ny][c] = out.data[nx][ny][c] + buffer.data[x][y][c] * rx * ry
+					local t = out:get(nx,ny,c) + buffer:get(x,y,c) * rx * ry
+					out:set(nx, ny, c, t)
 				end
 				count[nx][ny] = count[nx][ny] + rx * ry
 			end
@@ -74,7 +66,7 @@ return function(img)
 		for x = 0, out.x-1 do
 			for y = 0, out.y-1 do
 				for c = 0, 2 do
-					out.data[x][y][c] = out.data[x][y][c] / count[x][y]
+					out:set(x,y,c, out:get(x,y,c) / count[x][y])
 				end
 			end
 		end
@@ -83,19 +75,14 @@ return function(img)
 
 	--nearest neighbor scaling
 	function img.scaleDownFast(buffer, sc)
-		local out = img.newBuffer()
-		out.x = math.ceil(buffer.x / sc)
-		out.y = math.ceil(buffer.y / sc)
-		out.z = buffer.z
-		out.type = buffer.type
-		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		local out = img:new(math.ceil(buffer.x / sc), math.ceil(buffer.y / sc), buffer.z)
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
 			local nx = x*sc
 			for y = 0, out.y-1 do
 				local ny = y*sc
 				for c = 0, 2 do
-					out.data[x][y][c] = buffer.data[nx][ny][c]
+					out:set(x,y,c, buffer:get(nx,ny,c))
 				end
 			end
 		end
@@ -104,19 +91,15 @@ return function(img)
 
 	--nearest neighbor
 	function img.scaleUpFast(buffer, sc)
-		local out = img.newBuffer()
-		out.x = math.floor(buffer.x * sc)
-		out.y = math.floor(buffer.y * sc)
-		out.z = buffer.z
-		out.type = buffer.type
-		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		local out = img:new(math.floor(buffer.x * sc), math.floor(buffer.y * sc), buffer.z)
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
 			local nx = math.floor(x/sc)
 			for y = 0, out.y-1 do
 				local ny = math.floor(y/sc)
 				for c = 0, 2 do
-					out.data[x][y][c] = out.data[x][y][c] + buffer.data[nx][ny][c]
+					local t = out:get(x,y,c) + buffer:get(nx,ny,c)
+					out:set(x,y,c, t)
 				end
 			end
 		end
@@ -124,17 +107,12 @@ return function(img)
 	end
 
 	function img.scaleDownQuad(buffer)
-		local out = img.newBuffer()
-		out.x = math.floor(buffer.x / 4)
-		out.y = math.floor(buffer.y / 4)
-		out.z = buffer.z
-		out.type = buffer.type
-		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		local out = img:new(math.floor(buffer.x / 4), math.floor(buffer.y / 4), buffer.z)
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
 			for y = 0, out.y-1 do
 				for c = 0, 2 do
-					out.data[x][y][c] = buffer.data[x*4][y*4][c]
+					out:set(x,y,c, buffer:get(x*4,y*4,c))
 				end
 			end
 		end
@@ -142,19 +120,14 @@ return function(img)
 	end
 
 	function img.scaleUpQuad(buffer)
-		local out = img.newBuffer()
-		out.x = buffer.x * 4
-		out.y = buffer.y * 4
-		out.z = buffer.z
-		out.type = buffer.type
-		out.data = ffi.new(prec[1].."["..tonumber(out.x).."]["..tonumber(out.y).."][3]")
+		local out = img:new(buffer.x * 4, buffer.y * 4, buffer.z)
 		out.cs = buffer.cs
 		for x = 0, buffer.x-1 do
 			for y = 0, buffer.y-1 do
 				for c = 0, 2 do
 					for m = 0, 3 do
 						for n = 0, 3 do 
-							out.data[x*4+m][y*4+n][c] = buffer.data[x][y][c]
+							out:set(x*4+m,y*4+n,c, buffer:get(x,y,c))
 						end
 					end
 				end
@@ -196,9 +169,9 @@ return function(img)
 			for x = 0, buffer.x-1 do
 				for y = 0, buffer.y-1 do
 					local br, bg, bb
-					br = buffer.data[x][y][0]
-					bg = buffer.data[x][y][1]
-					bb = buffer.data[x][y][2]
+					br = buffer:get(x,y,0)
+					bg = buffer:get(x,y,1)
+					bb = buffer:get(x,y,2)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					bg = bg>1 and 255 or bg<0 and 0 or bg*255
 					bb = bb>1 and 255 or bb<0 and 0 or bb*255
@@ -209,7 +182,7 @@ return function(img)
 			for x = 0, buffer.x-1 do
 				for y = 0, buffer.y-1 do
 					local br
-					br = buffer.data[x][y][0]
+					br = buffer:get(x,y,0)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					surf[(x + buffer.x * y)] = bit.lshift(br,-16)+bit.lshift(br, 8)+math.floor(br)
 				end
@@ -226,14 +199,14 @@ return function(img)
 			for by = 0, buffer.y-1 do
 				local br, bg, bb
 				if buffer.z==3 then
-					br = buffer.data[bx][by][0]
-					bg = buffer.data[bx][by][1]
-					bb = buffer.data[bx][by][2]
+					br = buffer:get(bx,by,0)
+					bg = buffer:get(bx,by,1)
+					bb = buffer:get(bx,by,2)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					bg = bg>1 and 255 or bg<0 and 0 or bg*255
 					bb = bb>1 and 255 or bb<0 and 0 or bb*255
 				elseif buffer.z==1 then
-					br = buffer.data[bx][by][0]
+					br = buffer:get(bx,by,0)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					bg, bb = br, br
 				end
@@ -254,14 +227,14 @@ return function(img)
 			for by = 0, buffer.y-1 do
 				local br, bg, bb
 				if buffer.z==3 then
-					br = buffer.data[bx][by][0]
-					bg = buffer.data[bx][by][1]
-					bb = buffer.data[bx][by][2]
+					br = buffer:get(bx,by,0)
+					bg = buffer:get(bx,by,1)
+					bb = buffer:get(bx,by,2)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					bg = bg>1 and 255 or bg<0 and 0 or bg*255
 					bb = bb>1 and 255 or bb<0 and 0 or bb*255
 				elseif buffer.z==1 then
-					br = buffer.data[bx][by][0]
+					br = buffer:get(bx,by,0)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					bg, bb = br, br
 				end
@@ -276,15 +249,21 @@ return function(img)
 		end
 	end
 
+	--TODO: Move rest to different utility library!
+
 	--float buffer pixel ops
+	--FIXME: work with all types of buffers!
 	function img.pixelOp(buffer, op)
 		for x = 0, buffer.x-1 do
 			for y = 0, buffer.y-1 do
-				buffer.data[x][y][0], buffer.data[x][y][1], buffer.data[x][y][2] = op(buffer.data[x][y][0], buffer.data[x][y][1], buffer.data[x][y][2], x, y)
+				local a, b, c = buffer:get3(x,y)
+				a, b, c = op(a, b, c, x, y)
+				buffer:set3(x, y, a, b, c)
 			end
 		end
 	end
-
+	
+	--[[
 	function img.max(buffer)
 		local m1 = -math.huge
 		local m2 = m1
@@ -313,7 +292,8 @@ return function(img)
 			end
 		end
 		return m1, m2, m3
-	end	
+	end
+	--]]
 
 	function img.csConvert(buffer, cs)
 		__lua.threadSetup({buffer, buffer}, 1, 1)
@@ -326,6 +306,5 @@ return function(img)
 		__lua.threadSetup({buffer, buffac, buffer}, 2, 1)
 		__lua.threadRunWait("ops", "invert")
 	end
-
 
 end
