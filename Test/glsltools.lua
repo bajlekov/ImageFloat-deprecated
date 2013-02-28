@@ -41,85 +41,15 @@ uses of GLSL shaders
 
 local ffi = require("ffi")
 
--- FIXME: fix windows libs
+-- FIXME: windows functions work, but nothing is processed
 
-local gl	= ffi.load("GL")
-local glu	= ffi.load("GLU")
-local glut	= ffi.load("glut")
+local win = jit.os=="Windows"
 
-ffi.cdef[[
-typedef unsigned int GLenum;
-typedef unsigned char GLboolean;
-typedef unsigned int GLbitfield;
-typedef signed char GLbyte;
-typedef short GLshort;
-typedef int GLint;
-typedef int GLsizei;
-typedef unsigned char GLubyte;
-typedef unsigned short GLushort;
-typedef unsigned int GLuint;
-typedef unsigned short GLhalf;
-typedef float GLfloat;
-typedef float GLclampf;
-typedef double GLdouble;
-typedef double GLclampd;
-typedef void GLvoid;
-typedef char GLchar;
-//	
-void glMatrixMode( GLenum mode );
-void glLoadIdentity( void );
-void gluOrtho2D (GLdouble left, GLdouble right, GLdouble bottom, GLdouble top);
-void glBegin( GLenum mode );
-void glEnd( void );
-void glTexCoord2f( GLfloat s, GLfloat t );
-void glVertex2i( GLint x, GLint y );
-void glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
-//
-GLuint glCreateProgram (void);
-GLuint glCreateShader (GLenum type);
-GLint glGetUniformLocation (GLuint program, const GLchar *name);
-void glShaderSource (GLuint shader, GLsizei count, const GLchar* *string, const GLint *length);
-void glCompileShader (GLuint shader);
-void glAttachShader (GLuint program, GLuint shader);
-void glLinkProgram (GLuint program);
-void glUseProgram (GLuint program);
-void glGetShaderiv (GLuint shader, GLenum pname, GLint *params);
-void glGetShaderInfoLog (GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-//
-void glUniform1f (GLint location, GLfloat v0);
-void glUniform2f (GLint location, GLfloat v0, GLfloat v1);
-void glUniform3f (GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
-void glUniform4f (GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
-void glUniform1i (GLint location, GLint v0);
-void glUniform2i (GLint location, GLint v0, GLint v1);
-void glUniform3i (GLint location, GLint v0, GLint v1, GLint v2);
-void glUniform4i (GLint location, GLint v0, GLint v1, GLint v2, GLint v3);
-// textures
-void glDeleteTextures (GLsizei n, const GLuint *textures);
-void glGenTextures (GLsizei n, GLuint *textures);
-void glBindTexture (GLenum target, GLuint texture);
-void glPixelStorei (GLenum pname, GLint param);
-void glTexParameteri (GLenum target, GLenum pname, GLint param);
-void glActiveTexture (GLenum texture);
-void glTexImage2D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels);
-void glGetTexImage (GLenum target, GLint level, GLenum format, GLenum type, GLvoid *pixels);
-//framebuffers
-void glGenFramebuffers (GLsizei n, GLuint *framebuffers);
-void glDeleteFramebuffers (GLsizei n, const GLuint *framebuffers);
-void glBindFramebuffer (GLenum target, GLuint framebuffer);
-void glFramebufferTexture2D (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
-//
-void glDrawBuffers (GLsizei n, const GLenum *bufs);
-void glFinish (void);
-void glFlush (void);
-//??
-void glutInitDisplayString(const char *string);
-void glutInit(int *argcp, char **argv);
-int glutCreateWindow(const char *title);
-void glutHideWindow(void);
-void glDisable (GLenum cap);
-void glEnable (GLenum cap);
-]]
+print(jit.os, jit.arch)
+
+local gl	= win and ffi.load("opengl32") or  ffi.load("GL") -- openGL on windows seems not to be updated by the graphics driver
+local glu	= win and ffi.load("glu32") or ffi.load("GLU")
+local glut	= win and ffi.load("freeglut") or ffi.load("glut")
 
 local def = {}
 def.TEXTURE_2D			= 0x0DE1
@@ -197,24 +127,141 @@ def.CLAMP		= 0x2900
 def.FRAGMENT_SHADER		= 0x8B30
 def.VERTEX_SHADER		= 0x8B31
 def.INFO_LOG_LENGTH		= 0x8B84
+def.CORE_PROFILE		= 0x0001
+def.COMPATIBILITY_PROFILE = 0x0002
+def.VENDOR				= 0x1F00
+def.RENDERER			= 0x1F01
+def.VERSION				= 0x1F02
+def.EXTENSIONS			= 0x1F03
+
+ffi.cdef[[
+typedef unsigned int GLenum;
+typedef unsigned char GLboolean;
+typedef unsigned int GLbitfield;
+typedef signed char GLbyte;
+typedef short GLshort;
+typedef int GLint;
+typedef int GLsizei;
+typedef unsigned char GLubyte;
+typedef unsigned short GLushort;
+typedef unsigned int GLuint;
+typedef unsigned short GLhalf;
+typedef float GLfloat;
+typedef float GLclampf;
+typedef double GLdouble;
+typedef double GLclampd;
+typedef void GLvoid;
+typedef char GLchar;
+//	
+void glMatrixMode( GLenum mode );
+void glLoadIdentity( void );
+void gluOrtho2D (GLdouble left, GLdouble right, GLdouble bottom, GLdouble top);
+void glBegin( GLenum mode );
+void glEnd( void );
+void glTexCoord2f( GLfloat s, GLfloat t );
+void glVertex2i( GLint x, GLint y );
+void glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
+void glFinish (void);
+void glFlush (void);
+// textures
+void glDeleteTextures (GLsizei n, const GLuint *textures);
+void glGenTextures (GLsizei n, GLuint *textures);
+void glBindTexture (GLenum target, GLuint texture);
+void glPixelStorei (GLenum pname, GLint param);
+void glTexParameteri (GLenum target, GLenum pname, GLint param);
+void glTexImage2D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels);
+void glGetTexImage (GLenum target, GLint level, GLenum format, GLenum type, GLvoid *pixels);
+//
+void glutInitDisplayString(const char *string);
+void glutInit(int *argcp, char **argv);
+int glutCreateWindow(const char *title);
+void glutHideWindow(void);
+void glDisable (GLenum cap);
+void glEnable (GLenum cap);
+//compatibility helpers
+void glutInitContextProfile( int profile );
+const GLubyte * glGetString (GLenum name);
+void glutInitContextVersion( int majorVersion, int minorVersion );
+]]
 
 -- functions
 local glsl = {}
+local dep = {}
+local function getDeps()
+	-- cast GL3 prototypes to functions
+	ffi.cdef[[
+	//GL3 prototypes
+	void * glutGetProcAddress(const char *procName);
+	typedef void (PFNGLGENFRAMEBUFFERSPROC) (GLsizei n, GLuint *framebuffers);
+	typedef void (PFNGLBINDFRAMEBUFFERPROC) (GLenum target, GLuint framebuffer);
+	typedef void (PFNGLFRAMEBUFFERTEXTURE2DPROC) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+	typedef GLuint (PFNGLCREATESHADERPROC) (GLenum type);
+	typedef void (PFNGLSHADERSOURCEPROC) (GLuint shader, GLsizei count, const GLchar* *string, const GLint *length);
+	typedef void (PFNGLCOMPILESHADERPROC) (GLuint shader);
+	typedef void (PFNGLGETSHADERIVPROC) (GLuint shader, GLenum pname, GLint *params);
+	typedef void (PFNGLGETPROGRAMIVPROC) (GLuint program, GLenum pname, GLint *params);
+	typedef void (PFNGLGETSHADERINFOLOGPROC) (GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+	typedef void (PFNGLGETPROGRAMINFOLOGPROC) (GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+	typedef GLuint (PFNGLCREATEPROGRAMPROC) (void);
+	typedef void (PFNGLATTACHSHADERPROC) (GLuint program, GLuint shader);
+	typedef void (PFNGLLINKPROGRAMPROC) (GLuint program);
+	typedef void (PFNGLUSEPROGRAMPROC) (GLuint program);
+	typedef void (PFNGLUNIFORM1FPROC) (GLint location, GLfloat v0);
+	typedef void (PFNGLUNIFORM2FPROC) (GLint location, GLfloat v0, GLfloat v1);
+	typedef void (PFNGLUNIFORM3FPROC) (GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+	typedef void (PFNGLUNIFORM4FPROC) (GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+	typedef void (PFNGLUNIFORM1IPROC) (GLint location, GLint v0);
+	typedef GLint (PFNGLGETUNIFORMLOCATIONPROC) (GLuint program, const GLchar *name);
+	typedef void (PFNGLDRAWBUFFERSPROC) (GLsizei n, const GLenum *bufs);
+	typedef void (PFNGLACTIVETEXTUREPROC) (GLenum texture);
+	]]
+	
+	dep.glGenFramebuffers = ffi.cast("PFNGLGENFRAMEBUFFERSPROC*",glut.glutGetProcAddress("glGenFramebuffers"))
+	dep.glBindFramebuffer = ffi.cast("PFNGLBINDFRAMEBUFFERPROC*",glut.glutGetProcAddress("glBindFramebuffer"))
+	dep.glFramebufferTexture2D = ffi.cast("PFNGLFRAMEBUFFERTEXTURE2DPROC*",glut.glutGetProcAddress("glFramebufferTexture2D"))
+	dep.glCreateShader = ffi.cast("PFNGLCREATESHADERPROC*",glut.glutGetProcAddress("glCreateShader"))
+	dep.glShaderSource = ffi.cast("PFNGLSHADERSOURCEPROC*",glut.glutGetProcAddress("glShaderSource"))
+	dep.glCompileShader = ffi.cast("PFNGLCOMPILESHADERPROC*",glut.glutGetProcAddress("glCompileShader"))
+	dep.glGetShaderiv = ffi.cast("PFNGLGETSHADERIVPROC*",glut.glutGetProcAddress("glGetShaderiv"))
+	dep.glGetShaderInfoLog = ffi.cast("PFNGLGETSHADERINFOLOGPROC*",glut.glutGetProcAddress("glGetShaderInfoLog"))
+	dep.glGetProgramiv = ffi.cast("PFNGLGETPROGRAMIVPROC*",glut.glutGetProcAddress("glGetProgramiv"))
+	dep.glGetProgramInfoLog = ffi.cast("PFNGLGETPROGRAMINFOLOGPROC*",glut.glutGetProcAddress("glGetProgramInfoLog"))
+	dep.glCreateProgram = ffi.cast("PFNGLCREATEPROGRAMPROC*",glut.glutGetProcAddress("glCreateProgram"))
+	dep.glAttachShader = ffi.cast("PFNGLATTACHSHADERPROC*",glut.glutGetProcAddress("glAttachShader"))
+	dep.glLinkProgram = ffi.cast("PFNGLLINKPROGRAMPROC*",glut.glutGetProcAddress("glLinkProgram"))
+	dep.glUseProgram = ffi.cast("PFNGLUSEPROGRAMPROC*",glut.glutGetProcAddress("glUseProgram"))
+	dep.glUniform1f = ffi.cast("PFNGLUNIFORM1FPROC*",glut.glutGetProcAddress("glUniform1f"))
+	dep.glUniform2f = ffi.cast("PFNGLUNIFORM2FPROC*",glut.glutGetProcAddress("glUniform2f"))
+	dep.glUniform3f = ffi.cast("PFNGLUNIFORM3FPROC*",glut.glutGetProcAddress("glUniform3f"))
+	dep.glUniform4f = ffi.cast("PFNGLUNIFORM4FPROC*",glut.glutGetProcAddress("glUniform4f"))
+	dep.glUniform1i = ffi.cast("PFNGLUNIFORM1IPROC*",glut.glutGetProcAddress("glUniform1i"))
+	dep.glGetUniformLocation = ffi.cast("PFNGLGETUNIFORMLOCATIONPROC*",glut.glutGetProcAddress("glGetUniformLocation"))
+	dep.glDrawBuffers = ffi.cast("PFNGLDRAWBUFFERSPROC*",glut.glutGetProcAddress("glDrawBuffers"))
+	dep.glActiveTexture = ffi.cast("PFNGLACTIVETEXTUREPROC*",glut.glutGetProcAddress("glActiveTexture"))
+end
 
 function glsl.init()
 	local argv = ffi.new("char *[?]", 0, {})
 	local argcp = ffi.new("int[1]", 0)
 	glut.glutInit(argcp, argv)
+	glut.glutInitContextVersion( 3, 0 )
+	glut.glutInitContextProfile(def.CORE_PROFILE)
 	glut.glutCreateWindow("");
 	glut.glutHideWindow()
 	gl.glEnable(def.TEXTURE_2D)
 	gl.glDisable(def.DEPTH_TEST);
 	gl.glDisable(def.CULL_FACE);
 	gl.glFlush();
+	print(ffi.string(gl.glGetString(def.VENDOR)))
+	print(ffi.string(gl.glGetString(def.VERSION)))
+	print(ffi.string(gl.glGetString(def.RENDERER)))
+	getDeps()
+	
 	print("GLSL setup")
 end
 
 function glsl.finish() gl.glFinish() end
+function glsl.flush() gl.glFlush() end
 
 -- move to init
 function glsl.reshape(h, w)
@@ -228,7 +275,7 @@ end
 
 do
 	local function readFile(name)
-		local str = io.open(name, "r"):read('*a')
+		local str = io.open(name, "rb"):read('*a')
 		io.close()
 		return str
 	end
@@ -237,11 +284,24 @@ do
 		local logLength = ffi.new('GLint[?]', 1)
 		local charsWritten = ffi.new('GLsizei[?]', 1)
 		
-		gl.glGetShaderiv(s, def.INFO_LOG_LENGTH, logLength);
+		dep.glGetShaderiv(s, def.INFO_LOG_LENGTH, logLength);
 
 		if logLength[0] > 0 then
 			local log = ffi.new('GLchar[?]', logLength[0]+1)
-			gl.glGetShaderInfoLog(s, logLength[0], charsWritten, log)
+			dep.glGetShaderInfoLog(s, logLength[0], charsWritten, log)
+			return ffi.string(log)
+		else return "" end
+	end
+	
+	local function programLog(s)
+		local logLength = ffi.new('GLint[?]', 1)
+		local charsWritten = ffi.new('GLsizei[?]', 1)
+		
+		dep.glGetProgramiv(s, def.INFO_LOG_LENGTH, logLength);
+
+		if logLength[0] > 0 then
+			local log = ffi.new('GLchar[?]', logLength[0]+1)
+			dep.glGetProgramInfoLog(s, logLength[0], charsWritten, log)
 			return ffi.string(log)
 		else return "" end
 	end
@@ -250,7 +310,7 @@ do
 		local sourcep = ffi.new('GLchar[?]', #source + 1)
 		ffi.copy(sourcep, source)
 		local sourcepp = ffi.new('const GLchar *[1]', sourcep)
-		gl.glShaderSource(shader, 1, sourcepp, NULL)
+		dep.glShaderSource(shader, 1, sourcepp, NULL)
 	end
 	
 	function glsl.compileShader(vsFilename, fsFilename)
@@ -258,28 +318,28 @@ do
 		local vs, fs
 		
 		vs = readFile(vsFilename);
-		v = gl.glCreateShader(def.VERTEX_SHADER)
+		v = dep.glCreateShader(def.VERTEX_SHADER)
 		shaderSource(v, vs)
-		gl.glCompileShader(v)
+		dep.glCompileShader(v)
 		print(shaderLog(v))
 		
 		fs = readFile(fsFilename);
-		f = gl.glCreateShader(def.FRAGMENT_SHADER)
+		f = dep.glCreateShader(def.FRAGMENT_SHADER)
 		shaderSource(f, fs)
-		gl.glCompileShader(f)
+		dep.glCompileShader(f)
 		print(shaderLog(f))
 	
-		p = gl.glCreateProgram()
-		gl.glAttachShader(p,v)
-		gl.glAttachShader(p,f)
-		gl.glLinkProgram(p)
-		
+		p = dep.glCreateProgram()
+		dep.glAttachShader(p,v)
+		dep.glAttachShader(p,f)
+		dep.glLinkProgram(p)
+		print(programLog(p))
 		return p
 	end
 end
 
 function glsl.runShader(s, x, y)
-    gl.glUseProgram(s);
+    dep.glUseProgram(s);
     gl.glBegin(def.QUADS);
 	    gl.glTexCoord2f(0, 0);
 	    gl.glVertex2i(0, 0);
@@ -290,38 +350,38 @@ function glsl.runShader(s, x, y)
 	    gl.glTexCoord2f(1, 0);
 	    gl.glVertex2i(x, 0);
     gl.glEnd();
-    gl.glUseProgram(0);
+    dep.glUseProgram(0);
 end
 
 function glsl.setUniformTex(s, n, name)
-    gl.glUseProgram(s);
-	gl.glUniform1i(gl.glGetUniformLocation(s, name), n)  
-    gl.glUseProgram(0);
+    dep.glUseProgram(s);
+	dep.glUniform1i(dep.glGetUniformLocation(s, name), n)  
+    dep.glUseProgram(0);
 end
 
 do
 	local function setUniform4f(s, name, v1, v2, v3, v4)
-	    gl.glUseProgram(s);
-	    gl.glUniform4f(gl.glGetUniformLocation(s, name), v1, v2, v3, v4)  
-	    gl.glUseProgram(0);
+	    dep.glUseProgram(s);
+	    dep.glUniform4f(dep.glGetUniformLocation(s, name), v1, v2, v3, v4)  
+	    dep.glUseProgram(0);
 	end
 	
 	local function setUniform3f(s, name, v1, v2, v3)
-	    gl.glUseProgram(s);
-	    gl.glUniform3f(gl.glGetUniformLocation(s, name), v1, v2, v3)  
-	    gl.glUseProgram(0);
+	    dep.glUseProgram(s);
+	    dep.glUniform3f(dep.glGetUniformLocation(s, name), v1, v2, v3)  
+	    dep.glUseProgram(0);
 	end
 	
 	local function setUniform2f(s, name, v1, v2)
-	    gl.glUseProgram(s);
-	    gl.glUniform2f(gl.glGetUniformLocation(s, name), v1, v2)  
-	    gl.glUseProgram(0);
+	    dep.glUseProgram(s);
+	    dep.glUniform2f(dep.glGetUniformLocation(s, name), v1, v2)  
+	    dep.glUseProgram(0);
 	end
 	
 	local function setUniform1f(s, name, v1)
-	    gl.glUseProgram(s);
-	    gl.glUniform1f(gl.glGetUniformLocation(s, name), v1)  
-	    gl.glUseProgram(0);
+	    dep.glUseProgram(s);
+	    dep.glUniform1f(dep.glGetUniformLocation(s, name), v1)  
+	    dep.glUseProgram(0);
 	end
 	
 	function glsl.setUniform(s, name, v1, v2, v3, v4)
@@ -352,18 +412,18 @@ end
 
 function glsl.newFB()
 	local fb = ffi.new("GLuint[1]")
-	gl.glGenFramebuffers(1, fb)
+	dep.glGenFramebuffers(1, fb)
 	return fb
 end
 
 function glsl.attachTex(fb, texId, n)
-	gl.glBindFramebuffer(def.FRAMEBUFFER, fb[0])
-	gl.glFramebufferTexture2D(def.FRAMEBUFFER, def["COLOR_ATTACHMENT"..n], def.TEXTURE_2D, texId[0], 0);
+	dep.glBindFramebuffer(def.FRAMEBUFFER, fb[0])
+	dep.glFramebufferTexture2D(def.FRAMEBUFFER, def["COLOR_ATTACHMENT"..n], def.TEXTURE_2D, texId[0], 0);
 	return fb;
 end
 
 function glsl.bindFB(fb)
-	gl.glBindFramebuffer(def.FRAMEBUFFER, fb[0]);
+	dep.glBindFramebuffer(def.FRAMEBUFFER, fb[0]);
 	local mrt = ffi.new("GLenum[8]", {	def.COLOR_ATTACHMENT0,
 										def.COLOR_ATTACHMENT1,
 										def.COLOR_ATTACHMENT2,
@@ -372,11 +432,11 @@ function glsl.bindFB(fb)
 										def.COLOR_ATTACHMENT5,
 										def.COLOR_ATTACHMENT6,
 										def.COLOR_ATTACHMENT7, })
-	gl.glDrawBuffers(8, mrt);
+	dep.glDrawBuffers(8, mrt);
 end
 
 function glsl.bindTex(tex, n)
-	gl.glActiveTexture(def["TEXTURE"..n]);
+	dep.glActiveTexture(def["TEXTURE"..n]);
 	gl.glBindTexture(def.TEXTURE_2D, tex[0]);
 end
 
@@ -475,7 +535,7 @@ for i = 1, maxiter do
 	glsl.runShader(program, m, n)		-- apply shader
 	glsl.getTex(tex1, result, z)		-- get output data
 	--glsl.getTex(tex3, res2, z)			-- get output data
-	glsl.finish()
+	glsl.flush()
 end
 print(os.clock() - t, "GLSL")
 print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])

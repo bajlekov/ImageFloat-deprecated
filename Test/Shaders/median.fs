@@ -1,4 +1,4 @@
-#version 120
+#version 130
 
 uniform sampler2D texUnit;
 uniform vec2 xy;
