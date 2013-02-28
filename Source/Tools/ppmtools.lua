@@ -214,7 +214,7 @@ function ppm.toBuffer(header)
 end
 
 function ppm.toBufferCrop(header, newX, newY)
-	local buffer = img:new(nwX, newY, 3)
+	local buffer = img:new(newX, newY, 3)
 	local offX = math.floor((header.res.x - buffer.x)/2)
 	local offY = math.floor((header.res.y - buffer.y)/2)
 	local fullX = header.res.x
