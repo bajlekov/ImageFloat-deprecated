@@ -36,13 +36,19 @@
 	- implement fallback mechanisms in pure lua (settings option)
 	- offer optimised library with support for basic vector and element operations
 	- offer specific operations coded in SSE or auto-vectorised by GCC (depending on performance)
+	
+	- use ispc for easier SIMD code
 --]]
 
 -- create c library for vectorised calculation of above functions
 --os.execute ("clang -mllvm -vectorize-loops -mllvm -vectorize -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/sse.c -o Test/sse.o") print("LLVM")
-os.execute ("gcc -m64 -O3 -std=gnu99 -ffast-math -march=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised GCC")
+--os.execute ("gcc -m64 -O3 -std=gnu99 -ffast-math -march=native -fPIC -ftree-vectorizer-verbose=2 -c Test/sse.c -o Test/sse.o") print("vectorised GCC")
 --os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -fno-tree-vectorize -c Test/sse.c -o Test/sse.o") print("non-vectorised GCC")
 --os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
+
+os.execute ("ispc -o Test/sse.o Test/sse.ispc") print("ISPC")
+--os.execute ("ispc --emit-asm --arch=x86-64 --math-lib=fast --opt=fast-math --opt=force-aligned-memory --pic -o Test/sse.asm Test/sse.ispc")
+
 os.execute ("gcc -m64 -shared -o Test/libsse.dll Test/sse.o")
 -- test library
 
@@ -53,6 +59,7 @@ sse = ffi.load("./Test/libsse.dll")
 
 ffi.cdef[[
 	void vpow(float* x, float* y, float* z);
+	void vpowVEC(float* x, float* y, float* z, int size);
 	void add(float* a, float* b, float* c);
 	void LRGBtoSRGB(float* x, float* z);
 	void SRGBtoLRGB(float* x, float* z);
@@ -157,11 +164,60 @@ local iter = 500
 local a = ffi.new("float_a[?]", size)
 local b = ffi.new("float_a[?]", size)
 local c = ffi.new("float_a[?]", size)
+local d = ffi.new("float_a[?]", size)
 
 -- randomize a
 for i = 0, size-1 do
 	a[i] = math.random()
+	b[i] = math.random()
+	c[i] = math.random()
 end
+
+---[[ test pow function in ispc
+local t = os.clock()
+for i = 1, iter/10 do
+	sse.vpowVEC(a, b, c, size)
+end
+print((os.clock()-t)*3, "Native ISPC pow")
+
+local t = os.clock()
+for i = 1, iter/10 do
+	for j = 0, size-1, 4 do
+		sse.vpow(a+j, b+j, c+j)
+	end
+end
+print((os.clock()-t)*3, "Lua ISPC pow")
+
+local t = os.clock()
+for i = 1, iter/10 do
+	sse.vpowVEC(a, b, c, size)
+end
+print((os.clock()-t)*3, "Native ISPC pow")
+
+
+local t = os.clock()
+for i = 1, iter/10 do
+	for j = 0, size-1, 4 do
+		sse.vpow(a+j, b+j, c+j)
+	end
+end
+print((os.clock()-t)*3, "Lua ISPC pow")
+
+
+local t = os.clock()
+for i = 1, iter/10 do
+	for j = 0, size-1 do
+		d[j] = a[j]^b[j]
+	end
+end
+print((os.clock()-t)*3, "Lua native pow")
+
+local sum = 0
+for i= 0, 100 do
+	sum = sum + math.abs(c[i]-d[i])
+end
+print(sum, "total error")
+--]]
 
 -- closing is dilation followed by erosion
 -- can be combined in a single SSE function where erosion lags by 1 and reuses registers?
@@ -218,15 +274,15 @@ print(os.clock()-t, "Lua SSE dilate")
 
 local t = os.clock()
 for i = 1, iter do
-	dilateSSE(a, b)
+	dilateC(a, b)
 end
 print(os.clock()-t, "Lua C-lib dilate")
 
 local t = os.clock()
 for i = 1, iter do
-	sse.dilateC(a, b, 4, size-4)
+	--sse.dilateC(a, b, 4, size-4)
 end
-print(os.clock()-t, "C native dilate (slow without -ffast-math, vectorised")
+print(os.clock()-t, "C native dilate (slow without -ffast-math, vectorised)")
 -- why is the native c loop so much slower?
 
 local t = os.clock()
@@ -252,13 +308,13 @@ print(os.clock()-t, "C SSE add out-of-place")
 
 local t = os.clock()
 for i = 1, iter do
-	sse.addC(a, b, a, size)
+	--sse.addC(a, b, a, size)
 end
 print(os.clock()-t, "C native add in-place (vectorised)")
 
 local t = os.clock()
 for i = 1, iter do
-	sse.addC(a, b, c, size)
+	--sse.addC(a, b, c, size)
 end
 print(os.clock()-t, "C native add out-of-place (vectorised)")
 
@@ -316,6 +372,6 @@ local t = os.clock()
 for i = 1, iter do
 	addC(a, b, c)
 end
-print(os.clock()-t, "Lua C-lib add out-of-place")
+print(os.clock()-t, "Lua C-lib add out-of-places")
 --]]
 --]=]
