@@ -43,6 +43,12 @@ export void dilateSSE(uniform float x[], uniform float y[], uniform int start, u
   }
 }
 
+export void dilateC(uniform float x[], uniform float y[], uniform int start, uniform int end) {
+  for (int i = start; i<end; i++) {
+    y[i] = max(max(max(max(x[i-2], x[i-1]), x[i]), x[i+1]), x[i+2]);
+  }
+}
+
 export void addSSE(uniform float x[], uniform float y[], uniform float z[], uniform int end) {
   foreach(i = 0 ... end) {
     z[i] = x[i]+y[i];

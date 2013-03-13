@@ -46,7 +46,7 @@
 --os.execute ("gcc -O3 -std=gnu99 -ffast-math -fexpensive-optimizations -march=native -mtune=native -fPIC -fno-tree-vectorize -c Test/sse.c -o Test/sse.o") print("non-vectorised GCC")
 --os.execute ("gcc -shared -o Test/libsse.so Test/sse.o")
 
-os.execute ("ispc -o Test/sse.o Test/sse.ispc") print("ISPC")
+os.execute ("ispc --opt=fast-math -o Test/sse.o Test/sse.ispc") print("ISPC")
 --os.execute ("ispc --emit-asm --arch=x86-64 --math-lib=fast --opt=fast-math --opt=force-aligned-memory --pic -o Test/sse.asm Test/sse.ispc")
 
 os.execute ("gcc -m64 -shared -o Test/libsse.dll Test/sse.o")
@@ -280,7 +280,7 @@ print(os.clock()-t, "Lua C-lib dilate")
 
 local t = os.clock()
 for i = 1, iter do
-	--sse.dilateC(a, b, 4, size-4)
+	sse.dilateC(a, b, 4, size-4)
 end
 print(os.clock()-t, "C native dilate (slow without -ffast-math, vectorised)")
 -- why is the native c loop so much slower?
@@ -293,6 +293,8 @@ print(os.clock()-t, "C SSE dilate")
 -- lua SSE loop at same performance
 
 print("============================")
+
+iter = iter*5
 
 local t = os.clock()
 for i = 1, iter do
