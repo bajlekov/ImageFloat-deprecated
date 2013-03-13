@@ -1,6 +1,6 @@
 #version 130
 
-uniform sampler2D texUnit;
+uniform sampler2D tex1;
 uniform vec2 xy;
 
 const int A[19] = int[](1,4,7,0,3,6,1,4,7,0,5,4,3,1,2,4,4,6,4);
@@ -16,7 +16,7 @@ void sort(int a, int b) {
 }
 
 vec4 get(vec2 texCoord, int x, int y) {
-  return texture(texUnit, texCoord + vec2(x, y)*xy);
+  return texture(tex1, texCoord + vec2(x, y)*xy);
 }
 
 void main(void) {
