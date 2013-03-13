@@ -258,8 +258,6 @@ function glsl.init()
 	print(ffi.string(gl.glGetString(def.VERSION)))
 	print(ffi.string(gl.glGetString(def.RENDERER)))
 	getDeps()
-	
-	print("GLSL setup")
 end
 
 function glsl.finish() gl.glFinish() end
@@ -519,22 +517,16 @@ function glsl.new(shader, nTexIn, nTexOut, sizeX, sizeY, sizeZ)
 	
 	return o
 end
-	
+
+-- test/example
 --[[
-glsl.freeProgram(program)
-	[ glsl.freeTex(tex) ... ]
-	glsl.freeFB(fbo) ...
---]]
-
-
--- test
 glsl.init()
 
 -- texture size
-local n = 1024
-local m = 1024
-local z = 4
-local maxiter = 50
+local n = 4096
+local m = 2048
+local z = 1
+local maxiter = 10
 print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 glsl.reshape(n, m)				-- setup viewport, important! 
 
@@ -607,4 +599,6 @@ end
 print(os.clock() - t, "Lua (cpu time)")
 print(os.time()-g, "Lua (wall time)")
 print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])
--- speedup 5-10x
+--]]
+
+return glsl
