@@ -59,6 +59,9 @@ ffi.cdef[[
 	void ispc_sub(float* a, float* b, float* o, int size);
 	void ispc_mul(float* a, float* b, float* o, int size);
 	void ispc_div(float* a, float* b, float* o, int size);
+	
+	void ispc_LtoG(float* src, float* dst, int size);
+	void ispc_GtoL(float* src, float* dst, int size);
 ]]
 
 optim.add = ISPC.ispc_add
@@ -67,11 +70,36 @@ optim.mul = ISPC.ispc_mul
 optim.div = ISPC.ispc_div
 
 --test
---[[
+---[[
+local LtoG
+local GtoL
+do
+	local a = 0.055
+	local G = 1/0.42
+
+	local a_1 = 1/(1+a)
+	local G_1 = 1/G
+
+	local f = ((1+a)^G*(G-1)^(G-1))/(a^(G-1)*G^G)
+	local k = a/(G-1)
+	local k_f = k/f
+	local f_1 = 1/f
+
+	function LtoG(i)
+		return i<=k_f and i*f or (a+1)*i^G_1-a
+	end
+	function GtoL(i)
+		return i<=k and i*f_1 or ((i+a)*a_1)^G
+	end
+end
+
+
 local size = 4096*4096*3
 local a = ffi.new("float[?]", size)
 local b = ffi.new("float[?]", size)
 local c = ffi.new("float[?]", size)
+local d = ffi.new("float[?]", size)
+local e = ffi.new("float[?]", size)
 
 for i = 0, size-1 do
 	a[i] = math.random()
@@ -80,20 +108,26 @@ for i = 0, size-1 do
 end
 
 local t = os.clock()
-for i = 1, 10 do
-	ISPC.ispc_div(a, b, c, size)
-end
-print(os.clock() - t, "ISPC add")
+ISPC.ispc_LtoG(a, b, size)
+ISPC.ispc_GtoL(b, c, size)
+print(os.clock() - t, "ISPC gamma")
 
 local t = os.clock()
-for i = 1, 10 do
-	for j = 0, size-1 do
-		c[j] = a[j] / b[j]
-	end
+for j = 0, size-1 do
+	b[j] = LtoG(a[j])
 end
-print(os.clock() - t, "Lua add")
+for j = 0, size-1 do
+	d[j] = GtoL(b[j])
+end
+print(os.clock() - t, "Lua gamma")
 
-
+local d1, d2, d3 = 0, 0, 0
+for i = 0, size do
+	d1 = d1 + math.abs(c[i]-a[i])
+	d2 = d2 + math.abs(d[i]-a[i])
+end
+print("error ISPC: "..d1)
+print("error Lua: "..d2)
 --]]
 
 return optim

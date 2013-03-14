@@ -44,3 +44,34 @@ export void ispc_div(uniform float A[], uniform float B[], uniform float O[], un
     O[i] = A[i] / B[i];
   }
 }
+
+// GtoL and LtoG gamma correcting functions
+const uniform float a = 0.055;
+const uniform float G = 1/0.42;
+const uniform float a_1 = 1/1.055;
+const uniform float G_1 = 0.42;
+
+const uniform float f = 12.342887114692;
+const uniform float k = 0.039827586206897;
+const uniform float k_f = 0.0032267641951848;
+const uniform float f_1 = 0.08101832178386;
+
+export void ispc_LtoG(uniform float src[], uniform float dst[], uniform int size) {
+  foreach(i = 0 ... size) {
+    cif (src[i]<=k_f) {
+    	dst[i] = src[i] * f;
+    } else {
+    	dst[i] = (a+1)*pow(src[i], G_1)-a;
+    }
+  }
+}
+
+export void ispc_GtoL(uniform float src[], uniform float dst[], uniform int size) {
+  foreach(i = 0 ... size) {
+    cif (src[i]<=k) {
+    	dst[i] = src[i] * f_1;
+    } else {
+    	dst[i] = pow((src[i]+a)*a_1, G);
+    }
+  }
+}
