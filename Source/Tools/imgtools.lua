@@ -17,7 +17,12 @@
 
 local ffi = require "ffi"
 
-local prec = __global.setup.bufferPrecision
+local prec
+if __global==nil then
+	prec = {"float",4} 
+else
+	prec = __global.setup.bufferPrecision
+end
 print("Using "..(prec[2]*8).."bit precision buffers...")
 
 ffi.cdef[[
@@ -512,7 +517,7 @@ do
 end
 
 
-require("imgops")(buffer)
+require("Tools.imgops")(buffer)
 return buffer
 
 

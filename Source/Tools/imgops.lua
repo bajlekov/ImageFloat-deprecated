@@ -15,7 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local prec = __global.setup.bufferPrecision
+local prec
+if __global==nil then
+	prec = {"float",4} 
+else
+	prec = __global.setup.bufferPrecision
+end
 
 return function(img)
 
