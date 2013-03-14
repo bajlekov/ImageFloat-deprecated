@@ -214,6 +214,8 @@ local function getDeps()
 	typedef GLint (PFNGLGETUNIFORMLOCATIONPROC) (GLuint program, const GLchar *name);
 	typedef void (PFNGLDRAWBUFFERSPROC) (GLsizei n, const GLenum *bufs);
 	typedef void (PFNGLACTIVETEXTUREPROC) (GLenum texture);
+	
+	typedef void (PFNGLDELETEFRAMEBUFFERSPROC) (GLsizei n, const GLuint *framebuffers);
 	]]
 	
 	dep.glGenFramebuffers = ffi.cast("PFNGLGENFRAMEBUFFERSPROC*",glut.glutGetProcAddress("glGenFramebuffers"))
@@ -238,6 +240,7 @@ local function getDeps()
 	dep.glGetUniformLocation = ffi.cast("PFNGLGETUNIFORMLOCATIONPROC*",glut.glutGetProcAddress("glGetUniformLocation"))
 	dep.glDrawBuffers = ffi.cast("PFNGLDRAWBUFFERSPROC*",glut.glutGetProcAddress("glDrawBuffers"))
 	dep.glActiveTexture = ffi.cast("PFNGLACTIVETEXTUREPROC*",glut.glutGetProcAddress("glActiveTexture"))
+	dep.glDeleteFramebuffers = ffi.cast("PFNGLDELETEFRAMEBUFFERSPROC*",glut.glutGetProcAddress("glDeleteFramebuffers"))
 end
 
 function glsl.init()
@@ -255,8 +258,6 @@ function glsl.init()
 	print(ffi.string(gl.glGetString(def.VERSION)))
 	print(ffi.string(gl.glGetString(def.RENDERER)))
 	getDeps()
-	
-	print("GLSL setup")
 end
 
 function glsl.finish() gl.glFinish() end
@@ -446,7 +447,6 @@ end
 function glsl.bindTex(tex, n)
 	dep.glActiveTexture(def["TEXTURE"..n]);
 	gl.glBindTexture(def.TEXTURE_2D, tex[0]);
-	dep.glActiveTexture(def.TEXTURE0);
 end
 
 function glsl.setTex(tex, data, width, height, z)
@@ -467,27 +467,66 @@ function glsl.freeTex(tex)
 end
 
 function glsl.freeFB(fb)
-	gl.glDeleteFramebuffers(1, fb);
+	dep.glDeleteFramebuffers(1, fb);
 end
 
---[[ complete shader function
-shader = glsl.compile(vert, frag)
-program = glsl.setupProgram(shader, # textures in, # textures out, x, y, z)
-glsl.setProgram(program, {* textures in}, {uniforms})
-glsl.runProgram(program)
-glsl.getProgram(program, {* textures out})
-glsl.freeProgram(program)
---]]
 
 
--- test
+function glsl.run(prog, texIn, texOut, uni)
+	for i = 1, #uni do
+		glsl.setUniform(prog.sh, uni[i].name, uni[i][1], uni[i][2], uni[i][3], uni[i][4])
+	end
+	for i = 1, prog.ni do
+		glsl.bindTex(prog.ti[i], i-1)					--bind texture
+		glsl.setUniformTex(prog.sh, i-1, "tex"..i)		--set texture as named uniform
+		glsl.setTex(prog.ti[i], texIn[i], prog.x, prog.y, prog.z)
+	end
+	glsl.bindFB(prog.fb)								--bind framebuffer
+	glsl.runShader(prog.sh, prog.x, prog.y)				-- apply shader
+	for i = 1, prog.no do
+		glsl.getTex(prog.to[i], texOut[i], prog.z)		-- get output data
+	end
+	--glsl.finish()
+end
+
+function glsl.free(prog)
+	for i = 1, prog.ni do
+		glsl.freeTex(prog.ti[i])
+	end
+	for i = 1, prog.no do
+		glsl.freeTex(prog.to[i])
+	end
+	glsl.freeFB(prog.fb)
+end
+
+
+function glsl.new(shader, nTexIn, nTexOut, sizeX, sizeY, sizeZ)
+	local o = {x = sizeX, y=sizeY, z=sizeZ, ni=nTexIn, no=nTexOut, ti={}, to={}}
+	o.sh = glsl.compileShader("Shaders/shader.vs", shader)	--compile shader
+	glsl.reshape(sizeX, sizeY)								--set size
+	o.fb = glsl.newFB()										--new fbo
+	for i = 1, nTexIn do
+		o.ti[i] = glsl.newTex(sizeX, sizeY, sizeZ)			--create input textures
+	end
+	for i = 1, nTexOut do
+		o.to[i] = glsl.newTex(sizeX, sizeY, sizeZ)			--create output textures
+		glsl.attachTex(o.fb, o.to[i], i-1)					--attach output textures
+	end
+	o.run = glsl.run
+	o.free = glsl.free
+	
+	return o
+end
+
+-- test/example
+--[[
 glsl.init()
 
 -- texture size
-local n = 1024
-local m = 1024
+local n = 4096
+local m = 2048
 local z = 1
-local maxiter = 30
+local maxiter = 10
 print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 glsl.reshape(n, m)				-- setup viewport, important! 
 
@@ -495,57 +534,26 @@ glsl.reshape(n, m)				-- setup viewport, important!
 local data = ffi.new("float[?]", 4*m*n)
 local result = ffi.new("float[?]", 4*m*n)
 local res2 = ffi.new("float[?]", 4*m*n)
+
 for i = 0, 4*m*n-1 do
-	data[i]=i+1
+	data[i] = i+1
+	res2[i] = 5 
 end
 
--- setup textures and framebuffers
-local tex1 = glsl.newTex(m,n, z)
-local tex2 = glsl.newTex(m,n, z)
+-- ====================================================
+-- new GLSL program
+-- ====================================================
+local pr = glsl.new("Shaders/median.fs", 1, 1, m, n, z)
 
-local fbo1 = glsl.newFB()
-glsl.attachTex(fbo1, tex1, 0)
-
-local program = glsl.compileShader("Shaders/shader.vs", "Shaders/median.fs") -- compile shader
-
- -- pass uniform variables
---[[
-glsl.setUniform(program, "powVec", 2.25, 2.25, 2.25, 2.25)
-do
-	local a = 0.099
-	local G = 1/0.45
-	
-	local a_1 = 1/(1+a)
-	local G_1 = 1/G
-	
-	local f = ((1+a)^G*(G-1)^(G-1))/(a^(G-1)*G^G)
-	local k = a/(G-1)
-	local k_f = k/f
-	local f_1 = 1/f
-
-	glsl.setUniform(program, "k_f", k_f, k_f, k_f, k_f)
-	glsl.setUniform(program, "f", f, f, f, f)
-	glsl.setUniform(program, "a", a, a, a, a)
-	glsl.setUniform(program, "g_1", G_1, G_1, G_1, G_1)
-end
---]]
-
--- set an inverse size for pixel offsets
-glsl.setUniform(program, "xy", 1/m, 1/n)
-glsl.setUniformTex(program, 0, "texUnit")
-glsl.bindTex(tex2, 0)			-- bind textures
-glsl.bindFB(fbo1)				-- bind framebuffer
-
--- shading loop:
 print("start GLSL ...")
+local g = os.time()
 local t = os.clock()
 for i = 1, maxiter do
-	glsl.setTex(tex2, data, m, n, z)	-- set data to texture
-	glsl.runShader(program, m, n)		-- apply shader
-	glsl.getTex(tex1, result, z)		-- get output data
-	glsl.finish()
+	pr:run({data}, {result}, {{1/m, 1/n, name="xy"}})
 end
-print(os.clock() - t, "GLSL")
+print(os.clock() - t, "GLSL (cpu time)")
+print(os.time()-g, "GLSL (wall time)")
+pr:free()
 print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])
 
 -- timing of native median filter from "./median.lua":
@@ -583,10 +591,14 @@ do
 end
 
 print("start Lua ...")
+local g = os.time()
 local t = os.clock()
 for i = 1, maxiter do
-	median(data, result, m, n)
+	median(data, result, m, n*z)
 end
-print(os.clock() - t, "Lua")
+print(os.clock() - t, "Lua (cpu time)")
+print(os.time()-g, "Lua (wall time)")
 print(result[4096+128], result[4096+129], result[4096+130], result[4096+131])
--- speedup 5-10x
+--]]
+
+return glsl

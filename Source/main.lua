@@ -133,6 +133,7 @@ local imageTemp = ppm.toBuffer(readFun(__global.loadFile, __global.setup.imageLo
 local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
 math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
+local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
 sdl.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
 imageTemp = nil
 
@@ -154,8 +155,9 @@ local surfL = img.toSurface(bufL:new())
 
 
 --toggles buffers between cropped and scaled
+local bufZoom
 do
-	crop = false
+	local crop = false
 	function bufZoom(zoom)
 		if zoom==nil then
 			crop = not crop
@@ -175,7 +177,7 @@ do
 end
 
 --set desired working buffers
-function bufSet(size)
+local function bufSet(size)
 	if size=="S" then
 		__global.preview = true
 		buf = bufS

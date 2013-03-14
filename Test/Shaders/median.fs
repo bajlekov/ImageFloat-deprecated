@@ -1,12 +1,31 @@
 #version 130
 
-uniform sampler2D texUnit;
+/*
+    Copyright (C) 2011-2012 G. Bajlekov
+
+    ImageFloat is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    ImageFloat is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+uniform sampler2D tex1;
 uniform vec2 xy;
 
+//comparisons for optimal sort
 const int A[19] = int[](1,4,7,0,3,6,1,4,7,0,5,4,3,1,2,4,4,6,4);
 const int B[19] = int[](2,5,8,1,4,7,2,5,8,3,8,7,6,4,5,7,2,4,2);
 vec4 pix[9];
 
+//sort routine
 void sort(int a, int b) {	
 	vec4 mask = vec4(lessThanEqual(pix[a], pix[b]));
 	vec4 newA = mix(pix[a], pix[b], mask);
@@ -15,10 +34,12 @@ void sort(int a, int b) {
 	pix[b] = newB;
 }
 
+//get texture value at offset
 vec4 get(vec2 texCoord, int x, int y) {
-  return texture(texUnit, texCoord + vec2(x, y)*xy);
+  return texture(tex1, texCoord + vec2(x, y)*xy);
 }
 
+//median filter
 void main(void) {
   vec2 tc = gl_TexCoord[0].xy;
   
