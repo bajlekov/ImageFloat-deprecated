@@ -48,17 +48,18 @@ local function compress(input, size)
   return buf, buflen[0]
 end
 
-local function compressFile(input, size, file)
+local function compressFile(input, size, file, n)
 	--wb[1-9][f/h/R/F]
-	local f = zlib.gzopen(file, "wb")
+	n = n or 1
+	local f = zlib.gzopen(file, "wb"..n)
 	zlib.gzwrite(f, input, size)
 	zlib.gzclose(f)
 end
 
-local function uncompressFile(output, size, file, n)
+local function uncompressFile(output, size, file)
 	--wb[1-9][f/h/R/F]
 	n = n or ""
-	local f = zlib.gzopen(file, "rb"..n)
+	local f = zlib.gzopen(file, "rb")
 	zlib.gzread(f, output, size)
 	zlib.gzclose(f)
 end
@@ -80,24 +81,33 @@ local d = d *2.123096754 / 2.334683457
 local size = d.x*d.y*d.z*4
 
 print(d.x, d.y)
-print(d.data[123])
+local t = d.data[123]
 
-print("Uncompressed size (MB): ", size/1024^2)
+--print("Uncompressed size (MB): ", size/1024^2)
 tic()
 local c, l = compress(ffi.cast("unsigned char *", d.data), size)
 toc("pack")
-print("Compressed size (MB): ", tonumber(l)/1024^2)
+--print("Compressed size (MB): ", tonumber(l)/1024^2)
 d.data[123] = -3
 tic()
 uncompress(c, d.data, l, size)
 toc("unpack")
-print(d.data[123])
+assert(d.data[123]==t)
 
 tic()
-compressFile(d.data, size, "test.gz")
+compressFile(d.data, size, "test.gz", 1)
 toc("pack + write")
 d.data[123] = -3
 tic()
 uncompressFile(d.data, size, "test.gz")
 toc("unpack + read")
-print(d.data[123])
+assert(d.data[123]==t)
+
+tic()
+compressFile(d.data, size, "test.gz", 0)
+toc("write")
+d.data[123] = -3
+tic()
+uncompressFile(d.data, size, "test.gz")
+toc("read")
+assert(d.data[123]==t)
