@@ -16,16 +16,22 @@
 --]]
 
 -- fast median filtering with a minimum number of compares, C and lua implementation
-
--- ISPC implementation:
-os.execute ("ispc --opt=fast-math --pic -o Test/median.o Test/median.ispc") print("ISPC")
---os.execute ("gcc -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/median.c -o Test/median.o") print("vectorised GCC")
---os.execute ("clang -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/median.c -o Test/median.o") print("LLVM")
-os.execute ("gcc -m64 -shared -o Test/libmedian.so Test/median.o")
-
-
 local ffi = require("ffi")
-local C = ffi.load("./Test/libmedian.so")
+local C
+-- ISPC implementation:
+if jit.os=="Windows" then --32bit
+	-- x86-64 / i386pep for 64bit dll
+	os.execute ("ispc --arch=x86 --opt=fast-math -o median.obj median.ispc") print("ISPC")
+	os.execute ("ld -shared -mi386pep -o median.dll median.obj")
+	C = ffi.load("median.dll")
+else --Linux 64bit
+	os.execute ("ispc --opt=fast-math --pic -o Test/median.o Test/median.ispc") print("ISPC")
+	--os.execute ("gcc -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/median.c -o Test/median.o") print("vectorised GCC")
+	--os.execute ("clang -O3 -std=gnu99 -ffast-math -march=native -fPIC -c Test/median.c -o Test/median.o") print("LLVM")
+	os.execute ("clang -shared -o Test/libmedian.so Test/median.o")
+	C = ffi.load("./Test/libmedian.so")
+end
+
 ffi.cdef [[	void medianD(float* in, float* out, int xmax, int ymax) ]]
 
 local median
