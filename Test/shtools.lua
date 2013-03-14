@@ -106,8 +106,8 @@ if ffi.os=="Windows" then
     local hFile = ffi.C.FindFirstFileA(path, fd)
     while ffi.C.FindNextFileA(hFile, fd) do
       if ffi.string(fd.cFileName)~=".." and ffi.string(fd.cFileName)~="." then
-        if fd.dwFileAttributes==16 then dt[ffi.string(fd.cFileName)] = "file" end
-        if fd.dwFileAttributes==32 then ft[ffi.string(fd.cFileName)] = "dir" end
+        if fd.dwFileAttributes==16 then dt[ffi.string(fd.cFileName)] = "dir" end
+        if fd.dwFileAttributes==32 then ft[ffi.string(fd.cFileName)] = "file" end
       end
     end
     ffi.C.FindClose(hFile)
