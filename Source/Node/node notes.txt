@@ -1,0 +1,45 @@
+TODO:
+
+refactor node code!!!
+[ ]	load node defines from external files
+[ ]	provide editable list with sources
+[ ]	automatically generate constructors for all node definitions
+	structure:
+	- nodeMain.lua		(main node operations)
+	- nodeDraw.lua		(all node-drawing functionality)
+	- nodeCreate.lua	(handle creation of nodes, link to external definitions)
+
+"Add node" interface
+[ ]	top bar with menu for adding nodes
+[ ]	divide nodes per category
+[ ]	node positioning (drag node until mouse down?)
+[ ]	undo/redoable node alterations -> collect events
+
+Refactor drawing code
+[ ]	reuse text buffers
+[ ]	reuse area buffers
+[ ]	fix connector highlighting
+[ ]	trigger redraws
+
+Add interfaces
+[x]	float value
+	[ ]	variable steps
+[x]	annotation (left/right)
+[ ]	boolean switch
+[ ]	enumerator (pick from list: left/right arrows)
+	advanced:
+	[ ]	scripts		-> special editor
+	[ ]	functions	-> special editor
+	[ ]	effects		-> special editor
+
+Add preview area
+
+Collapsible nodes
+
+Interface buttons:
+[x]	close
+[ ]	collapse
+[ ]	enable (process)
+[ ]	preview (viewer)
+
+Presets/history per node in side-bar
