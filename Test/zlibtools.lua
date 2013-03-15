@@ -81,20 +81,34 @@ local d = d *2.134535623096754 / 2.334683457436457
 local size = d.x*d.y*d.z
 print(d.x, d.y, d.z)
 
--- new structure with 16bit precision mantissa and compressed 8bit exponent
+-- new structure with 16/8bit precision mantissa and compressed 8bit exponent
 os.execute ("ispc --opt=fast-math --pic -o Test/exp.o Test/exp.ispc") print("ISPC")
 os.execute ("gcc -m64 -shared -o Test/libexp.so Test/exp.o")
 ffi.cdef[[
-	void packExp(float* input, int16_t* mantissa, uint8_t* exp, int size);
-	void unpackExp(float* output, int16_t* mantissa, uint8_t* exp, int size);
+	void packExp16(float* input, int16_t* mantissa, uint8_t* exp, int size);
+	void unpackExp16(float* output, int16_t* mantissa, uint8_t* exp, int size);
+	void packExp8(float* input, int8_t* mantissa, uint8_t* exp, int size);
+	void unpackExp8(float* output, int8_t* mantissa, uint8_t* exp, int size);
 ]]
 local Exp = ffi.load("./Test/libexp.so")
 
-local m = ffi.new("short [?]", size)	--mantissa
+local m = ffi.new("short [?]", size)		--mantissa
 local n = ffi.new("char [?]", size)		--exponent
 
+--test
+d.data[0] = 0/0
+d.data[1] = 1/0
+d.data[2] = -1/0
+d.data[3] = 0
+d.data[4] = 1
+d.data[5] = -1
+d.data[6] = 0.5
+d.data[7] = -0.5
+
+print(d.data[0], d.data[1], d.data[2], d.data[3], d.data[4], d.data[5], d.data[6], d.data[7])
+
 tic()
-Exp.packExp(d.data, m, n, size)
+Exp.packExp16(d.data, m, n, size)
 toc("pack exp")
 tic()
 compressFile(n, size, "exp.gz", "4f")	--compress exponent to ~1/20th of size
@@ -105,5 +119,7 @@ uncompressFile(n, size, "exp.gz")
 uncompressFile(m, size*2, "man.gz")
 toc("uncompress + read")
 tic()
-Exp.unpackExp(d.data, m, n, size)
+Exp.unpackExp16(d.data, m, n, size)
 toc("unpack exp")
+
+print(d.data[0], d.data[1], d.data[2], d.data[3], d.data[4], d.data[5], d.data[6], d.data[7])

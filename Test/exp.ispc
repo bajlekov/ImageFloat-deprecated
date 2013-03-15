@@ -17,19 +17,36 @@
 
 const uniform float inf=1.0/0;
 
-export void packExp(uniform float input[], uniform int16 mantissa[], uniform int8 exponent[], uniform int size) {
+export void packExp16(uniform float input[], uniform int16 mantissa[], uniform int8 exponent[], uniform int size) {
 	foreach(i = 0 ... size) {
 		int t;
-		mantissa[i] = frexp(input[i], &t)*32768;
+		mantissa[i] = frexp(input[i], &t)*32768.0;
 		exponent[i] = t;
 	}
 }
 
-export void unpackExp(uniform float output[], uniform int16 mantissa[], uniform int8 exponent[], uniform int size) {
+export void unpackExp16(uniform float output[], uniform int16 mantissa[], uniform int8 exponent[], uniform int size) {
 	foreach(i = 0 ... size) {
 		output[i] = ldexp(mantissa[i]/32768.0, exponent[i]);
 		
-		// handle infinity correctly (minor speed penalty)
+		// handle infinity correctly (minor speed penalty ~50%)
+		cif (output[i]==-inf && mantissa[i]>0) output[i]=inf; 
+	}
+}
+
+export void packExp8(uniform float input[], uniform int8 mantissa[], uniform int8 exponent[], uniform int size) {
+	foreach(i = 0 ... size) {
+		int t;
+		mantissa[i] = frexp(input[i], &t)*128.0;
+		exponent[i] = t;
+	}
+}
+
+export void unpackExp8(uniform float output[], uniform int8 mantissa[], uniform int8 exponent[], uniform int size) {
+	foreach(i = 0 ... size) {
+		output[i] = ldexp(mantissa[i]/128.0, exponent[i]);
+		
+		// handle infinity correctly (minor speed penalty ~50%)
 		cif (output[i]==-inf && mantissa[i]>0) output[i]=inf; 
 	}
 }
