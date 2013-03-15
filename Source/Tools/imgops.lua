@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+local ffi = require("ffi")
 local prec
 if __global==nil then
 	prec = {"float",4} 
