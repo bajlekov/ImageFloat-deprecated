@@ -15,14 +15,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
---direct write to/from file? possibly multithreaded compress chunks?
-
--- zlib example from luajit tutorial
 local ffi = require("ffi")
 
---gzread
---gzwrite
---gzflush
+-- for efficient compression separate exponent from mantissa, compress only exponent, as most values have a similar exponent
+-- int16e, int16n, int16c (+ zipped exponent (16+4/8), signed normalized, unsigned clipped) --detect clipping
 
 ffi.cdef[[
 unsigned long compressBound(unsigned long sourceLen);
@@ -33,6 +29,7 @@ typedef struct gzFile_s *gzFile;
 gzFile gzopen(const char *path, const char *mode);
 gzFile gzdopen(int fd, char *mode);
 int gzclose(gzFile file);
+int gzbuffer(gzFile file, unsigned long size);
 
 int gzread(gzFile file, void* buf, unsigned long len);
 int gzwrite(gzFile file, void* buf, unsigned long len);
@@ -52,6 +49,7 @@ local function compressFile(input, size, file, n)
 	--wb[1-9][f/h/R/F]
 	n = n or 1
 	local f = zlib.gzopen(file, "wb"..n)
+	zlib.gzbuffer(f, 1024*512)
 	zlib.gzwrite(f, input, size)
 	zlib.gzclose(f)
 end
@@ -60,6 +58,7 @@ local function uncompressFile(output, size, file)
 	--wb[1-9][f/h/R/F]
 	n = n or ""
 	local f = zlib.gzopen(file, "rb")
+	zlib.gzbuffer(f, 1024*512)
 	zlib.gzread(f, output, size)
 	zlib.gzclose(f)
 end
@@ -76,38 +75,39 @@ local ppm = require("Tools.ppmtools")
 local img = require("Tools.imgtools")
 local sdl = require("Include.sdltools")
 local dbg = require("Tools.dbgtools")
+
 local d = ppm.toBuffer(ppm.readFile("Resources/Photos/img16.ppm", ""))
-local d = d *2.123096754 / 2.334683457
-local size = d.x*d.y*d.z*4
+local d = d *2.134535623096754 / 2.334683457436457
+local size = d.x*d.y*d.z
+print(d.x, d.y, d.z)
 
-print(d.x, d.y)
-local t = d.data[123]
+-- new structure with 16bit precision mantissa and compressed 8bit exponent
+os.execute ("ispc --opt=fast-math --pic -o Test/exp.o Test/exp.ispc") print("ISPC")
+os.execute ("gcc -m64 -shared -o Test/libexp.so Test/exp.o")
+ffi.cdef[[
+	void packExp(float* input, int16_t* mantissa, uint8_t* exp, int size);
+	void unpackExp(float* output, int16_t* mantissa, uint8_t* exp, int size);
+]]
+local Exp = ffi.load("./Test/libexp.so")
 
---print("Uncompressed size (MB): ", size/1024^2)
-tic()
-local c, l = compress(ffi.cast("unsigned char *", d.data), size)
-toc("pack")
---print("Compressed size (MB): ", tonumber(l)/1024^2)
-d.data[123] = -3
-tic()
-uncompress(c, d.data, l, size)
-toc("unpack")
-assert(d.data[123]==t)
+local m = ffi.new("short [?]", size)	--mantissa
+local n = ffi.new("char [?]", size)		--exponent
 
-tic()
-compressFile(d.data, size, "test.gz", 1)
-toc("pack + write")
-d.data[123] = -3
-tic()
-uncompressFile(d.data, size, "test.gz")
-toc("unpack + read")
-assert(d.data[123]==t)
+print(d.data[3])
 
 tic()
-compressFile(d.data, size, "test.gz", 0)
-toc("write")
-d.data[123] = -3
+Exp.packExp(d.data, m, n, size)
+toc("pack exp")
 tic()
-uncompressFile(d.data, size, "test.gz")
-toc("read")
-assert(d.data[123]==t)
+compressFile(n, size, "exp.gz", "4f")
+compressFile(m, size*2, "man.gz", "0F")
+toc("compress + write")
+tic()
+uncompressFile(n, size, "exp.gz")
+uncompressFile(m, size*2, "man.gz")
+toc("uncompress + read")
+tic()
+Exp.unpackExp(d.data, m, n, size)
+toc("unpack exp")
+
+print(d.data[3])
