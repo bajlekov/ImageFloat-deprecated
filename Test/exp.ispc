@@ -50,3 +50,48 @@ export void unpackExp8(uniform float output[], uniform int8 mantissa[], uniform 
 		cif (output[i]==-inf && mantissa[i]>0) output[i]=inf; 
 	}
 }
+
+export void packExp16u(uniform float input[], uniform unsigned int16 mantissa[], uniform int8 exponent[], uniform int size) {
+	foreach(i = 0 ... size) {
+		cif (input[i]>0) {
+			int t;
+			mantissa[i] = frexp(input[i], &t)*65536.0;
+			exponent[i] = t;
+		} else {
+			mantissa[i] = 0;
+			exponent[i] = 0;
+		}
+	}
+}
+
+export void unpackExp16u(uniform float output[], uniform unsigned int16 mantissa[], uniform int8 exponent[], uniform int size) {
+	foreach(i = 0 ... size) {
+		output[i] = ldexp(mantissa[i]/65536.0, exponent[i]);
+		
+		// handle infinity correctly (minor speed penalty ~50%)
+		cif (output[i]==-inf ) output[i]=inf; 
+	}
+}
+
+export void packExp8u(uniform float input[], uniform unsigned int8 mantissa[], uniform int8 exponent[], uniform int size) {
+	foreach(i = 0 ... size) {
+		cif (input[i]>0) {
+			int t;
+			mantissa[i] = frexp(input[i], &t)*256.0;
+			exponent[i] = t;
+		} else {
+			mantissa[i] = 0;
+			exponent[i] = 0;
+		}
+		
+	}
+}
+
+export void unpackExp8u(uniform float output[], uniform unsigned int8 mantissa[], uniform int8 exponent[], uniform int size) {
+	foreach(i = 0 ... size) {
+		output[i] = ldexp(mantissa[i]/256.0, exponent[i]);
+		
+		// handle infinity correctly (minor speed penalty ~50%)
+		cif (output[i]==-inf) output[i]=inf; 
+	}
+}
