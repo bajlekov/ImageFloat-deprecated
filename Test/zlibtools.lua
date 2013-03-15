@@ -89,27 +89,27 @@ ffi.cdef[[
 	void unpackExp16(float* output, int16_t* mantissa, uint8_t* exp, int size);
 	void packExp8(float* input, int8_t* mantissa, uint8_t* exp, int size);
 	void unpackExp8(float* output, int8_t* mantissa, uint8_t* exp, int size);
-	void packExp16u(float* input, int16_t* mantissa, uint8_t* exp, int size);
-	void unpackExp16u(float* output, int16_t* mantissa, uint8_t* exp, int size);
-	void packExp8u(float* input, int8_t* mantissa, uint8_t* exp, int size);
-	void unpackExp8u(float* output, int8_t* mantissa, uint8_t* exp, int size);
+	void packExp16u(float* input, uint16_t* mantissa, uint8_t* exp, int size);
+	void unpackExp16u(float* output, uint16_t* mantissa, uint8_t* exp, int size);
+	void packExp8u(float* input, uint8_t* mantissa, uint8_t* exp, int size);
+	void unpackExp8u(float* output, uint8_t* mantissa, uint8_t* exp, int size);
 ]]
 local Exp = ffi.load("./Test/libexp.so")
 
-local m = ffi.new("char [?]", size)		--mantissa
+local m = ffi.new("short [?]", size)		--mantissa
 local n = ffi.new("char [?]", size)		--exponent
 
 tic()
-Exp.packExp8u(d.data, m, n, size)
+Exp.packExp16(d.data, m, n, size)
 toc("pack exp")
 tic()
+compressFile(m, size*2, "man.gz", "0F")	--no compression fo mantissa
 compressFile(n, size, "exp.gz", "4f")	--compress exponent to ~1/20th of size
-compressFile(m, size, "man.gz", "0F")	--no compression fo mantissa
 toc("compress + write")
 tic()
+uncompressFile(m, size*2, "man.gz")
 uncompressFile(n, size, "exp.gz")
-uncompressFile(m, size, "man.gz")
 toc("uncompress + read")
 tic()
-Exp.unpackExp8u(d.data, m, n, size)
+Exp.unpackExp16(d.data, m, n, size)
 toc("unpack exp")
