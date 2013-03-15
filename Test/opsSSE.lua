@@ -49,13 +49,11 @@
 os.execute ("ispc --opt=fast-math -o Test/sse.o Test/sse.ispc") print("ISPC")
 --os.execute ("ispc --emit-asm --arch=x86-64 --math-lib=fast --opt=fast-math --opt=force-aligned-memory --pic -o Test/sse.asm Test/sse.ispc")
 
-os.execute ("gcc -m64 -shared -o Test/libsse.dll Test/sse.o")
+os.execute ("gcc -m64 -shared -o Test/libsse.so Test/sse.o")
 -- test library
 
 ffi = require("ffi")
---lib = ffi.load("./Test/libsse.so")
---lib = ffi.load("./Test/libadd.so")
-sse = ffi.load("./Test/libsse.dll")
+sse = ffi.load("./Test/libsse.so")
 
 ffi.cdef[[
 	void vpow(float* x, float* y, float* z);
