@@ -15,6 +15,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+const uniform float inf=1.0/0;
+
 export void packExp(uniform float input[], uniform int16 mantissa[], uniform int8 exponent[], uniform int size) {
 	foreach(i = 0 ... size) {
 		int t;
@@ -26,5 +28,8 @@ export void packExp(uniform float input[], uniform int16 mantissa[], uniform int
 export void unpackExp(uniform float output[], uniform int16 mantissa[], uniform int8 exponent[], uniform int size) {
 	foreach(i = 0 ... size) {
 		output[i] = ldexp(mantissa[i]/32768.0, exponent[i]);
+		
+		// handle infinity correctly (minor speed penalty)
+		cif (output[i]==-inf && mantissa[i]>0) output[i]=inf; 
 	}
 }

@@ -93,14 +93,12 @@ local Exp = ffi.load("./Test/libexp.so")
 local m = ffi.new("short [?]", size)	--mantissa
 local n = ffi.new("char [?]", size)		--exponent
 
-print(d.data[3])
-
 tic()
 Exp.packExp(d.data, m, n, size)
 toc("pack exp")
 tic()
-compressFile(n, size, "exp.gz", "4f")
-compressFile(m, size*2, "man.gz", "0F")
+compressFile(n, size, "exp.gz", "4f")	--compress exponent to ~1/20th of size
+compressFile(m, size*2, "man.gz", "0F")	--no compression fo mantissa
 toc("compress + write")
 tic()
 uncompressFile(n, size, "exp.gz")
@@ -109,5 +107,3 @@ toc("uncompress + read")
 tic()
 Exp.unpackExp(d.data, m, n, size)
 toc("unpack exp")
-
-print(d.data[3])
