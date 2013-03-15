@@ -17,19 +17,12 @@
 
 --require("../Lua/lua_utils.lua")
 require("nodeDraw")
-local node = {order = {}, execOrder = {}, levels = {}, noExec = {}, exec = {}}
 
-function node:setInput(input)
-	self.mouse = input
-end
-
-function node:setImageProcess(input)
-	self.imageProcess = input
-end
-
-function node.imageProcess()
-	return nil
-end
+-- create initial node structure
+local node = {order = {}, execOrder = {}, levels = {}, noExec = {}, exec = {}}	-- used for execution, set in node:calcLevels
+function node:setInput(input) self.mouse = input end							-- register input function
+function node:setImageProcess(input) self.imageProcess = input end				-- register image processing
+function node.imageProcess() end												-- set initial empty function
 
 function node:nodeDrag(n)
 	while self.mouse.button[1] do

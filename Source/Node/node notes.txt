@@ -22,6 +22,10 @@ Refactor drawing code
 [ ]	trigger redraws
 
 Add interfaces
+[ ]	multiline widgets
+	[ ]	circular color picker (or single node for that purpose?)
+	[ ]	inline text editor
+	[ ]	X-Y interface (editable EQ etc?)
 [x]	float value
 	[ ]	variable steps
 [x]	annotation (left/right)
@@ -31,6 +35,8 @@ Add interfaces
 	[ ]	scripts		-> special editor
 	[ ]	functions	-> special editor
 	[ ]	effects		-> special editor
+[ ]	hiding of widgets when noodle is connected
+
 
 Add preview area
 
