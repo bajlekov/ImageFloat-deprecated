@@ -54,17 +54,17 @@ nodeTable["Color RGB"] = function(self)
 	return n
 end
 
-nodeTable["Color LCH"] = function(self)
+nodeTable["Color HSV"] = function(self)
 	local n=self:new("Color")
-	n.param:add("Luma", {0,1,1})
-	n.param:add("Chroma", {0,1,1})
 	n.param:add("Hue", {0,1,1})
+	n.param:add("Chroma", {0,1,1})
+	n.param:add("Luma", {0,1,1})
 	n.conn_o:add(0)
 	function n:processRun(num)
 		local bo = self.conn_o
 		local r, g, b = self.param[1].value[1], self.param[2].value[1], self.param[3].value[1]
 
-		r, g, b = LCHABtoSRGB(r, g, b) 
+		r, g, b = HSVtoSRGB(r, g, b) 
 
 		bo[0].buf = img:newC(r,g,b)
 		coroutine.yield("pass")

@@ -107,7 +107,7 @@ node:add("Compose")
 --node:add("ColorSpace")
 node:add("Output")
 node:add("Color RGB")
-node:add("Color LCH")
+node:add("Color HSV")
 
 node:setInput(mouse)
 
