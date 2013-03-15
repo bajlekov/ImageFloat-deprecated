@@ -29,7 +29,6 @@ package.path = 	"./?.lua;"..
 "./Tools/?.lua;"..package.path
 
 local ffi = require("ffi")
-_G.ffi = ffi
 
 -- TODO main points:
 --	refactor code
@@ -107,11 +106,11 @@ node:add("Compose")
 --node:add("ColorSpace")
 node:add("Output")
 node:add("Color RGB")
-node:add("Color LCH")
+node:add("Color HSV")
 
 node:setInput(mouse)
 
--- move to fonttools?
+-- TODO: move to fonttools, local font reference
 font = {}
 font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
 font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
@@ -284,10 +283,10 @@ local function imageProcess(flag)
 	hLineAdd(10, __global.setup.windowSize[2]-411, 257, 64, 64, 64)
 	hLineAdd(10, __global.setup.windowSize[2]-10, 257, 64, 64, 64)
 
-	__sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
-	__sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
-	__sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
-	__sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
+	sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
+	sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
+	sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
+	sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
 end
 
 --register imageProcess

@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
+local ffi = require("ffi")
 
 -- TODO: Extract base draw functions!!! to sdlDraw or similar!!!
 local sdl = __sdl
