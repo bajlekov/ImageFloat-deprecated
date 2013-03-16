@@ -1,6 +1,68 @@
+node object structure:
+node = {}
+	.drawOrder = {}				- draw order
+	.execOrder = {}				- execution order
+	.levels = {}				- levels			- debug
+	.noExec = {}				- will not run		- debug
+	.exec = {}					- will run			- debug
+	:setInput (input)			- register .mouse
+	:setImageProcess (input)	- register .imageProcess
+	.imageProcess ()			- placeholder function
+	:nodeDrag (n)				- drag node n
+	:paramDrag (n, p)			- drag param of node n at position p
+	:noodleDrag (n, p)			- drag noodle coming from node n at position p
+	:new (name, x, y)			- low-level add-node function
+	:remove (n)					- remove node n
+	:draw (flag)				- draw nodes, flag indicates implicit flip
+	:focus (n)					- bring node n to top of stack
+	:calcLevels ()				- calculates .execOrder, .exec, .noExec, .levels
+	:cleanup ()					- cleans up allocated resources (for now background images)
+	
+	& []						- array part
+		.n						- node number
+		.conn_i/conn_o = {}
+			:add (pos)			- add connector (input/output)
+			.list = {}			- list of connectors as described in the array part (reference)
+			& []
+				{				- 
+					node,		- connected to node (link)
+					port,		- connected to port (link)
+					pos,		- connected from port (self)
+					buf,		- connected buffer! (see nodeDefine)
+				}
+		.param
+			:add (name, p, type)	- name, values{default, min, max}, type
+			.n = {0}				- links to ui.p ... is a table so byref assignment is possible
+			& []
+				.name
+				.value = {}
+				.type
+		:connect ()
+		:disconnect ()
+		.procFlags = {}
+			.process
+			.output
+		.ui = {}
+			.name
+			.x
+			.y
+			.draw ()
+			.click ()
+			.collapsed
+			.buffer
+			.p -> .param.n
+		:draw ()
+		.node -> node
+		.profile = {}			- store profiling data, not yet used
+
+
+
 TODO:
 
 refactor node code!!!
+[ ]	separate draw/update code from inner loops
+	[ ]	use callbacks
+[ ]	positional widget add instead of ordered
 [ ]	load node defines from external files
 [ ]	provide editable list with sources
 [ ]	automatically generate constructors for all node definitions
