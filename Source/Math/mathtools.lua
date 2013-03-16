@@ -36,7 +36,7 @@ math.window = {}
 function math.func.erf(i) return ffi.C.erf(i) end
 function math.func.gauss(x, s) return exp(-(x)^2/2/s^2) end
 function math.func.lorenz(x, s) return s^2/(x^2+s^2) end 
-function math.func.gausscum(x, s) return 0.5 + erf((x)/sqrt(2)/s)/2 end
+function math.func.gausscum(x, s) return 0.5 + ffi.C.erf((x)/sqrt(2)/s)/2 end
 function math.func.lorenzcum(x, s) return math.atan2(x,s)*M_1_PI+0.5 end
 function math.func.sinc(x) return x==0 and 1 or sin(pi*x)/(pi*x) end
 function math.func.exp(x, t) return exp(-x/t) end
