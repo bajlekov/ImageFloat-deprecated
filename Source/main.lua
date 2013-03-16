@@ -107,6 +107,7 @@ node:add("Compose")
 node:add("Output")
 node:add("Color RGB")
 node:add("Color HSV")
+node:add("Gradient")
 
 node:setInput(mouse)
 

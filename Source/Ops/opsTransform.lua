@@ -124,4 +124,30 @@ function transform.rot2()
 	progress[__instance+1] = -1
 end
 
+-- x[-1,1], y[-1,1], off[0,1], sigma[0,1]
+function transform.gradRot()
+	--init
+	local xm, ym = (params[1]+1)/2*xmax, (params[2]+1)/2*ymax
+	local unit = math.sqrt((xmax/2)^2 + (ymax/2)^2)
+	local off = unit*params[3]
+	local sigma = unit*params[4]
+	sigma = sigma<1 and 1 or sigma
+	
+	--setup loop
+	for x = __instance, xmax-1, __tmax do
+		if progress[0]==-1 then break end
+		for y = 0, ymax-1 do
+			__pp = (x * ymax + y)
+			
+			local d = math.sqrt((x-xm)^2 + (y-ym)^2)
+			local g = d<off and 1 or math.func.gauss(d-off, sigma)
+			g = g*params[5]
+			
+			set3[1](g, g, g)
+		end
+		progress[__instance+1] = x - __instance
+	end
+	progress[__instance+1] = -1
+end
+
 return transform
