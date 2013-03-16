@@ -505,7 +505,7 @@ nodeTable["ColorSpace"] = function(self)
 end
 
 -- FIXME: reference size 
-nodeTable["Gradient"] = function(self)
+nodeTable["GradientRot"] = function(self)
 	local n=self:new("Gradient")
 	n.param:add("X", {-1,1,0})
 	n.param:add("Y", {-1,1,0})
@@ -519,9 +519,31 @@ nodeTable["Gradient"] = function(self)
 		
 		--
 		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
-
-		lua.threadSetup(bo[0].buf, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
+		
+		-- FIXME: don't require passing input/output buffers to thread
+		lua.threadSetup({}, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
 		lua.threadRun("ops", "transform", "gradRot")
+		coroutine.yield(num)
+	end
+	return n
+end
+
+nodeTable["GradientLin"] = function(self)
+	local n=self:new("Gradient")
+	n.param:add("Angle", {-180,180,0})
+	n.param:add("Offset", {-1,1,0})
+	n.param:add("Width", {0,1,0.2})
+	n.conn_o:add(0)
+	function n:processRun(num)
+		local bo = self.conn_o
+		local p = self.param
+		
+		--
+		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
+		
+		-- FIXME: don't require passing input/output buffers to thread
+		lua.threadSetup({}, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1]})
+		lua.threadRun("ops", "transform", "gradLin")
 		coroutine.yield(num)
 	end
 	return n
