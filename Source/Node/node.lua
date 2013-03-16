@@ -18,6 +18,15 @@
 --require("../Lua/lua_utils.lua")
 require("nodeDraw")
 
+-- pass struct instead of globals
+local nodeDraw = nodeDraw
+local drawNoodles = drawNoodles
+local drawNoodle = drawNoodle
+local drawNoodleLoose = drawNoodleLoose
+local font = font
+local sdl = __sdl
+local __global = __global
+
 -- create initial node structure
 local node = {order = {}, execOrder = {}, levels = {}, noExec = {}, exec = {}}	-- used for execution, set in node:calcLevels
 function node:setInput(input) self.mouse = input end							-- register input function
@@ -82,7 +91,7 @@ function node:noodleDrag(n, p)
 		else
 			drawNoodleLoose(self[n].ui.x, self[n].ui.y, self.mouse.x, self.mouse.y, p)
 		end
-		__sdl.flip()
+		sdl.flip()
 	end
 	for k,v in ipairs(self) do
 		if k~=n then
@@ -176,8 +185,7 @@ end
 -- add new bulb for connecting noodles
 local function connAdd(self, pos)
 	if self[pos]==nil then
-		self[pos] = {node = nil, port = nil, pos = pos, type = nil} --node==nil = disconnected
-		self[pos].buf = nil
+		self[pos] = {node=nil, port=nil, pos=pos, buf=nil} --node==nil = disconnected
 		table.insert(self.list, self[pos])
 	end
 end
@@ -188,9 +196,9 @@ local function paramAdd(self, name, p, type)
  	--count number of params in array to be referenced to by other parts of the object
  	local n = #self + 1
 	if type=="value" then
-		self[n] = {name = name, value = {p[3], p[1], p[2], p[3]}, type = "value"}
+		self[n] = {name=name, value={p[3], p[1], p[2], p[3]}, type="value"}
 	elseif type=="text" then
-		self[n] = {name = name, value = p, type = "text"}
+		self[n] = {name=name, value=p, type="text"}
 	else
 		error("Unknown parameter type at parameter "..n.."!")
 		return nil
@@ -208,12 +216,12 @@ function node:new(name, x, y)
 	self.order[n] = n
 	self[n] = {
 		n = n, 									-- which node in list
-		conn_i = {add = connAdd, list ={}},		-- {node, port, position}
-		conn_o = {add = connAdd, list ={}},		-- {node, port, position}
-		param = {add = paramAdd, n={0}},		-- {name, {value, min, max, default}}
+		conn_i	= {add=connAdd, list={}},		-- {node, port, position}
+		conn_o	= {add=connAdd, list={}},		-- {node, port, position}
+		param	= {add=paramAdd, n={0}},		-- {name, {value, min, max, default}}
 		connect = noodleConnect, 				-- connects node_o with node_i
 		disconnect = noodleDisconnect, 			-- disconnects node_o
-		processInit = nil,				-- function to execute during processing
+		--unused: processInit = nil,				-- function to execute during processing
 			-- prepare output buffers
 			-- prepare processing data
 			-- call process
@@ -225,16 +233,15 @@ function node:new(name, x, y)
 		node = self,								--go one level back to nodelist from a single node
 		profile = {},							--profiler data
 		}
-	self[n].ui.p = self[n].param.n					--for refering to number of params
+	self[n].ui.p = self[n].param.n				--for refering to number of params
 	self[n].ui.click = nodeClick
 	return self[n]
 end
 
 --remove node and move last node in its place
 function node:remove(n)
-	__sdl.destroySurface(self[n].ui.buffer)
+	sdl.destroySurface(self[n].ui.buffer)
 	--clear everything corresponding to node
-
 
 	local nmax = #self
 	
@@ -244,8 +251,8 @@ function node:remove(n)
 	--rework connections
 	for i = 1, nmax - 1 do
 		
-		n_i = self[i].conn_i
-		n_o = self[i].conn_o
+		local n_i = self[i].conn_i
+		local n_o = self[i].conn_o
 		
 		if #n_i.list>0 then for j = 1, #n_i.list do
 			if n_i.list[j].node==n then n_i.list[j].node = nil end --remove conn
@@ -273,12 +280,12 @@ function node:remove(n)
 	
 	self.order[#self] = nil
 	self[nmax]=nil
-	
 end
 
+-- put in resources table
 node.backgrounds = {}
-node.backgrounds.window = __sdl.loadImage(__global.imgPath.."background.png")
-node.backgrounds.node = __sdl.loadImage(__global.imgPath.."node_t.png")
+node.backgrounds.window = sdl.loadImage(__global.imgPath.."background.png")
+node.backgrounds.node = sdl.loadImage(__global.imgPath.."node_t.png")
 
 --destroy backgrounds at end?
 
@@ -306,21 +313,21 @@ local helpText = {
 
 function node:draw(flag)
 	-- see if drawing can be reduced when no update is available!!
-	__sdl.blit(node.backgrounds.window, nil, __sdl.screen, nil) --draws background
+	sdl.blit(node.backgrounds.window, nil, sdl.screen, nil) --draws background
 	self.imageProcess(flag) -- puts image on screen
 	drawNoodles(self) -- draws noodles
 
 	--help text
 	if __global.info then
 		for k, v in ipairs(helpText) do
-			__sdl.text(v, font.normal, __global.setup.windowSize[1] - 220, 10 + k*10, 128, 64, 64)
+			sdl.text(v, font.normal, __global.setup.windowSize[1] - 220, 10 + k*10, 128, 64, 64)
 		end
 	end
 	
 	for n = #self,1,-1 do
 		self[self.order[n]]:draw()
 	end
-	if flag~="noflip" then __sdl.flip() end
+	if flag~="noflip" then sdl.flip() end
 end
 
 function node:focus(n)
@@ -337,109 +344,109 @@ function node:focus(n)
 end
 
 function node:cleanup()
-	__sdl.destroySurface(self.backgrounds.window)
-	__sdl.destroySurface(self.backgrounds.node)
+	sdl.destroySurface(self.backgrounds.window)
+	sdl.destroySurface(self.backgrounds.node)
 end
 
-function node:calcLevels()
-	calcUpdate = true
-
-	local current = {}
-	local level = 1
-	local tree = {}
-	local error = false
-
-	local c = require("boolops")
-	local collect = c.collect
-	local negate = c.cNot
-	local list = c.list
-
-	--return nodes connected to node n
-	function connected(n, flag)
-		local o = {}
-		for _, v in ipairs(self[n][flag and "conn_o" or "conn_i"].list) do
-			if v.node then o[v.node] = true end
+do
+	local c = require("boolops") 
+	function node:calcLevels()
+		local current = {}
+		local level = 1
+		local tree = {}
+		local error = false
+	
+		local collect = c.collect
+		local negate = c.cNot
+		local list = c.list
+	
+		--return nodes connected to node n
+		local function connected(n, flag)
+			local o = {}
+			for _, v in ipairs(self[n][flag and "conn_o" or "conn_i"].list) do
+				if v.node then o[v.node] = true end
+			end
+			return list(o), o
 		end
-		return list(o), o
-	end
-
-	--add all nodes that can be used as generators
-	for k, v in ipairs(node) do
-		if v.procFlags.output then table.insert(current, k) end
-	end
-
-	local allProc = {}
-	local noProc
-
-	while true do
-		tree[level] = current
-		local c = {}
-		for _, v in ipairs(tree[level]) do
-			local t = connected(v)
-			c = collect(t, c)
+	
+		--add all nodes that can be used as generators
+		for k, v in ipairs(node) do
+			if v.procFlags.output then table.insert(current, k) end
 		end
-
-		collect(current, allProc)
-
-		current = list(c)
-		level = level + 1
-
-		if level>#self+1 then error("Loop detected! Wrong node connections. FIXME") end
-		if #current==0 then break end
-	end
-
-	noProc = c.cNot(c.new(1,#self),allProc)
-
-	if not error then
-		level = level - 1
-
-		-- filter only last occurrence of each node:
-		local early = {}
-		for i = level,1, -1 do
-			tree[i] = list(negate(collect(tree[i]), early))
-			early = collect(tree[i],early)
+	
+		local allProc = {}
+		local noProc
+	
+		while true do
+			tree[level] = current
+			local c = {}
+			for _, v in ipairs(tree[level]) do
+				local t = connected(v)
+				c = collect(t, c)
+			end
+	
+			collect(current, allProc)
+	
+			current = list(c)
+			level = level + 1
+	
+			if level>#self+1 then error("Loop detected! Wrong node connections. FIXME") end
+			if #current==0 then break end
 		end
-
-		-- display node tree
-		--[[
-		for i = 1, level do
-			print("level "..i..":")
-			print(unpack(tree[i]))
+	
+		noProc = c.cNot(c.new(1,#self),allProc)
+	
+		if not error then
+			level = level - 1
+	
+			-- filter only last occurrence of each node:
+			local early = {}
+			for i = level,1, -1 do
+				tree[i] = list(negate(collect(tree[i]), early))
+				early = collect(tree[i],early)
+			end
+	
+			-- display node tree
+			--[[
+			for i = 1, level do
+				print("level "..i..":")
+				print(unpack(tree[i]))
+			end
+			print("---")
+			--]]
 		end
-		print("---")
-		--]]
-	end
-
-	self.levels = tree
-	self.execOrder = {}
-	for _, v in ipairs(self.levels) do
-		for _, v in ipairs(v) do
-			table.insert(self.execOrder, v)
+	
+		self.levels = tree
+		self.execOrder = {}
+		for _, v in ipairs(self.levels) do
+			for _, v in ipairs(v) do
+				table.insert(self.execOrder, v)
+			end
 		end
+	
+		--invert execOrder
+		local tempOrder = {}
+		for i = 1, #self.execOrder do
+			tempOrder[#self.execOrder-i+1] = self.execOrder[i]
+		end
+		self.execOrder = tempOrder
+		tempOrder = nil
+	
+		--print(unpack(self.execOrder))
+	
+		self.exec = allProc
+		self.noExec = list(noProc)
+		for _, v in pairs(self.noExec) do
+			generic_clean(v)
+		end
+	
+		-- refresh view
+		for _, v in ipairs(self) do
+			v.ui.draw=true
+		end
+		sdl.flip()
 	end
-
-	--invert execOrder
-	local tempOrder = {}
-	for i = 1, #self.execOrder do
-		tempOrder[#self.execOrder-i+1] = self.execOrder[i]
-	end
-	self.execOrder = tempOrder
-	tempOrder = nil
-
-	--print(unpack(self.execOrder))
-
-	self.exec = allProc
-	self.noExec = list(noProc)
-	for _, v in pairs(self.noExec) do
-		generic_clean(v)
-	end
-
-	for _, v in ipairs(self) do
-		v.ui.draw=true
-	end
-	__sdl.flip()
 end
-
 
 
 return node

@@ -91,6 +91,13 @@ __global.saveFile = __global.setup.imageSavePath..__global.setup.imageSaveName
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
+
+-- TODO: move to fonttools, local font reference
+font = {}
+font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
+font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
+local font = font
+
 local node = require("node")
 
 --move to node?
@@ -109,11 +116,6 @@ node:add("Color RGB")
 node:add("Color HSV")
 
 node:setInput(mouse)
-
--- TODO: move to fonttools, local font reference
-font = {}
-font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
-font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 
 --draw initial
 node:draw()
@@ -202,7 +204,7 @@ local hist = require("histogram")
 
 function funProcess()
 	cp=1							-- reset processing coroutine
-	node[1].bufIn = buf 					--initialise node, move to other location!
+	node[1].bufIn = buf 					--initialise input node, move to other location!
 
 	-- find output node, make selector for this.../one fixed output node
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
