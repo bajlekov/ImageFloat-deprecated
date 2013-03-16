@@ -182,11 +182,13 @@ local function bufSet(size)
 		buf = bufS
 		bufout = bufoutS
 		surf = surfS
+		__global.imageSize = {buf.x, buf.y}
 	else
 		__global.preview = false
 		buf = bufL
 		bufout = bufoutL
 		surf = surfL
+		__global.imageSize = {buf.x, buf.y}
 	end
 end
 
