@@ -20,8 +20,12 @@
 
 local lua = __lua
 local img = __img
+
+-- FIXME: other way to include CS ops!
 require("opsCS")
 local nodeTable = {}
+
+-- FIXME: remove function declarations from process!!! 
 
 nodeTable["Input"] = function(self)
 	local n=self:new("Input")
@@ -83,7 +87,7 @@ nodeTable["Rotate"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
@@ -132,7 +136,7 @@ nodeTable["Mixer"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 		--move function to external?
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 		
@@ -190,7 +194,7 @@ nodeTable["Add"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 		--move function to external?
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 		end
 
@@ -228,7 +232,7 @@ nodeTable["Split"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 
@@ -261,7 +265,7 @@ nodeTable["Decompose"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 		end
 
@@ -298,7 +302,7 @@ nodeTable["WhiteBalance"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
@@ -346,7 +350,7 @@ nodeTable["Output"] = function(self)
 		local bi = self.conn_i
 		local p = self.param
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV(1)
 		end
 		
@@ -394,7 +398,7 @@ local n=self:new("Compose")
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 
@@ -435,7 +439,7 @@ nodeTable["ColorSpace"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
@@ -451,6 +455,29 @@ nodeTable["ColorSpace"] = function(self)
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
 		bufsIn = {}
+	end
+	return n
+end
+
+-- FIXME: reference size 
+nodeTable["Gradient"] = function(self)
+	local n=self:new("Gradient")
+	n.param:add("X", {-1,1,0})
+	n.param:add("Y", {-1,1,0})
+	n.param:add("Offset", {0,1,0})
+	n.param:add("Width", {0,1,0.2})
+	n.param:add("Intensity", {0,1,0.2})
+	n.conn_o:add(0)
+	function n:processRun(num)
+		local bo = self.conn_o
+		local p = self.param
+		
+		--
+		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
+
+		lua.threadSetup(bo[0].buf, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
+		lua.threadRun("ops", "transform", "gradRot")
+		coroutine.yield(num)
 	end
 	return n
 end
