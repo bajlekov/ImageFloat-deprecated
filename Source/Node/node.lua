@@ -28,7 +28,7 @@ local sdl = __sdl
 local __global = __global
 
 -- create initial node structure
-local node = {order = {}, execOrder = {}, levels = {}, noExec = {}, exec = {}}	-- used for execution, set in node:calcLevels
+local node = {drawOrder={}, execOrder={}, levels={}, noExec={}, exec={}}			-- used for execution, set in node:calcLevels
 function node:setInput(input) self.mouse = input end							-- register input function
 function node:setImageProcess(input) self.imageProcess = input end				-- register image processing
 function node.imageProcess() end												-- set initial empty function
@@ -213,7 +213,7 @@ function node:new(name, x, y)
 	x = x or 15
 	y = y or 15
 	local n = #self + 1
-	self.order[n] = n
+	self.drawOrder[n] = n
 	self[n] = {
 		n = n, 									-- which node in list
 		conn_i	= {add=connAdd, list={}},		-- {node, port, position}
@@ -268,18 +268,18 @@ function node:remove(n)
 	
 	--ui order
 	local current_order
-	for k, v in ipairs(self.order) do
+	for k, v in ipairs(self.drawOrder) do
 		if v==n then current_order = k end
 	end
 	for n = current_order, #self-1 do
-		self.order[n] = self.order[n+1]
+		self.drawOrder[n] = self.drawOrder[n+1]
 	end
-	for k, v in ipairs(self.order) do
-		if v==nmax then self.order[k]=n end
+	for k, v in ipairs(self.drawOrder) do
+		if v==nmax then self.drawOrder[k]=n end
 	end
 	
-	self.order[#self] = nil
-	self[nmax]=nil
+	self.drawOrder[#self] = nil
+	self[nmax]=nil	
 end
 
 -- put in resources table
@@ -325,7 +325,7 @@ function node:draw(flag)
 	end
 	
 	for n = #self,1,-1 do
-		self[self.order[n]]:draw()
+		self[self.drawOrder[n]]:draw()
 	end
 	if flag~="noflip" then sdl.flip() end
 end
@@ -333,14 +333,14 @@ end
 function node:focus(n)
 	--put node on bottom of drawing list
 	local a, b
-	for k, v in ipairs(self.order) do
+	for k, v in ipairs(self.drawOrder) do
 		--print(k, v)
 		if v==n then a=k b=v end
 	end
 	for i = a-1, 1, -1 do
-		self.order[i+1] = self.order[i]
+		self.drawOrder[i+1] = self.drawOrder[i]
 	end
-	self.order[1] = n
+	self.drawOrder[1] = n
 end
 
 function node:cleanup()

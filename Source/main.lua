@@ -296,7 +296,7 @@ node:setImageProcess(imageProcess)
 
 --eventually move to node lib with callbacks for some functions
 function node:click()
-	for i, n in ipairs(self.order) do --for each node on the list
+	for i, n in ipairs(self.drawOrder) do --for each node on the list
 		if self[n].ui:click("node") then --if node is clicked
 			if i~=1 then self:focus(n) end --if node is not first then focus
 			local p, t = self[n].ui:click() --get info on click
