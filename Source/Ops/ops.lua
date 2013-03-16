@@ -32,8 +32,8 @@ local startstring_matrix = [[
 							local get = get
 							local set3 = set3
 							local get3 = get3
-							local setxy = getxy
-							local getxy = setxy
+							local setxy = setxy
+							local getxy = getxy
 							local set3xy = set3xy
 							local get3xy = get3xy
 							for x = __instance, xmax-1, __tmax do
@@ -54,6 +54,7 @@ local endstring_matrix = [[
 local startstring_single = [[ __pp = 0 ]]
 local endstring_single = [[ progress[__instance+1] = -1 ]]
 
+-- TODO: refactor ops, remove inner loops! see Test/opsInterface.lua
 ops.strings = {
 
 	invert = [[ -- 2, 1
