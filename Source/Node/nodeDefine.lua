@@ -548,5 +548,64 @@ nodeTable["GradientLin"] = function(self)
 	end
 	return n
 end
+
+nodeTable["Gaussian"] = function(self)
+	local n=self:new("Gaussian")
+	n.param:add("Width", {0,1,0.1})
+	n.conn_i:add(0)
+	n.conn_o:add(0)
+	
+	local bufsIn = {}
+	--[[
+	function n:processRun(num)
+		local bi = self.conn_i
+		local bo = self.conn_o
+
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
+		end
+
+		if bi[0].node then
+			bufsIn[1] = getBufIn(0):copyC()			-- input
+			bo[0].buf = bufsIn[1]:new()	-- output
+		else
+			bufsIn[1] = img:newC(1)		-- input
+			bo[0].buf = img:newC(1)	-- output
+		end
+	
+	--]]
+	
+	function n:processRun(num)
+		local bo = self.conn_o
+		local bi = self.conn_i
+		local p = self.param
+		
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
+		end
+		
+		local tempBuf
+		if bi[0].node then
+			bufsIn[1] = getBufIn(0)			-- input
+			bo[0].buf = bufsIn[1]:new()	-- output
+			tempBuf = bufsIn[1]:new()
+		else
+			bufsIn[1] = img:newV()		-- input
+			bo[0].buf = bufsIn[1]:new()	-- output
+			tempBuf = bufsIn[1]:new()
+		end
+		
+		local blur = p[1].value[1]^2
+		
+		-- FIXME: don't require passing input/output buffers to thread
+		lua.threadSetup(bufsIn[1], tempBuf, {blur})
+		lua.threadRun("ops", "transform", "gaussV")
+		coroutine.yield(num)
+		lua.threadSetup(tempBuf, bo[0].buf, {blur})
+		lua.threadRun("ops", "transform", "gaussH")
+		coroutine.yield(num)
+	end
+	return n
+end
 	
 return nodeTable

@@ -116,6 +116,7 @@ node:add("Color RGB")
 node:add("Color HSV")
 node:add("GradientLin")
 node:add("Merge")
+node:add("Gaussian")
 
 node:setInput(mouse)
 
@@ -236,9 +237,9 @@ function funProcess()
 		-- why is bufoutL not used??
 	end
 	--]]
-	print("prehist")
+	--print("prehist")
 	hist.calculate(bufout)
-	print("posthist")
+	--print("posthist")
 	toc("Process in ")
 	tic()
 

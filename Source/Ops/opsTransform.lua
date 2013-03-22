@@ -177,6 +177,58 @@ function transform.gradLin()
 	progress[__instance+1] = -1
 end
 
+--[1, 1],
+local gaussIIR = require("gaussIIR")
+function transform.gaussV()
+	local bufdata = __global.bufdata
+	local sigma = params[1]*ymax/4
+	local step = ymax*zmax
+	local stride = zmax
+	local length = ymax
+	sigma = sigma<1 and 1 or sigma
+	
+	--TODO: correct for shading due to edge cutoff
+	for x = __instance, xmax-1, __tmax do
+		if progress[0]==-1 then break end
+		
+		if zmax==3 then
+			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
+			gaussIIR(bufdata[1] + x*step + 1, bufdata[2] + x*step + 1, sigma, length, stride)
+			gaussIIR(bufdata[1] + x*step + 2, bufdata[2] + x*step + 2, sigma, length, stride)
+		elseif zmax==1 then
+			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
+		end
+		
+		progress[__instance+1] = x - __instance
+	end
+	progress[__instance+1] = -1
+end
+
+function transform.gaussH()
+	local bufdata = __global.bufdata
+	local sigma = params[1]*ymax/4
+	local step = zmax
+	local stride = ymax*zmax
+	local length = xmax
+	sigma = sigma<1 and 1 or sigma
+	
+	--TODO: correct for shading due to edge cutoff
+	for x = __instance, ymax-1, __tmax do
+		if progress[0]==-1 then break end
+		
+		if zmax==3 then
+			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
+			gaussIIR(bufdata[1] + x*step + 1, bufdata[2] + x*step + 1, sigma, length, stride)
+			gaussIIR(bufdata[1] + x*step + 2, bufdata[2] + x*step + 2, sigma, length, stride)
+		elseif zmax==1 then
+			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
+		end
+		
+		progress[__instance+1] = x - __instance
+	end
+	progress[__instance+1] = -1
+end
+
 
 
 return transform
