@@ -150,4 +150,33 @@ function transform.gradRot()
 	progress[__instance+1] = -1
 end
 
+-- a[-1,1], b[-1,1], c[0,1], sigma[0,1], intensity[0,1]
+function transform.gradLin()
+	--init
+	local a, b = math.tan(params[1]/180*math.pi), 1
+	local a2 = math.sqrt(a^2+1)
+	local unit = math.sqrt((xmax/2)^2 + (ymax/2)^2)
+	local c = unit*params[2]*a2
+	local sigma = unit*params[3]
+	local sign = (params[1]>=-90 and params[1]<=90) and true or false
+	sigma = sigma<1 and 1 or sigma
+	
+	--setup loop
+	for x = __instance, xmax-1, __tmax do
+		if progress[0]==-1 then break end
+		for y = 0, ymax-1 do
+			__pp = (x * ymax + y)
+			
+			local d = (a*(x-xmax/2) + (y-ymax/2) + c)/a2
+			local g = sign and 1-math.func.gausscum(d, sigma) or math.func.gausscum(d, sigma)
+			
+			set3[1](g, g, g)
+		end
+		progress[__instance+1] = x - __instance
+	end
+	progress[__instance+1] = -1
+end
+
+
+
 return transform

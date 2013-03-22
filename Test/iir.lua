@@ -15,99 +15,89 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
--- allow arbitrary FIR(convolutions) and IIR filters, FFT filtering, wavelet
-
---[[
-	iir multipass exponential decay
-	Adapted from: Fast 1D Gaussian convolution IIR approximation
-	Author: Pascal Getreuer <getreuer@gmail.com>
-	License: GNU GPL3
---]]
-local function iirG(data, sigma, length, numsteps)
-	numsteps = numsteps or 5
-	
-	-- checks
-	
-	local lambda = (sigma*sigma)/(2*numsteps)
-	local dnu = (1+2*lambda-math.sqrt(1+4*lambda))/(2*lambda)
-	local nu = dnu
-	local boundaryscale = 1/(1-dnu)
-	local postscale = math.pow(dnu/lambda, numsteps)
-	
-	for step = 1, numsteps do
-		data[0] = data[0] * boundaryscale -- fix for lua arrays!
-		for i = 1, length-1 do
-			data[i] = data[i] + nu*data[i-1]
-		end
-		data[length-1] = data[length-1] * boundaryscale
-		for i = length-1, 1, -1 do
-			data[i-1] = data[i-1] + nu*data[i]
-		end
-	end
-	
-	for i = 0, length-1 do
-		data[i] = data[i] * postscale
-	end
-end
-
--- iir gaussian van vliet
---[[
-	Implementation of a Gaussian IIR filter after
-	Ian T. Young and Lucas J. van Vliet. "Recursive implementation of
-	the Gaussian filter." _Signal Processing_ 44 (1995), pp. 139-151.
---]]
-local function iirV(data, sigma, length, pad)
-	local q
-	if sigma>2.5 then
-		q = 0.98711*sigma - 0.96330
-	else
-		q = 3.97156-4.14554*math.sqrt(1-0.26891*sigma)
-	end
-	
-	z = ffi.new("double[?]", pad)
-	
-	local b0 = 1.57825 + q*(2.44413 + q*(1.42810 + q*0.422205))
-	local b1 = q*(2.44413 + q*(2.85619 + q*1.26661))/b0
-	local b2 = -q*q*(1.42810 + q*1.26661)/b0
-	local b3 = q*q*q*0.422205/b0
-	
-	b0 = 1-(b1+b2+b3)
-	local d = data
-	
-	z[pad-1] = b0*d[pad-1]
-	z[pad-2] = b0*d[pad-2] + b1*z[pad-1]
-	z[pad-3] = b0*d[pad-3] + b1*z[pad-2] + b2*z[pad-1]
-	--z[pad-4] = b0*data[pad-4] + b1*z[pad-3] + b2*z[pad-2] + b3*z[pad-1]
-	for i = pad-4, 0, -1 do
-		z[i] = b0*d[i] + b1*z[i+1] + b2*z[i+2] + b3*z[i+3]
-	end
-	
-	d[0] = b0*d[0] + b1*z[1] + b2*z[2] + b3*z[3]
-	d[1] = b0*d[1] + b1*d[0] + b2*z[1] + b3*z[2]
-	d[2] = b0*d[2] + b1*d[1] + b2*d[0] + b3*z[1]
-	--d[3] = b0*d[3] + b1*d[2] + b2*d[1] + b3*d[0]
-	for i = 3, length-1 do
-		z[i] = b0*d[i] + b1*d[i-1] + b2*d[i-2] + b3*d[i-3]
-	end
-	
-	--pad only on right end, large enough to buffer peaks
-	
-end
-
-
-
--- iir gaussian deriche
-
-
 local ffi = require("ffi")
 
-local a = ffi.new("double[5000]")
-
-a[0] = 1
-
-iirG(a, 3, 5000, 64)
-
-for i = 0, 512 do
-	print(a[i])
+--[[
+	Implementation of a Deriche-style Gaussian IIR filter after
+	Gunnar Farneback and Carl-Fredrik Westin "Improving Deriche-style Recursive
+	Gaussian Filters", Journal of Mathematics in Imaging and Vision (2006)
+--]]
+local function iirGauss(input, output, sigma, length, stride) -- add output, stride
+	
+	stride = stride or 1
+	
+	-- parameters obtained from fit of a gaussian
+	local a1 = 1.6806376642357039319364
+	local a2 = -0.6812660166381832027582
+	local b1 = 3.7569701140397087080203
+	local b2 = -0.2652902746940916656193
+	local w1 = 0.6319997351950183972491/sigma
+	local w2 = 1.9975150914645314337292/sigma
+	local l1 = -1.7858991854622259243257/sigma
+	local l2 = -1.7256466474863954019270/sigma
+	
+	local cw1 = math.cos(w1)
+	local cw2 = math.cos(w2)
+	local sw1 = math.sin(w1)
+	local sw2 = math.sin(w2)
+	
+	local n3 = math.exp(l2+2*l1)*(b2*sw2-a2*cw2) + math.exp(l1+2*l2)*(b1*sw1-a1*cw1)
+	local n2 = 2*math.exp(l1+l2)*((a1+a2)*cw2*cw1 - b1*cw2*sw1 - b2*cw1*sw2) + a2*math.exp(2*l1) + a1*math.exp(2*l2)
+	local n1 = math.exp(l2)*(b2*sw2-(a2+2*a1)*cw2) + math.exp(l1)*(b1*sw1-(a1+2*a2)*cw1)
+	local n0 = a1+a2
+	local d4 = math.exp(2*l1+2*l2)
+	local d3 = -2*math.exp(l1+2*l2)*cw1 - 2*math.exp(l2+2*l1)*cw2
+	local d2 = 4*math.exp(l1+l2)*cw2*cw1 + math.exp(2*l2) + math.exp(2*l1)
+	local d1 = -2*math.exp(l2)*cw2 - 2*math.exp(l1)*cw1
+	local m1 = n1 - d1*n0
+	local m2 = n2 - d2*n0
+	local m3 = n3 - d3*n0
+	local m4 =    - d4*n0
+	
+	local scale = 1/math.sqrt(2*math.pi)/sigma
+	
+	-- create continuously updating (rolling) state instead of a temporary (unless output is same as input)
+	
+	local aa0, aa1, aa2, aa3, aa4 = 0, 0, 0, 0, 0 -- delayed input values
+	local ap0, ap1, ap2, ap3, ap4 = 0, 0, 0, 0, 0 -- delayed processed values
+	local dd = input
+	local oo = output
+	 
+	-- clear output
+	ffi.fill(oo, length)
+	
+	for i = 0, length-1 do
+		aa0 = dd[i*stride]								-- read input
+		ap0 = n0*aa0 + n1*aa1 + n2*aa2 + n3*aa3 - d1*ap1 - d2*ap2 - d3*ap3 - d4*ap4
+		oo[i*stride] = oo[i*stride] + ap0						-- write/add to output
+		aa1, aa2, aa3 = aa0, aa1, aa2			-- roll aa
+		ap1, ap2, ap3, ap4 = ap0, ap1, ap2, ap3	-- roll ap
+	end
+	
+	for i = length-1, 0, -1 do
+		aa0 = dd[i*stride]								-- read input
+		ap0 = m1*aa1 + m2*aa2 + m3*aa3 +m4*aa4 - d1*ap1 - d2*ap2 - d3*ap3 - d4*ap4
+		oo[i*stride] = oo[i*stride] + ap0						-- write/add to output
+		aa1, aa2, aa3, aa4 = aa0, aa1, aa2, aa3	-- roll aa
+		ap1, ap2, ap3, ap4 = ap0, ap1, ap2, ap3	-- roll ap
+	end
+	
 end
+
+
+--test
+--[[
+local i = ffi.new("float[100]")
+local o = ffi.new("float[100]")
+
+i[20] = 1
+
+iirGauss(i, o, 3, 25,4)
+
+for i = 0, 100 do
+print(i, o[i])
+end
+--]]
+
+
 

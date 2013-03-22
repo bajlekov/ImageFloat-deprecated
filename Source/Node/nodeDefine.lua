@@ -217,6 +217,51 @@ nodeTable["Add"] = function(self)
 	return n
 end
 
+nodeTable["Merge"] = function(self)
+	local n=self:new("Merge")
+	n.param:add("Input","Output","text")
+	n.param:add("Input","","text")
+	n.param:add("Factor","","text")
+	n.conn_i:add(1)
+	n.conn_i:add(2)
+	n.conn_i:add(3)
+	n.conn_o:add(1)
+	--function n:processClear(num)
+	--	self.conn_o[1].buf = img.newBuffer(0)
+	--end
+	local bufsIn = {}
+	function n:processRun(num)
+		-- start timer
+		local bi = self.conn_i
+		local bo = self.conn_o
+		local p = self.param
+		--move function to external?
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+		end
+
+		bufsIn[1] = bi[1].node and getBufIn(1) or img:newV()
+		bufsIn[2] = bi[2].node and getBufIn(2) or img:newV()
+		bufsIn[3] = bi[3].node and getBufIn(3) or img:newV(1)
+		
+		local x, y, z
+		x = math.max(bufsIn[1].x, bufsIn[2].x, bufsIn[3].x)
+		y = math.max(bufsIn[1].y, bufsIn[2].y, bufsIn[3].y)
+		z = math.max(bufsIn[1].z, bufsIn[2].z, bufsIn[3].z)
+		bo[1].buf = img:new(x,y,z)
+
+		--execute
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3]}, bo[1].buf)
+		lua.threadRun("ops", "merge")
+		coroutine.yield(num)
+		bufsIn = {}
+		--CS process depending on output connection
+		--profiler code
+	end
+	return n
+end
+
+
 nodeTable["Split"] = function(self)
 	local n=self:new("Split")
 	n.param:add("Input", "Output", "text")
@@ -460,7 +505,7 @@ nodeTable["ColorSpace"] = function(self)
 end
 
 -- FIXME: reference size 
-nodeTable["Gradient"] = function(self)
+nodeTable["GradientRot"] = function(self)
 	local n=self:new("Gradient")
 	n.param:add("X", {-1,1,0})
 	n.param:add("Y", {-1,1,0})
@@ -474,9 +519,31 @@ nodeTable["Gradient"] = function(self)
 		
 		--
 		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
-
-		lua.threadSetup(bo[0].buf, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
+		
+		-- FIXME: don't require passing input/output buffers to thread
+		lua.threadSetup({}, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
 		lua.threadRun("ops", "transform", "gradRot")
+		coroutine.yield(num)
+	end
+	return n
+end
+
+nodeTable["GradientLin"] = function(self)
+	local n=self:new("Gradient")
+	n.param:add("Angle", {-180,180,0})
+	n.param:add("Offset", {-1,1,0})
+	n.param:add("Width", {0,1,0.2})
+	n.conn_o:add(0)
+	function n:processRun(num)
+		local bo = self.conn_o
+		local p = self.param
+		
+		--
+		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
+		
+		-- FIXME: don't require passing input/output buffers to thread
+		lua.threadSetup({}, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1]})
+		lua.threadRun("ops", "transform", "gradLin")
 		coroutine.yield(num)
 	end
 	return n
