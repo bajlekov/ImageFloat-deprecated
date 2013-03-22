@@ -105,20 +105,25 @@ do
 
 
 	--=======================================--
-
+	local nlg = __global.imgPath.."nlg.png"
+	local nlo = __global.imgPath.."nlo.png"
+	local nrg = __global.imgPath.."nrg.png"
+	local nro = __global.imgPath.."nro.png"
+	local title = __global.imgPath.."titlebar.png"
+	local cross = __global.imgPath.."cross-button.png"
 	local function nodeL(x,y, flag)
 		if flag then
-			icon(__global.imgPath.."nlg.png", x-6, y-6)
+			icon(nlg, x-6, y-6)
 		else
-			icon(__global.imgPath.."nlo.png", x-6, y-6)
+			icon(nlo, x-6, y-6)
 		end
 	end
 
 	local function nodeR(x,y, flag)
 		if flag then
-			icon(__global.imgPath.."nrg.png", x-6, y-6)
+			icon(nrg, x-6, y-6)
 		else
-			icon(__global.imgPath.."nro.png", x-6, y-6)
+			icon(nro, x-6, y-6)
 		end
 	end
 
@@ -158,7 +163,7 @@ do
 			--_SDL.SDL_SetAlpha(surf, 0x00010000, 0)
 
 			--title
-			icon(__global.imgPath.."titlebar.png", x, y)
+			icon(title, x, y)
 
 			local nn = n
 			for n = 0, nn-1 do
@@ -189,7 +194,8 @@ do
 
 			end	
 			text(self.n..". "..self.ui.name, font.big, x+4, y+1, 192,192,192)
-			icon(__global.imgPath.."cross-button.png", x+130, y+2)
+			--buttons
+			icon(cross, x+130, y+2)
 
 			--conns
 			if #self.conn_i.list>0 then
