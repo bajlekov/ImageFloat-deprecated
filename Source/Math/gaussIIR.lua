@@ -15,14 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local ffi = require("ffi")
-
 --[[
 	Implementation of a Deriche-style Gaussian IIR filter after
 	Gunnar Farneback and Carl-Fredrik Westin "Improving Deriche-style Recursive
 	Gaussian Filters", Journal of Mathematics in Imaging and Vision (2006)
 --]]
-local function iirGauss(input, output, sigma, length, stride) -- add output, stride
+local function gaussIIR(input, output, sigma, length, stride) -- add output, stride
 	
 	stride = stride or 1
 	
@@ -62,42 +60,50 @@ local function iirGauss(input, output, sigma, length, stride) -- add output, str
 	local ap0, ap1, ap2, ap3, ap4 = 0, 0, 0, 0, 0 -- delayed processed values
 	local dd = input
 	local oo = output
-	 
-	-- clear output
-	ffi.fill(oo, length)
+	
+	--TODO: scaling issues at small sigma!
+	local norm = 1/math.sqrt(2*math.pi)/sigma;
+	
+	-- clear output/ make sure output is clean
 	
 	for i = 0, length-1 do
 		aa0 = dd[i*stride]								-- read input
 		ap0 = n0*aa0 + n1*aa1 + n2*aa2 + n3*aa3 - d1*ap1 - d2*ap2 - d3*ap3 - d4*ap4
-		oo[i*stride] = oo[i*stride] + ap0						-- write/add to output
+		oo[i*stride] = oo[i*stride] + ap0*norm			-- write/add to output
 		aa1, aa2, aa3 = aa0, aa1, aa2			-- roll aa
 		ap1, ap2, ap3, ap4 = ap0, ap1, ap2, ap3	-- roll ap
 	end
 	
+	local aa0, aa1, aa2, aa3, aa4 = 0, 0, 0, 0, 0 -- delayed input values
+	local ap0, ap1, ap2, ap3, ap4 = 0, 0, 0, 0, 0 -- delayed processed values
+		
 	for i = length-1, 0, -1 do
 		aa0 = dd[i*stride]								-- read input
 		ap0 = m1*aa1 + m2*aa2 + m3*aa3 +m4*aa4 - d1*ap1 - d2*ap2 - d3*ap3 - d4*ap4
-		oo[i*stride] = oo[i*stride] + ap0						-- write/add to output
+		oo[i*stride] = oo[i*stride] + ap0*norm			-- write/add to output
 		aa1, aa2, aa3, aa4 = aa0, aa1, aa2, aa3	-- roll aa
 		ap1, ap2, ap3, ap4 = ap0, ap1, ap2, ap3	-- roll ap
 	end
 	
 end
 
-
 --test
 --[[
+local ffi = require("ffi")
+
 local i = ffi.new("float[100]")
 local o = ffi.new("float[100]")
 
-i[20] = 1
+i[50] = 1
 
-iirGauss(i, o, 3, 25,4)
+gaussIIR(i, o, 100, 100,1)
 
-for i = 0, 100 do
-print(i, o[i])
+local s = 0
+for i = 0, 99 do
+	print(i, o[i])
+	s = s + o[i]
 end
+print(s)
 --]]
 
-
-
+return gaussIIR
