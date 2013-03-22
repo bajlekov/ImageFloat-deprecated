@@ -334,7 +334,8 @@ function buffer:getA(i) return self.data[i] end
 function buffer:setA(i, v) self.data[i] = v end
 
 function buffer:type()
-	print("Deprecated buffer property \"type\".")
+	-- TODO: debug/warning/developer mode
+	--print("Deprecated buffer property \"type\".")
 	local x, y, z = self.x, self.y, self.z
 	if		x==1 and y==1 and z==1 then		return 1
 	elseif	x==1 and y==1 and z==3 then		return 2

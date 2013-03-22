@@ -84,6 +84,7 @@ function setup() -- set up instance for processing after node parameters are pas
 	set3xy = {}
 
 	local bufdata={}
+	__global.bufdata = bufdata -- for acces to raw buffer data!
 	local b = ffi.cast("void**", b)
 	for i = 1, ibuf+obuf do
 		bufdata[i] = ffi.cast(__global.setup.bufferPrecision[1].."*", b[i])
