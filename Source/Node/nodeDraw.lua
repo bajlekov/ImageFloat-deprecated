@@ -18,6 +18,7 @@ local ffi = require("ffi")
 
 -- TODO: Extract base draw functions!!! to sdlDraw or similar!!!
 local sdl = __sdl
+local font = font
 
 -- interface draw
 do
