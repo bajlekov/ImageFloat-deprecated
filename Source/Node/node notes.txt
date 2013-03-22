@@ -5,6 +5,7 @@ node = {}
 	.levels = {}				- levels			- debug
 	.noExec = {}				- will not run		- debug
 	.exec = {}					- will run			- debug
+	:processRun(num)			- set program to execute (in nodeDefine)
 	:setInput (input)			- register .mouse
 	:setImageProcess (input)	- register .imageProcess
 	.imageProcess ()			- placeholder function
