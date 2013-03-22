@@ -91,6 +91,13 @@ __global.saveFile = __global.setup.imageSavePath..__global.setup.imageSaveName
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
+
+-- TODO: move to fonttools, local font reference
+font = {}
+font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
+font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
+local font = font
+
 local node = require("node")
 
 --move to node?
@@ -111,11 +118,6 @@ node:add("GradientLin")
 node:add("Merge")
 
 node:setInput(mouse)
-
--- TODO: move to fonttools, local font reference
-font = {}
-font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
-font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 
 --draw initial
 node:draw()
@@ -206,7 +208,7 @@ local hist = require("histogram")
 
 function funProcess()
 	cp=1							-- reset processing coroutine
-	node[1].bufIn = buf 					--initialise node, move to other location!
+	node[1].bufIn = buf 					--initialise input node, move to other location!
 
 	-- find output node, make selector for this.../one fixed output node
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
@@ -298,7 +300,7 @@ node:setImageProcess(imageProcess)
 
 --eventually move to node lib with callbacks for some functions
 function node:click()
-	for i, n in ipairs(self.order) do --for each node on the list
+	for i, n in ipairs(self.drawOrder) do --for each node on the list
 		if self[n].ui:click("node") then --if node is clicked
 			if i~=1 then self:focus(n) end --if node is not first then focus
 			local p, t = self[n].ui:click() --get info on click

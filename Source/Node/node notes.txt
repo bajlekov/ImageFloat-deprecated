@@ -1,0 +1,114 @@
+node object structure:
+node = {}
+	.drawOrder = {}				- draw order
+	.execOrder = {}				- execution order
+	.levels = {}				- levels			- debug
+	.noExec = {}				- will not run		- debug
+	.exec = {}					- will run			- debug
+	:processRun(num)			- set program to execute (in nodeDefine)
+	:setInput (input)			- register .mouse
+	:setImageProcess (input)	- register .imageProcess
+	.imageProcess ()			- placeholder function
+	:nodeDrag (n)				- drag node n
+	:paramDrag (n, p)			- drag param of node n at position p
+	:noodleDrag (n, p)			- drag noodle coming from node n at position p
+	:new (name, x, y)			- low-level add-node function
+	:remove (n)					- remove node n
+	:draw (flag)				- draw nodes, flag indicates implicit flip
+	:focus (n)					- bring node n to top of stack
+	:calcLevels ()				- calculates .execOrder, .exec, .noExec, .levels
+	:cleanup ()					- cleans up allocated resources (for now background images)
+	
+	& []						- array part
+		.n						- node number
+		.conn_i/conn_o = {}
+			:add (pos)			- add connector (input/output)
+			.list = {}			- list of connectors as described in the array part (reference)
+			& []
+				{				- 
+					node,		- connected to node (link)
+					port,		- connected to port (link)
+					pos,		- connected from port (self)
+					buf,		- connected buffer! (see nodeDefine)
+				}
+		.param
+			:add (name, p, type)	- name, values{default, min, max}, type
+			.n = {0}				- links to ui.p ... is a table so byref assignment is possible
+			& []
+				.name
+				.value = {}
+				.type
+		:connect ()
+		:disconnect ()
+		.procFlags = {}
+			.process
+			.output
+		.ui = {}
+			.name
+			.x
+			.y
+			.draw ()
+			.click ()
+			.collapsed
+			.buffer
+			.p -> .param.n
+		:draw ()
+		.node -> node
+		.profile = {}			- store profiling data, not yet used
+
+
+
+TODO:
+
+refactor node code!!!
+[ ]	separate draw/update code from inner loops
+	[ ]	use callbacks
+[ ]	positional widget add instead of ordered
+[ ]	load node defines from external files
+[ ]	provide editable list with sources
+[ ]	automatically generate constructors for all node definitions
+	structure:
+	- nodeMain.lua		(main node operations)
+	- nodeDraw.lua		(all node-drawing functionality)
+	- nodeCreate.lua	(handle creation of nodes, link to external definitions)
+
+"Add node" interface
+[ ]	top bar with menu for adding nodes
+[ ]	divide nodes per category
+[ ]	node positioning (drag node until mouse down?)
+[ ]	undo/redoable node alterations -> collect events
+
+Refactor drawing code
+[ ]	reuse text buffers
+[ ]	reuse area buffers
+[ ]	fix connector highlighting
+[ ]	trigger redraws
+
+Add interfaces
+[ ]	multiline widgets
+	[ ]	circular color picker (or single node for that purpose?)
+	[ ]	inline text editor
+	[ ]	X-Y interface (editable EQ etc?)
+[x]	float value
+	[ ]	variable steps
+[x]	annotation (left/right)
+[ ]	boolean switch
+[ ]	enumerator (pick from list: left/right arrows)
+	advanced:
+	[ ]	scripts		-> special editor
+	[ ]	functions	-> special editor
+	[ ]	effects		-> special editor
+[ ]	hiding of widgets when noodle is connected
+
+
+Add preview area
+
+Collapsible nodes
+
+Interface buttons:
+[x]	close
+[ ]	collapse
+[ ]	enable (process)
+[ ]	preview (viewer)
+
+Presets/history per node in side-bar

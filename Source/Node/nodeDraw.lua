@@ -16,6 +16,9 @@
 ]]
 local ffi = require("ffi")
 
+-- TODO: Extract base draw functions!!! to sdlDraw or similar!!!
+local sdl = __sdl
+
 -- interface draw
 do
 	local __dimX
@@ -81,41 +84,46 @@ do
 	end
 
 	local function icon(file, x, y)
-		local oi = __sdl.loadImage(file)
-		__sdl.blit( oi, nil, __surf, __sdl.rectangle(x, y, 0, 0))
-		__sdl.destroySurface(li)
-		__sdl.destroySurface(oi)
+		local oi = sdl.loadImage(file)
+		sdl.blit( oi, nil, __surf, sdl.rectangle(x, y, 0, 0))
+		sdl.destroySurface(li)
+		sdl.destroySurface(oi)
 	end
 
 	local function text(text, font, x, y, r, g, b, a)
-		local textObj = __sdl.textCreate(text, font, r, g, b, a)
-		__sdl.blit(textObj, nil, __surf, __sdl.rectangle(x, y, 0, 0))
+		local textObj = sdl.textCreate(text, font, r, g, b, a)
+		sdl.blit(textObj, nil, __surf, sdl.rectangle(x, y, 0, 0))
 		local x, y = textObj.w, textObj.h
-		__sdl.destroySurface(textObj)
+		sdl.destroySurface(textObj)
 		return x, y
 	end
 
 	local function textPut(textObj, x, y)
-		__sdl.blit(textObj, nil, __surf, __sdl.rectangle(x, y, 0, 0))
-		__sdl.destroySurface(textObj)
+		sdl.blit(textObj, nil, __surf, sdl.rectangle(x, y, 0, 0))
+		sdl.destroySurface(textObj)
 	end
 
 
 	--=======================================--
-
+	local nlg = __global.imgPath.."nlg.png"
+	local nlo = __global.imgPath.."nlo.png"
+	local nrg = __global.imgPath.."nrg.png"
+	local nro = __global.imgPath.."nro.png"
+	local title = __global.imgPath.."titlebar.png"
+	local cross = __global.imgPath.."cross-button.png"
 	local function nodeL(x,y, flag)
 		if flag then
-			icon(__global.imgPath.."nlg.png", x-6, y-6)
+			icon(nlg, x-6, y-6)
 		else
-			icon(__global.imgPath.."nlo.png", x-6, y-6)
+			icon(nlo, x-6, y-6)
 		end
 	end
 
 	local function nodeR(x,y, flag)
 		if flag then
-			icon(__global.imgPath.."nrg.png", x-6, y-6)
+			icon(nrg, x-6, y-6)
 		else
-			icon(__global.imgPath.."nro.png", x-6, y-6)
+			icon(nro, x-6, y-6)
 		end
 	end
 
@@ -123,7 +131,6 @@ do
 	local nodeSurf = {}
 
 	function nodeDraw(self)
-		--fix alpha??
 
 		local n = #self.param
 		local x = 13
@@ -132,9 +139,9 @@ do
 		--buffer surface
 		local surf
 		if self.ui.buffer==nil then
-			local surf_temp = __sdl.createSurface(176, 26+12*n, 0)
+			local surf_temp = sdl.createSurface(176, 26+12*n, 0)
 			surf = _SDL.SDL_DisplayFormatAlpha(surf_temp)
-			__sdl.destroySurface(surf_temp)
+			sdl.destroySurface(surf_temp)
 			setSurface(surf)
 			setAlpha(0,0,0)
 			setAlpha(175,0,0)
@@ -147,17 +154,16 @@ do
 			vLine(x+162, y-1, 24+n*12, 224,224,224)
 		else
 			surf = self.ui.buffer
-			
 		end
 
 		if self.ui.draw==true then
 			setSurface(surf)
-			__sdl.blit(self.node.backgrounds.node, __sdl.rectangle(0, 0, 174, 24+12*n), surf, __sdl.rectangle(1, 1, 0, 0))
+			sdl.blit(self.node.backgrounds.node, sdl.rectangle(0, 0, 174, 24+12*n), surf, sdl.rectangle(1, 1, 0, 0))
 			--__sdl.fillRect(surf, NULL, __sdl.mapRGBA(surf,0, 0, 0, 128)); 
 			--_SDL.SDL_SetAlpha(surf, 0x00010000, 0)
 
 			--title
-			icon(__global.imgPath.."titlebar.png", x, y)
+			icon(title, x, y)
 
 			local nn = n
 			for n = 0, nn-1 do
@@ -172,14 +178,14 @@ do
 					local t = self.param[n+1].name..":"
 					local tv = string.format("%.2f",self.param[n+1].value[1])
 					text(t, font.normal, x+2, y+20+12*n)
-					local f = __sdl.textCreate(tv, font.normal)
+					local f = sdl.textCreate(tv, font.normal)
 					textPut(f,x+147-f.w, y+20+12*n)
 				elseif self.param[n+1].type=="text" then
 					if self.param[n+1].name~="" then
 						text(self.param[n+1].name, font.normal, x+2, y+20+12*n, 64,64,64)
 					end
 					if self.param[n+1].value~="" then
-						local f = __sdl.textCreate(self.param[n+1].value, font.normal, 64,64,64)
+						local f = sdl.textCreate(self.param[n+1].value, font.normal, 64,64,64)
 						textPut(f,x+147-f.w, y+20+12*n)
 					end
 				end
@@ -188,7 +194,8 @@ do
 
 			end	
 			text(self.n..". "..self.ui.name, font.big, x+4, y+1, 192,192,192)
-			icon(__global.imgPath.."cross-button.png", x+130, y+2)
+			--buttons
+			icon(cross, x+130, y+2)
 
 			--conns
 			if #self.conn_i.list>0 then
@@ -221,7 +228,7 @@ do
 
 		
 		self.ui.buffer = surf
-		__sdl.screenPut(surf, x, y)
+		sdl.screenPut(surf, x, y)
 		--__sdl.destroySurface(surf)	
 	end
 end
