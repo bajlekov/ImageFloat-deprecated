@@ -127,60 +127,71 @@ end
 
 -- x[-1,1], y[-1,1], off[0,1], sigma[0,1]
 function transform.gradRot()
+	local s = __global.state
+	local buf = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
 	--init
-	local xm, ym = (params[1]+1)/2*xmax, (params[2]+1)/2*ymax
-	local unit = math.sqrt((xmax/2)^2 + (ymax/2)^2)
-	local off = unit*params[3]
-	local sigma = unit*params[4]
+	local xm, ym = (p[1]+1)/2*s.xmax, (p[2]+1)/2*s.ymax
+	local unit = math.sqrt((s.xmax/2)^2 + (s.ymax/2)^2)
+	local off = unit*p[3]
+	local sigma = unit*p[4]
 	sigma = sigma<1 and 1 or sigma
 	
 	--setup loop
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		for y = 0, ymax-1 do
-			__pp = (x * ymax + y)
+	for x = inst, s.xmax-1, instmax do
+		if progress[instmax]==-1 then break end
+		for y = 0, s.ymax-1 do
+			s:up(x, y)
 			
 			local d = math.sqrt((x-xm)^2 + (y-ym)^2)
 			local g = d<off and 1 or math.func.gauss(d-off, sigma)
-			g = g*params[5]
+			g = g*p[5]
 			
-			set3[1](g, g, g)
+			buf[1]:set(g)
 		end
-		progress[__instance+1] = x - __instance
+		progress[inst] = x - inst
 	end
-	progress[__instance+1] = -1
+	progress[inst] = -1
 end
 
 -- a[-1,1], b[-1,1], c[0,1], sigma[0,1], intensity[0,1]
 function transform.gradLin()
+	local s = __global.state
+	local buf = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
 	--init
-	local a, b = math.tan(params[1]/180*math.pi), 1
+	local a, b = math.tan(p[1]/180*math.pi), 1
 	local a2 = math.sqrt(a^2+1)
-	local unit = math.sqrt((xmax/2)^2 + (ymax/2)^2)
-	local c = unit*params[2]*a2
-	local sigma = unit*params[3]
-	local sign = (params[1]>=-90 and params[1]<=90) and true or false
+	local unit = math.sqrt((s.xmax/2)^2 + (s.ymax/2)^2)
+	local c = unit*p[2]*a2
+	local sigma = unit*p[3]
+	local sign = (p[1]>=-90 and p[1]<=90) and true or false
 	sigma = sigma<1 and 1 or sigma
 	
 	--setup loop
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		for y = 0, ymax-1 do
-			__pp = (x * ymax + y)
+	for x = inst, s.xmax-1, instmax do
+		if progress[instmax]==-1 then break end
+		for y = 0, s.ymax-1 do
+			s:up(x, y)
 			
-			local d = (a*(x-xmax/2) + (y-ymax/2) + c)/a2
+			local d = (a*(x-s.xmax/2) + (y-s.ymax/2) + c)/a2
 			local g = sign and 1-math.func.gausscum(d, sigma) or math.func.gausscum(d, sigma)
 			
-			set3[1](g, g, g)
+			buf[1]:set(g)
 		end
-		progress[__instance+1] = x - __instance
+		progress[inst] = x - inst
 	end
-	progress[__instance+1] = -1
+	progress[inst] = -1
 end
 
---[1, 1],
-local gaussIIR = require("gaussIIR")
 
+local gaussIIR = require("gaussIIR")
 function transform.gaussV()
 	local s = __global.state
 	local b = __global.buf
@@ -188,9 +199,6 @@ function transform.gaussV()
 	local progress	= __global.progress
 	local inst	= __global.instance
 	local instmax	= __global.instmax
-	
-	-- set max value of progress
-	progress[instmax+1] = s.xmax
 	
 	local sigma = p[1]*s.ymax/4
 	local step = s.ymax*s.zmax
@@ -255,9 +263,6 @@ function transform.gaussCorrect()
 	local inst	= __global.instance
 	local instmax	= __global.instmax
 	
-	-- set max value of progress
-	progress[instmax+1] = s.xmax
-	
 	local xcorr = ffi.new("double[?]", s.xmax)
 	local ycorr = ffi.new("double[?]", s.ymax)
 	local sigma = p[1]*s.ymax/4
@@ -268,7 +273,6 @@ function transform.gaussCorrect()
 	for x = 0, s.xmax-1 do
 		xcorr[x] = 1/(1-gausscum(x+0.5, sigma)-gausscum(s.xmax-x-0.5, sigma))
 	end
-	
 	for y = 0, s.ymax-1 do
 		ycorr[y] = 1/(1-gausscum(y+0.5, sigma)-gausscum(s.ymax-y-0.5, sigma))
 	end
