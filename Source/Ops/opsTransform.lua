@@ -210,7 +210,7 @@ function transform.gaussH()
 	local step = zmax
 	local stride = ymax*zmax
 	local length = xmax
-	sigma = sigma<1 and 1 or sigma
+	sigma = sigma<0.000001 and 0.000001 or sigma
 	
 	--TODO: correct for shading due to edge cutoff
 	for x = __instance, ymax-1, __tmax do
