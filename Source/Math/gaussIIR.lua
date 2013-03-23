@@ -66,11 +66,11 @@ local function gaussIIR(input, output, sigma, length, stride) -- add output, str
 	
 	--TODO: scaling issues at small sigma!
 	local norm
-	if sigma>16 then -- threshold for accurate scaling ??
+	if sigma>15 then -- threshold for accurate scaling ??
 		norm = 1/math.sqrt(2*math.pi)/sigma;
 	else
 		local sum = 0
-		for i = 1,sigma*10 do
+		for i = 1,sigma*15 do
 			sum = sum + gauss(i, sigma)
 		end
 		norm = 1/(sum*2+1)
