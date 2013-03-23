@@ -116,7 +116,7 @@ node:add("Output")
 --node:add("Color HSV")
 --node:add("GradientLin")
 --node:add("Merge")
---node:add("Gaussian")
+node:add("Gaussian")
 
 node:setInput(mouse)
 

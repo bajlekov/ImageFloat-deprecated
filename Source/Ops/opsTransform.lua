@@ -180,89 +180,120 @@ end
 
 --[1, 1],
 local gaussIIR = require("gaussIIR")
+
 function transform.gaussV()
-	local bufdata = __global.bufdata
-	local sigma = params[1]*ymax/4
-	local step = ymax*zmax
-	local stride = zmax
-	local length = ymax
+	local s = __global.state
+	local b = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
+	
+	-- set max value of progress
+	progress[instmax+1] = s[4]
+	
+	local sigma = p[1]*s[5]/4
+	local step = s[5]*s[6]
+	local stride = s[6]
+	local length = s[5]
 	sigma = sigma<1 and 1 or sigma
 	
-	--TODO: correct for shading due to edge cutoff
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		
-		if zmax==3 then
-			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
-			gaussIIR(bufdata[1] + x*step + 1, bufdata[2] + x*step + 1, sigma, length, stride)
-			gaussIIR(bufdata[1] + x*step + 2, bufdata[2] + x*step + 2, sigma, length, stride)
-		elseif zmax==1 then
-			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
+	for x = inst, s[4]-1, instmax do
+		if progress[instmax]==-1 then break end
+		if s[6]==3 then
+			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
+			gaussIIR(b[1].data + x*step + 1, b[2].data + x*step + 1, sigma, length, stride)
+			gaussIIR(b[1].data + x*step + 2, b[2].data + x*step + 2, sigma, length, stride)
+		elseif s[6]==1 then
+			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
 		end
 		
-		progress[__instance+1] = x - __instance
+		progress[inst] = x - inst
 	end
-	progress[__instance+1] = -1
+	progress[inst] = -1
 end
 
 function transform.gaussH()
-	local bufdata = __global.bufdata
-	local sigma = params[1]*ymax/4
-	local step = zmax
-	local stride = ymax*zmax
-	local length = xmax
+	local s = __global.state
+	local b = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
+	
+	-- set max value of progress
+	progress[instmax+1] = s[5]
+	
+	local sigma = p[1]*s[5]/4
+	local step = s[6]
+	local stride = s[5]*s[6]
+	local length = s[4]
 	sigma = sigma<0.000001 and 0.000001 or sigma
 	
 	--TODO: correct for shading due to edge cutoff
-	for x = __instance, ymax-1, __tmax do
-		if progress[0]==-1 then break end
+	for x = inst, s[5]-1, instmax do
+		if progress[instmax]==-1 then break end
 		
-		if zmax==3 then
-			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
-			gaussIIR(bufdata[1] + x*step + 1, bufdata[2] + x*step + 1, sigma, length, stride)
-			gaussIIR(bufdata[1] + x*step + 2, bufdata[2] + x*step + 2, sigma, length, stride)
-		elseif zmax==1 then
-			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
+		if s[6]==3 then
+			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
+			gaussIIR(b[1].data + x*step + 1, b[2].data + x*step + 1, sigma, length, stride)
+			gaussIIR(b[1].data + x*step + 2, b[2].data + x*step + 2, sigma, length, stride)
+		elseif s[6]==1 then
+			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
 		end
 		
-		progress[__instance+1] = x - __instance
+		progress[inst] = x - inst
 	end
-	progress[__instance+1] = -1
+	progress[inst] = -1
 end
 
 function transform.gaussCorrect()
-	local xcorr = ffi.new("double[?]", xmax)
-	local ycorr = ffi.new("double[?]", ymax)
-	local sigma = params[1]*ymax/4
+	local s = __global.state
+	local b = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
+	
+	-- set max value of progress
+	progress[instmax+1] = s[4]
+	
+	local xcorr = ffi.new("double[?]", s[4])
+	local ycorr = ffi.new("double[?]", s[5])
+	local sigma = p[1]*s[5]/4
 	sigma = sigma<0.000001 and 0.000001 or sigma
 	
 	local gausscum = math.func.gausscum
-	--if sigma<15 then
-	--	gausscum = gaussCorr
-	--end
 	
-	for x = 0, xmax-1 do
-		xcorr[x] = 1/(1-gausscum(x+0.5, sigma)-gausscum(xmax-x-0.5, sigma))
+	for x = 0, s[4]-1 do
+		xcorr[x] = 1/(1-gausscum(x+0.5, sigma)-gausscum(s[4]-x-0.5, sigma))
 	end
 	
-	for y = 0, ymax-1 do
-		ycorr[y] = 1/(1-gausscum(y+0.5, sigma)-gausscum(ymax-y-0.5, sigma))
+	for y = 0, s[5]-1 do
+		ycorr[y] = 1/(1-gausscum(y+0.5, sigma)-gausscum(s[5]-y-0.5, sigma))
 	end
 		
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		for y = 0, ymax-1 do
-			__pp = (x * ymax + y)
+	for x = inst, s[4]-1, instmax do
+		if progress[instmax]==-1 then break end
+		for y = 0, s[5]-1 do
+			s:up(x, y)
 			
 			local f = xcorr[x]*ycorr[y]
-			local c1, c2, c3 = get3[1]()
-			c1, c2, c3 = c1*f, c2*f, c3*f
-			set3[1](c1, c2, c3)
+			if s[6]==3 then
+				local c1, c2, c3 = b[1]:get3()
+				c1, c2, c3 = c1*f, c2*f, c3*f
+				b[1]:set3(c1, c2, c3)
+			elseif s[6]==1 then
+				local c = b[1]:get()
+				b[1]:set(c*f)
+			end
+			
+			
 			
 		end
-		progress[__instance+1] = x - __instance
+		progress[inst] = x - inst
 	end
-	progress[__instance+1] = -1
+	progress[inst] = -1
 end
 
 
