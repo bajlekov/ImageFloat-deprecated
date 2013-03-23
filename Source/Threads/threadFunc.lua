@@ -68,7 +68,7 @@ function __init() -- initialisation function, runs once when instance is started
 	__instance = nil
 	__tmax = nil
 	-- FIXME figure out where gc causes trouble!!
-	collectgarbage("stop")
+	--collectgarbage("stop")
 end
 
 function __setup() -- set up instance for processing after node parameters are passed
@@ -117,29 +117,29 @@ function __setup() -- set up instance for processing after node parameters are p
 			function b:get() return self.data[0] end
 			function b:set(c) self.data[0] = c end
 			function b:get3() local c = self:get() return c, c, c end
-			--function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
-			b.getxy = self.get
-			--b.setxy = self.set
-			b.get3xy = self.get3
-			--b.set3xy = self.set3
+			function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
+			b.getxy = b.get
+			b.setxy = b.set
+			b.get3xy = b.get3
+			b.set3xy = b.set3
 		elseif (b.x>1 or b.y>1) and b.z==1 then
 			function b:get() return self.data[s.x*s.ymax+s.y] end 
 			function b:set(c) self.data[s.x*s.ymax+s.y] = c end
 			function b:get3() local c = self:get() return c, c, c end
-			--function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
+			function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
 			function b:getxy(n, x, y) return self.data[x*s.ymax+y] end
 			function b:setxy(c, n, x, y) self.data[x*s.ymax+y] = c end
 			function b:get3xy(x, y) local c = self:getxy(x, y) return c, c, c end
-			--function b:set3xy(c1, c2, c3, x, y) local c = (c1+c2+c3)/3 self:setxy(c, x, y) end
+			function b:set3xy(c1, c2, c3, x, y) local c = (c1+c2+c3)/3 self:setxy(c, x, y) end
 		elseif b.x==1 and b.y==1 and b.z==3 then
 			function b:get(n) return self.data[n or s.z] end
 			function b:set(c, n) self.data[n or s.z] = c end
 			function b:get3() return self.data[0], self.data[1], self.data[2] end
 			function b:set3(c1, c2, c3) self.data[0], self.data[1], self.data[2] = c1, c2, c3 end
 			b.getxy = b.get
-			--b.setxy = b.set
+			b.setxy = b.set
 			b.get3xy = b.get3
-			--b.set3xy = b.set3
+			b.set3xy = b.set3
 		elseif (b.x>1 or b.y>1) and b.z==3 then
 			function b:get(n) return self.data[s.x*s.ymax*s.zmax+s.y*s.zmax+(n or s.z)] end
 			function b:set(c, n) self.data[s.x*s.ymax*s.zmax+s.y*s.zmax+(n or s.z)] = c end
@@ -150,8 +150,6 @@ function __setup() -- set up instance for processing after node parameters are p
 			function b:get3xy(x, y) return self:getxy(0, x, y), self:getxy(1, x, y), self:getxy(2, x, y) end
 			function b:get3xy(c1, c2, c3, x, y) self.setxy(c1, 0, x, y) self.setxy(c2, 1, x, y) self.setxy(c3, 2, x, y) end
 		end
-	
-	
 	end
 	
 	__global.buf = buf
