@@ -233,8 +233,9 @@ ops.norm = function()	-- 1,1
 end
 --]]
 
---[[
 
+-- Example functions
+--[[
 --bufs:[in, out]
 ops.copy = function()	
 	local s = __global.state
@@ -286,7 +287,6 @@ ops.merge = function()
 	end
 	progress[inst] = -1	
 end
-
 --]]
 
 return ops

@@ -30,15 +30,10 @@ package.path = 	"./?.lua;"..
 
 local ffi = require("ffi")
 
--- TODO main points:
---	refactor code
---	check efficiency of passing processing arguments in buffers?
---  internal console for debugging etc.
--- currently not working with luaJIt 2.1 alpha
--- FIXME main points:
---	fix add-node
--- 	segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
--- 	connect color HCLAB to output, then switch to split directly ?? still
+-- TODO internal console for debugging etc.
+-- TODO	currently not working with luaJIt 2.1 alpha
+-- FIXME nodes with undefined inputs crash!!!!!!!!!
+-- FIXME segfault with GC on
 
 print([[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
