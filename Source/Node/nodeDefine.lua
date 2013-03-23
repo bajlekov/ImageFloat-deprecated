@@ -585,6 +585,9 @@ nodeTable["Gaussian"] = function(self)
 		lua.threadSetup(tempBuf, bo[0].buf, {blur})
 		lua.threadRun("ops", "transform", "gaussH")
 		coroutine.yield(num)
+		lua.threadSetup(bo[0].buf, bo[0].buf, {blur})
+		lua.threadRun("ops", "transform", "gaussCorrect")
+		coroutine.yield(num)
 	end
 	return n
 end

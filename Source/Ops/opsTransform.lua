@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+local ffi = require("ffi")
 local transform = {}
 
 --transforms should be implemented as inverse operations performed on the output pixels!!
@@ -224,6 +225,38 @@ function transform.gaussH()
 			gaussIIR(bufdata[1] + x*step + 0, bufdata[2] + x*step + 0, sigma, length, stride)
 		end
 		
+		progress[__instance+1] = x - __instance
+	end
+	progress[__instance+1] = -1
+end
+
+function transform.gaussCorrect()
+	local xcorr = ffi.new("double[?]", xmax)
+	local ycorr = ffi.new("double[?]", ymax)
+	local sigma = params[1]*ymax/4
+	sigma = sigma<0.000001 and 0.000001 or sigma
+	
+	print(sigma)
+	
+	for x = 0, xmax-1 do
+		xcorr[x] = 1/(math.func.gausscum(x-0.5, sigma)*math.func.gausscum(xmax-x-1.5, sigma))
+	end
+	
+	for y = 0, ymax-1 do
+		ycorr[y] = 1/(math.func.gausscum(y-0.5, sigma)*math.func.gausscum(ymax-y-1.5, sigma))
+	end
+		
+	for x = __instance, xmax-1, __tmax do
+		if progress[0]==-1 then break end
+		for y = 0, ymax-1 do
+			__pp = (x * ymax + y)
+			
+			local f = xcorr[x]*ycorr[y]
+			local c1, c2, c3 = get3[1]()
+			c1, c2, c3 = c1*f, c2*f, c3*f
+			set3[1](c1, c2, c3)
+			
+		end
 		progress[__instance+1] = x - __instance
 	end
 	progress[__instance+1] = -1
