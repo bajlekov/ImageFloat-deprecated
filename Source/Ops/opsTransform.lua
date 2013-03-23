@@ -236,14 +236,17 @@ function transform.gaussCorrect()
 	local sigma = params[1]*ymax/4
 	sigma = sigma<0.000001 and 0.000001 or sigma
 	
-	print(sigma)
+	local gausscum = math.func.gausscum
+	--if sigma<15 then
+	--	gausscum = gaussCorr
+	--end
 	
 	for x = 0, xmax-1 do
-		xcorr[x] = 1/(math.func.gausscum(x-0.5, sigma)*math.func.gausscum(xmax-x-1.5, sigma))
+		xcorr[x] = 1/(1-gausscum(x+0.5, sigma)-gausscum(xmax-x-0.5, sigma))
 	end
 	
 	for y = 0, ymax-1 do
-		ycorr[y] = 1/(math.func.gausscum(y-0.5, sigma)*math.func.gausscum(ymax-y-1.5, sigma))
+		ycorr[y] = 1/(1-gausscum(y+0.5, sigma)-gausscum(ymax-y-0.5, sigma))
 	end
 		
 	for x = __instance, xmax-1, __tmax do
