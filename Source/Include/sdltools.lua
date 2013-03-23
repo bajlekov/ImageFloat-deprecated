@@ -17,13 +17,22 @@
 
 local ffi = require("ffi")
 
+if not __global then
+	__global = {}
+	__global.libPath = "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
+	__global.setup = {}
+	__global.setup.incPath = "./Source/Include/"
+end
+
 --check native libs
 --check user folder with libs
 --check supplied libs (errs sometimes)
 
 --set local paths!! different between packaged and developer versions!
 local function loadlib(lib)
+	
 	local path = __global.libPath
+		
 	local libname
 	if ffi.os=="Linux" then libname = "lib"..lib..".so" end
 	if ffi.os=="Windows" then libname = lib..".dll" end

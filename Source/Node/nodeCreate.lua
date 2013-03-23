@@ -16,12 +16,14 @@
 ]]
 
 local dbg = require("dbgtools")
+local img = __img
 
 --node creation
 local nodeTable
 local function add(self, typeName)
 	local n
 	if nodeTable[typeName] then n = nodeTable[typeName](self) end
+	-- assign random location to nodes, will eventually be removed:
 	n.ui.x=100 + math.random(__global.setup.windowSize[1]-400)
 	n.ui.y=100 + math.random(__global.setup.windowSize[2]-200)
 	if typeName=="Input" then n.ui.x=100 n.ui.y=__global.setup.windowSize[2]/2 end
@@ -33,8 +35,8 @@ local function setup(n, i)
 	nodeTable = require("nodeDefine")
 
 	do
-		local zeroBuf = __img:new(1,1,1)
-		function generic_clean(i)
+		local zeroBuf = img:new(1,1,1)
+		function generic_clean(i)	-- where is this defined?
 			for k, v in ipairs(n[i].conn_o.list) do
 				v.buf = zeroBuf
 			end

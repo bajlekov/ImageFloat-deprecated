@@ -90,7 +90,7 @@ end
 
 -- HSV/HSL <=> SRGB
 local SRGBtoHSV
-local HSVtoSRGB
+--local HSVtoSRGB
 local SRGBtoHSL
 local HSLtoSRGB
 local SRGBtoHSI
@@ -523,15 +523,22 @@ end
 --general CS convert in place constructor
 function cs.constructor(fun)
 	return function()
-		for x = __instance, xmax-1, __tmax do
-			if progress[0]==-1 then break end
-			for y = 0, ymax-1 do
-				__pp = (x * ymax + y)
-				set3[1](fun(get3[1]()))
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			for y = 0, s.ymax-1 do
+				s:up(x, y)
+				b[2]:set3(fun(b[1]:get3()))
 			end
-			progress[__instance+1] = x - __instance
+			progress[inst] = x - inst
 		end
-		progress[__instance+1] = -1
+		progress[inst] = -1
 	end
 end
 
@@ -581,7 +588,7 @@ local function LCHABtoLRGB(c1, c2, c3) return XYZtoLRGB(LCHABtoXYZ(c1, c2, c3)) 
 local function SRGBtoLAB(c1, c2, c3) return XYZtoLAB(SRGBtoXYZ(c1, c2, c3)) end
 local function LABtoSRGB(c1, c2, c3) return XYZtoSRGB(LABtoXYZ(c1, c2, c3)) end
 local function SRGBtoLCHAB(c1, c2, c3) return XYZtoLCHAB(SRGBtoXYZ(c1, c2, c3)) end
-function LCHABtoSRGB(c1, c2, c3) return XYZtoSRGB(LCHABtoXYZ(c1, c2, c3)) end
+local function LCHABtoSRGB(c1, c2, c3) return XYZtoSRGB(LCHABtoXYZ(c1, c2, c3)) end
 local function HSVtoLAB(c1, c2, c3) return XYZtoLAB(HSVtoXYZ(c1, c2, c3)) end
 local function LABtoHSV(c1, c2, c3) return XYZtoHSV(LABtoXYZ(c1, c2, c3)) end
 local function HSVtoLCHAB(c1, c2, c3) return XYZtoLCHAB(HSVtoXYZ(c1, c2, c3)) end

@@ -29,17 +29,11 @@ package.path = 	"./?.lua;"..
 "./Tools/?.lua;"..package.path
 
 local ffi = require("ffi")
-_G.ffi = ffi
 
--- TODO main points:
---	refactor code
---	check efficiency of passing processing arguments in buffers?
---  internal console for debugging etc.
--- currently not working with luaJIt 2.1 alpha
--- FIXME main points:
---	fix add-node
--- 	segfault on just HCLAB color input to output!! only parallel processing in output node ?? still
--- 	connect color HCLAB to output, then switch to split directly ?? still
+-- TODO internal console for debugging etc.
+-- TODO	currently not working with luaJIt 2.1 alpha
+-- FIXME nodes with undefined inputs crash!!!!!!!!!
+-- FIXME segfault with GC on
 
 print([[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
@@ -92,6 +86,13 @@ __global.saveFile = __global.setup.imageSavePath..__global.setup.imageSaveName
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
+
+-- TODO: move to fonttools, local font reference
+font = {}
+font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
+font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
+local font = font
+
 local node = require("node")
 
 --move to node?
@@ -104,17 +105,15 @@ node:add("Split")
 node:add("Decompose")
 node:add("WhiteBalance")
 node:add("Compose")
---node:add("ColorSpace")
+node:add("ColorSpace")
 node:add("Output")
 node:add("Color RGB")
-node:add("Color LCH")
+node:add("Color HSV")
+node:add("GradientRot")
+node:add("Merge")
+node:add("Gaussian")
 
 node:setInput(mouse)
-
--- move to fonttools?
-font = {}
-font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
-font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 
 --draw initial
 node:draw()
@@ -183,11 +182,13 @@ local function bufSet(size)
 		buf = bufS
 		bufout = bufoutS
 		surf = surfS
+		__global.imageSize = {buf.x, buf.y}
 	else
 		__global.preview = false
 		buf = bufL
 		bufout = bufoutL
 		surf = surfL
+		__global.imageSize = {buf.x, buf.y}
 	end
 end
 
@@ -203,7 +204,7 @@ local hist = require("histogram")
 
 function funProcess()
 	cp=1							-- reset processing coroutine
-	node[1].bufIn = buf 					--initialise node, move to other location!
+	node[1].bufIn = buf 					--initialise input node, move to other location!
 
 	-- find output node, make selector for this.../one fixed output node
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
@@ -231,9 +232,9 @@ function funProcess()
 		-- why is bufoutL not used??
 	end
 	--]]
-	print("prehist")
+	--print("prehist")
 	hist.calculate(bufout)
-	print("posthist")
+	--print("posthist")
 	toc("Process in ")
 	tic()
 
@@ -284,10 +285,10 @@ local function imageProcess(flag)
 	hLineAdd(10, __global.setup.windowSize[2]-411, 257, 64, 64, 64)
 	hLineAdd(10, __global.setup.windowSize[2]-10, 257, 64, 64, 64)
 
-	__sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
-	__sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
-	__sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
-	__sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
+	sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
+	sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
+	sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
+	sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
 end
 
 --register imageProcess
@@ -295,7 +296,7 @@ node:setImageProcess(imageProcess)
 
 --eventually move to node lib with callbacks for some functions
 function node:click()
-	for i, n in ipairs(self.order) do --for each node on the list
+	for i, n in ipairs(self.drawOrder) do --for each node on the list
 		if self[n].ui:click("node") then --if node is clicked
 			if i~=1 then self:focus(n) end --if node is not first then focus
 			local p, t = self[n].ui:click() --get info on click

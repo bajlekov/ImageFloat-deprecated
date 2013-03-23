@@ -20,8 +20,12 @@
 
 local lua = __lua
 local img = __img
+
+-- FIXME: other way to include CS ops!
 require("opsCS")
 local nodeTable = {}
+
+-- FIXME: remove function declarations from process!!! 
 
 nodeTable["Input"] = function(self)
 	local n=self:new("Input")
@@ -54,20 +58,20 @@ nodeTable["Color RGB"] = function(self)
 	return n
 end
 
-nodeTable["Color LCH"] = function(self)
+nodeTable["Color HSV"] = function(self)
 	local n=self:new("Color")
-	n.param:add("Luma", {0,1,1})
-	n.param:add("Chroma", {0,1,1})
 	n.param:add("Hue", {0,1,1})
+	n.param:add("Chroma", {0,1,1})
+	n.param:add("Luma", {0,1,1})
 	n.conn_o:add(0)
 	function n:processRun(num)
 		local bo = self.conn_o
 		local r, g, b = self.param[1].value[1], self.param[2].value[1], self.param[3].value[1]
 
-		r, g, b = LCHABtoSRGB(r, g, b) 
+		r, g, b = HSVtoSRGB(r, g, b) 
 
 		bo[0].buf = img:newC(r,g,b)
-		coroutine.yield("pass")
+		--coroutine.yield("pass")
 	end
 	return n
 end
@@ -83,7 +87,7 @@ nodeTable["Rotate"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
@@ -96,7 +100,7 @@ nodeTable["Rotate"] = function(self)
 		end
 
 		if bufsIn[1]:type()==3 or bufsIn[1]:type()==4 then
-			lua.threadSetup(bufsIn[1], bo[0].buf, {p[1].value[1]})
+			lua.threadSetup({bufsIn[1], bo[0].buf}, {p[1].value[1]})
 			lua.threadRun("ops", "transform", "rotFast")
 			coroutine.yield(num)
 		else
@@ -132,7 +136,7 @@ nodeTable["Mixer"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 		--move function to external?
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 		
@@ -162,7 +166,7 @@ nodeTable["Mixer"] = function(self)
 		end
 
 		--execute
-		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bufsIn[4]}, bo[0].buf)
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bufsIn[4], bo[0].buf})
 		lua.threadRun("ops", "mixer")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -180,9 +184,6 @@ nodeTable["Add"] = function(self)
 	n.conn_i:add(1)
 	n.conn_i:add(2)
 	n.conn_o:add(1)
-	--function n:processClear(num)
-	--	self.conn_o[1].buf = img.newBuffer(0)
-	--end
 	local bufsIn = {}
 	function n:processRun(num)
 		-- start timer
@@ -190,7 +191,7 @@ nodeTable["Add"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 		--move function to external?
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 		end
 
@@ -203,7 +204,7 @@ nodeTable["Add"] = function(self)
 		bo[1].buf = img:new(x,y,z)
 
 		--execute
-		lua.threadSetup({bufsIn[1], bufsIn[2]}, bo[1].buf)
+		lua.threadSetup({bufsIn[1], bufsIn[2], bo[1].buf})
 		lua.threadRun("ops", "add")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -212,6 +213,51 @@ nodeTable["Add"] = function(self)
 	end
 	return n
 end
+
+nodeTable["Merge"] = function(self)
+	local n=self:new("Merge")
+	n.param:add("Input","Output","text")
+	n.param:add("Input","","text")
+	n.param:add("Factor","","text")
+	n.conn_i:add(1)
+	n.conn_i:add(2)
+	n.conn_i:add(3)
+	n.conn_o:add(1)
+	--function n:processClear(num)
+	--	self.conn_o[1].buf = img.newBuffer(0)
+	--end
+	local bufsIn = {}
+	function n:processRun(num)
+		-- start timer
+		local bi = self.conn_i
+		local bo = self.conn_o
+		local p = self.param
+		--move function to external?
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+		end
+
+		bufsIn[1] = bi[1].node and getBufIn(1) or img:newV()
+		bufsIn[2] = bi[2].node and getBufIn(2) or img:newV()
+		bufsIn[3] = bi[3].node and getBufIn(3) or img:newV(1)
+		
+		local x, y, z
+		x = math.max(bufsIn[1].x, bufsIn[2].x, bufsIn[3].x)
+		y = math.max(bufsIn[1].y, bufsIn[2].y, bufsIn[3].y)
+		z = math.max(bufsIn[1].z, bufsIn[2].z, bufsIn[3].z)
+		bo[1].buf = img:new(x,y,z)
+
+		--execute
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bo[1].buf})
+		lua.threadRun("ops", "merge")
+		coroutine.yield(num)
+		bufsIn = {}
+		--CS process depending on output connection
+		--profiler code
+	end
+	return n
+end
+
 
 nodeTable["Split"] = function(self)
 	local n=self:new("Split")
@@ -228,7 +274,7 @@ nodeTable["Split"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 
@@ -261,7 +307,7 @@ nodeTable["Decompose"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
 		end
 
@@ -275,7 +321,7 @@ nodeTable["Decompose"] = function(self)
 		bo[2].buf = bufsIn[1]:newM()
 		bo[3].buf = bufsIn[1]:newM()
 
-		lua.threadSetup(bufsIn[1], {bo[1].buf, bo[2].buf, bo[3].buf})
+		lua.threadSetup({bufsIn[1], bo[1].buf, bo[2].buf, bo[3].buf})
 		lua.threadRun("ops", "decompose")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -298,7 +344,7 @@ nodeTable["WhiteBalance"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
@@ -322,14 +368,14 @@ nodeTable["WhiteBalance"] = function(self)
 		bo[4].buf = img:newC(x,y,z)
 		
 		--depending on speed it might be better to call just one coroutine.yield() ??
-		lua.threadSetup(bo[0].buf, bo[0].buf)
+		lua.threadSetup({bo[0].buf, bo[0].buf})
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
 		local tr = vonKriesTransform({x, y, z}, "D65")
-		lua.threadSetup(bo[0].buf, bo[0].buf, tr)
+		lua.threadSetup({bo[0].buf, bo[0].buf}, tr)
 		lua.threadRun("ops", "cstransform")
 		coroutine.yield(num)
-		lua.threadSetup(bo[0].buf, bo[0].buf)
+		lua.threadSetup({bo[0].buf, bo[0].buf})
 		lua.threadRun("ops", "cs", "XYZ", "SRGB")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -346,7 +392,7 @@ nodeTable["Output"] = function(self)
 		local bi = self.conn_i
 		local p = self.param
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV(1)
 		end
 		
@@ -363,7 +409,8 @@ nodeTable["Output"] = function(self)
 		if bi[0].node then
 			bufsIn[1]=getBufIn(0):copyC() --FIXME: better way to handle GS => color
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
-			lua.threadSetup(bufsIn[1], self.bufOut)
+			lua.threadSetup({bufsIn[1], self.bufOut})
+			print("setup done")
 			lua.threadRun("ops", "copy")
 			coroutine.yield(num)
 		else
@@ -394,7 +441,7 @@ local n=self:new("Compose")
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
 		end
 
@@ -418,7 +465,7 @@ local n=self:new("Compose")
 		y = math.max(bufsIn[1].y, bufsIn[2].y, bufsIn[3].y)
 		bo[1].buf = img:new(x,y,3)
 
-		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3]}, bo[1].buf)
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bo[1].buf})
 		lua.threadRun("ops", "compose")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -435,7 +482,7 @@ nodeTable["ColorSpace"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		function getBufIn(p)
+		local function getBufIn(p)
 			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 		end
 
@@ -447,10 +494,98 @@ nodeTable["ColorSpace"] = function(self)
 			bo[0].buf = img:newC(1)	-- output
 		end
 
-		lua.threadSetup(bufsIn[1], bo[0].buf)
+		lua.threadSetup({bufsIn[1], bo[0].buf})
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
 		bufsIn = {}
+	end
+	return n
+end
+
+-- FIXME: reference size 
+nodeTable["GradientRot"] = function(self)
+	local n=self:new("Gradient")
+	n.param:add("X", {-1,1,0})
+	n.param:add("Y", {-1,1,0})
+	n.param:add("Offset", {0,1,0})
+	n.param:add("Width", {0,1,0.2})
+	n.param:add("Intensity", {0,1,0.2})
+	n.conn_o:add(0)
+	function n:processRun(num)
+		local bo = self.conn_o
+		local p = self.param
+		
+		--
+		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
+		
+		-- FIXME: don't require passing input/output buffers to thread
+		lua.threadSetup(bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
+		lua.threadRun("ops", "transform", "gradRot")
+		coroutine.yield(num)
+	end
+	return n
+end
+
+nodeTable["GradientLin"] = function(self)
+	local n=self:new("Gradient")
+	n.param:add("Angle", {-180,180,0})
+	n.param:add("Offset", {-1,1,0})
+	n.param:add("Width", {0,1,0.2})
+	n.conn_o:add(0)
+	function n:processRun(num)
+		local bo = self.conn_o
+		local p = self.param
+		
+		--
+		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
+		
+		-- FIXME: don't require passing input/output buffers to thread
+		lua.threadSetup(bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1]})
+		lua.threadRun("ops", "transform", "gradLin")
+		coroutine.yield(num)
+	end
+	return n
+end
+
+nodeTable["Gaussian"] = function(self)
+	local n=self:new("Gaussian")
+	n.param:add("Width", {0,1,0.1})
+	n.conn_i:add(0)
+	n.conn_o:add(0)
+	
+	local bufsIn = {}
+	
+	function n:processRun(num)
+		local bo = self.conn_o
+		local bi = self.conn_i
+		local p = self.param
+		
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
+		end
+		
+		local tempBuf
+		if bi[0].node then
+			bufsIn[1] = getBufIn(0)			-- input
+			bo[0].buf = bufsIn[1]:new()	-- output
+			tempBuf = bufsIn[1]:new()
+		else
+			bufsIn[1] = img:newV()		-- input
+			bo[0].buf = bufsIn[1]:new()	-- output
+			tempBuf = bufsIn[1]:new()
+		end
+		
+		local blur = p[1].value[1]^2
+		
+		lua.threadSetup({bufsIn[1], tempBuf}, blur)
+		lua.threadRun("ops", "transform", "gaussV")
+		coroutine.yield(num)
+		lua.threadSetup({tempBuf, bo[0].buf}, blur)
+		lua.threadRun("ops", "transform", "gaussH")
+		coroutine.yield(num)
+		lua.threadSetup(bo[0].buf, blur)
+		lua.threadRun("ops", "transform", "gaussCorrect")
+		coroutine.yield(num)
 	end
 	return n
 end

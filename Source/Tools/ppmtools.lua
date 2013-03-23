@@ -17,7 +17,7 @@
 
 local ffi = require "ffi"
 local ppm = {}
-local img = require "imgtools"
+local img = require "Tools.imgtools"
 
 ---[[methods for ppm headers
 function ppm.newHeader(t)
