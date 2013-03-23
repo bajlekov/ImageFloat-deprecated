@@ -71,7 +71,7 @@ nodeTable["Color HSV"] = function(self)
 		r, g, b = HSVtoSRGB(r, g, b) 
 
 		bo[0].buf = img:newC(r,g,b)
-		coroutine.yield("pass")
+		--coroutine.yield("pass")
 	end
 	return n
 end
@@ -100,7 +100,7 @@ nodeTable["Rotate"] = function(self)
 		end
 
 		if bufsIn[1]:type()==3 or bufsIn[1]:type()==4 then
-			lua.threadSetup(bufsIn[1], bo[0].buf, {p[1].value[1]})
+			lua.threadSetup({bufsIn[1], bo[0].buf}, {p[1].value[1]})
 			lua.threadRun("ops", "transform", "rotFast")
 			coroutine.yield(num)
 		else
@@ -166,7 +166,7 @@ nodeTable["Mixer"] = function(self)
 		end
 
 		--execute
-		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bufsIn[4]}, bo[0].buf)
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bufsIn[4], bo[0].buf})
 		lua.threadRun("ops", "mixer")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -248,7 +248,7 @@ nodeTable["Merge"] = function(self)
 		bo[1].buf = img:new(x,y,z)
 
 		--execute
-		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3]}, bo[1].buf)
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bo[1].buf})
 		lua.threadRun("ops", "merge")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -321,7 +321,7 @@ nodeTable["Decompose"] = function(self)
 		bo[2].buf = bufsIn[1]:newM()
 		bo[3].buf = bufsIn[1]:newM()
 
-		lua.threadSetup(bufsIn[1], {bo[1].buf, bo[2].buf, bo[3].buf})
+		lua.threadSetup({bufsIn[1], bo[1].buf, bo[2].buf, bo[3].buf})
 		lua.threadRun("ops", "decompose")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -368,14 +368,14 @@ nodeTable["WhiteBalance"] = function(self)
 		bo[4].buf = img:newC(x,y,z)
 		
 		--depending on speed it might be better to call just one coroutine.yield() ??
-		lua.threadSetup(bo[0].buf, bo[0].buf)
+		lua.threadSetup({bo[0].buf, bo[0].buf})
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
 		local tr = vonKriesTransform({x, y, z}, "D65")
-		lua.threadSetup(bo[0].buf, bo[0].buf, tr)
+		lua.threadSetup({bo[0].buf, bo[0].buf}, tr)
 		lua.threadRun("ops", "cstransform")
 		coroutine.yield(num)
-		lua.threadSetup(bo[0].buf, bo[0].buf)
+		lua.threadSetup({bo[0].buf, bo[0].buf})
 		lua.threadRun("ops", "cs", "XYZ", "SRGB")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -465,7 +465,7 @@ local n=self:new("Compose")
 		y = math.max(bufsIn[1].y, bufsIn[2].y, bufsIn[3].y)
 		bo[1].buf = img:new(x,y,3)
 
-		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3]}, bo[1].buf)
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bo[1].buf})
 		lua.threadRun("ops", "compose")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -494,7 +494,7 @@ nodeTable["ColorSpace"] = function(self)
 			bo[0].buf = img:newC(1)	-- output
 		end
 
-		lua.threadSetup(bufsIn[1], bo[0].buf)
+		lua.threadSetup({bufsIn[1], bo[0].buf})
 		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -519,7 +519,7 @@ nodeTable["GradientRot"] = function(self)
 		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
 		
 		-- FIXME: don't require passing input/output buffers to thread
-		lua.threadSetup({}, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
+		lua.threadSetup(bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1], p[4].value[1], p[5].value[1]})
 		lua.threadRun("ops", "transform", "gradRot")
 		coroutine.yield(num)
 	end
@@ -540,7 +540,7 @@ nodeTable["GradientLin"] = function(self)
 		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
 		
 		-- FIXME: don't require passing input/output buffers to thread
-		lua.threadSetup({}, bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1]})
+		lua.threadSetup(bo[0].buf, {p[1].value[1], p[2].value[1], p[3].value[1]})
 		lua.threadRun("ops", "transform", "gradLin")
 		coroutine.yield(num)
 	end
@@ -577,13 +577,13 @@ nodeTable["Gaussian"] = function(self)
 		
 		local blur = p[1].value[1]^2
 		
-		lua.threadSetup(bufsIn[1], tempBuf, {blur})
+		lua.threadSetup({bufsIn[1], tempBuf}, blur)
 		lua.threadRun("ops", "transform", "gaussV")
 		coroutine.yield(num)
-		lua.threadSetup(tempBuf, bo[0].buf, {blur})
+		lua.threadSetup({tempBuf, bo[0].buf}, blur)
 		lua.threadRun("ops", "transform", "gaussH")
 		coroutine.yield(num)
-		lua.threadSetup(bo[0].buf, bo[0].buf, {blur})
+		lua.threadSetup(bo[0].buf, blur)
 		lua.threadRun("ops", "transform", "gaussCorrect")
 		coroutine.yield(num)
 	end
