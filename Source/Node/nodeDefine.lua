@@ -184,9 +184,6 @@ nodeTable["Add"] = function(self)
 	n.conn_i:add(1)
 	n.conn_i:add(2)
 	n.conn_o:add(1)
-	--function n:processClear(num)
-	--	self.conn_o[1].buf = img.newBuffer(0)
-	--end
 	local bufsIn = {}
 	function n:processRun(num)
 		-- start timer
@@ -207,7 +204,7 @@ nodeTable["Add"] = function(self)
 		bo[1].buf = img:new(x,y,z)
 
 		--execute
-		lua.threadSetup({bufsIn[1], bufsIn[2]}, bo[1].buf)
+		lua.threadSetup({bufsIn[1], bufsIn[2], bo[1].buf})
 		lua.threadRun("ops", "add")
 		coroutine.yield(num)
 		bufsIn = {}
@@ -412,7 +409,8 @@ nodeTable["Output"] = function(self)
 		if bi[0].node then
 			bufsIn[1]=getBufIn(0):copyC() --FIXME: better way to handle GS => color
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
-			lua.threadSetup(bufsIn[1], self.bufOut)
+			lua.threadSetup({bufsIn[1], self.bufOut})
+			print("setup done")
 			lua.threadRun("ops", "copy")
 			coroutine.yield(num)
 		else

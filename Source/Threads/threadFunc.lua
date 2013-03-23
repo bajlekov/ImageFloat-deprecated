@@ -35,6 +35,7 @@ __global = {}
 __global.setup = require("IFsetup")
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
+--[[
 function loadlib(lib)
 	local path = __global.libPath
 	local libname
@@ -55,20 +56,57 @@ function loadlib(lib)
 		return false
 	end
 end
+--]]
+ 
+ops = require("ops") -- global ops are required to ease calling
 
--- FIXME ops not a local struct... 
-ops = require("ops")
-
-progress = nil
-
-function init() -- initialisation function, runs once when instance is started
-	progress = ffi.cast("int*", progress)
-	
+function __init() -- initialisation function, runs once when instance is started
+	__global.progress = ffi.cast("int*", __progress)
 	-- FIXME figure out where gc causes trouble!!
 	collectgarbage("stop")
 end
 
-function setup() -- set up instance for processing after node parameters are passed
+function __setup() -- set up instance for processing after node parameters are passed
+	--[[ pass:
+		__bufs
+		__dims
+		__params
+	--]]
+	local buf = {}					-- structure containing all buffers and functions
+	local n = #__dims/3
+	local dims = __dims
+	
+	local b = ffi.cast("void**", __bufs) 
+	local bufdata = {}
+	
+	local xmax, ymax, zmax = 0, 0, 0
+	
+	-- setup buffer data
+	for i = 1, n do
+		buf[i] = {}
+		buf[i].data = ffi.cast(__global.setup.bufferPrecision[1].."*", b[i])
+		buf[i].x = dims[(i-1)*3 + 1]
+		buf[i].y = dims[(i-1)*3 + 2]
+		buf[i].z = dims[(i-1)*3 + 3]
+		xmax = math.max(xmax, buf[i].x)
+		ymax = math.max(ymax, buf[i].y)
+		zmax = math.max(zmax, buf[i].z)
+	end
+	
+	buf.max = n
+	
+	-- setup getters/setters
+	
+	__global.buf = buf
+	__global.params = __params
+	__params = nil
+	__bufs = nil
+	__dims = nil
+	
+	__global.state = {0, 0, 0, xmax, ymax, zmax}
+end
+
+	--[[
 	--print("Thread Setup:", b,xmax,ymax,zmax,ibuf,obuf)
 	--print("*", unpack(buftype))
 
@@ -152,6 +190,8 @@ function setup() -- set up instance for processing after node parameters are pas
 		end
 	end
 end
+
+--]]
 
 -- must be global to be reachable trough the api
 --dbg = require("dbgtools")

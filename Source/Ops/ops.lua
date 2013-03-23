@@ -236,8 +236,29 @@ ops.norm = function()	-- 1,1
 	progress[__instance+1] = -1
 end
 
-return ops
 
+
+
+
+
+
+ops.copy = function()
+	print("hi, op!")
+	local bufi = __global.buf[1]
+	local bufo = __global.buf[2]
+	print(bufi)
+	print(bufi.x, bufi.y, bufi.z)
+	print(bufo.x, bufo.y, bufo.z)
+end
+
+
+
+
+
+
+
+
+return ops
 --[[
 PROTOTYPES
 -- performance note: memory-align loops in same order as array [x][y][c]
