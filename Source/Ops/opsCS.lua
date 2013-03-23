@@ -520,6 +520,58 @@ local function LCHtoLXX(l, c, h)
 	return l, x, y
 end
 
+local ispc = __global.setup.optCompile.ispc
+
+if ispc then
+	local err, opt  = pcall(require,"Tools.optimtools")
+	print("ISPC", err)
+	function cs.gamma_ispc()
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			print(x*s.ymax*s.zmax + s.ymax*s.zmax, s.xmax*s.ymax*s.zmax)
+			print(b[1].data, b[2].data)
+			opt.pow(b[1].data + x*s.ymax*s.zmax, p[1], b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
+
+function cs.gamma_lua()
+	local s = __global.state
+	local b = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
+	
+	for x = inst, s.xmax-1, instmax do
+		if progress[instmax]==-1 then break end
+		for y = 0, s.ymax-1 do
+			s:up(x, y)
+			
+			local c1, c2, c3 = b[1]:get3()
+			b[2]:set3(c1^p[1], c2^p[1], c3^p[1])
+			
+		end
+		progress[inst] = x - inst
+	end
+	progress[inst] = -1
+end
+
+cs.gamma = ispc and cs.gamma_ispc or cs.gamma_lua
+cs.gamma_ispc = nil
+cs.gamma_lua = nil
+
 --general CS convert in place constructor
 function cs.constructor(fun)
 	return function()

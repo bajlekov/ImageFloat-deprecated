@@ -589,5 +589,35 @@ nodeTable["Gaussian"] = function(self)
 	end
 	return n
 end
+
+nodeTable["Gamma"] = function(self)
+	local n=self:new("Gamma")
+	n.param:add("Power", {0,5,1})
+	n.conn_i:add(0)
+	n.conn_o:add(0)
+	local bufsIn = {}
+	function n:processRun(num)
+		local bi = self.conn_i
+		local bo = self.conn_o
+
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
+		end
+
+		if bi[0].node then
+			bufsIn[1] = getBufIn(0):copy()			-- input
+			bo[0].buf = bufsIn[1]:new()	-- output
+		else
+			bufsIn[1] = img:newV()		-- input
+			bo[0].buf = img:newV()	-- output
+		end
+
+		lua.threadSetup({bufsIn[1], bo[0].buf}, self.param[1].value[1])
+		lua.threadRun("ops", "cs", "gamma")
+		coroutine.yield(num)
+		bufsIn = {}
+	end
+	return n
+end
 	
 return nodeTable
