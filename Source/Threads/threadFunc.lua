@@ -106,6 +106,7 @@ function __setup() -- set up instance for processing after node parameters are p
 		self.y = y or self.y
 		self.z = z or self.z
 	end
+	__global.progress[__global.instmax+1] = __global.state.xmax
 	
 	-- setup getters/setters
 	for i = 1, n do
