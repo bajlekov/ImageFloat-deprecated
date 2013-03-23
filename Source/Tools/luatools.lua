@@ -171,7 +171,7 @@ if type(__sdl)=="table" then
 				l.threadInstance[i]=l.newState()						--create new state
 				l.doFile(l.threadInstance[i], file)						--load functions
 				l.pushNumber(l.threadInstance[i], i, "__instance")		-- assign instance number to state
-				l.pushNumber(l.threadInstance[i], l.numCores, "__tmax")	-- max numbver of cores
+				l.pushNumber(l.threadInstance[i], l.numCores, "__tmax")	-- max number of cores
 				l.pushUserData(l.threadInstance[i], l.threadProgress, "__progress")		--progress state
 				l.pushUserData(l.threadInstance[i], th.mut, "__mut")
 				l.doFunction(l.threadInstance[i], "__init")				--set up general comm structures
@@ -303,7 +303,7 @@ if type(__sdl)=="table" then
 			return n/l.numCores/l.threadProgress[l.numCores+1]
 		end
 		function l.threadDone() --returns true once when the threads are finished
-			for i = 1, l.numCores do
+			for i = 0, l.numCores-1 do
 				if l.threadProgress[i]~=-1 then return false end
 			end
 			return true
