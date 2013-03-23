@@ -20,6 +20,9 @@
 	Gunnar Farneback and Carl-Fredrik Westin "Improving Deriche-style Recursive
 	Gaussian Filters", Journal of Mathematics in Imaging and Vision (2006)
 --]]
+local exp = math.exp
+local function gauss(x, s) return exp(-(x)^2/2/s^2) end
+
 local function gaussIIR(input, output, sigma, length, stride) -- add output, stride
 	
 	stride = stride or 1
@@ -39,14 +42,14 @@ local function gaussIIR(input, output, sigma, length, stride) -- add output, str
 	local sw1 = math.sin(w1)
 	local sw2 = math.sin(w2)
 	
-	local n3 = math.exp(l2+2*l1)*(b2*sw2-a2*cw2) + math.exp(l1+2*l2)*(b1*sw1-a1*cw1)
-	local n2 = 2*math.exp(l1+l2)*((a1+a2)*cw2*cw1 - b1*cw2*sw1 - b2*cw1*sw2) + a2*math.exp(2*l1) + a1*math.exp(2*l2)
-	local n1 = math.exp(l2)*(b2*sw2-(a2+2*a1)*cw2) + math.exp(l1)*(b1*sw1-(a1+2*a2)*cw1)
+	local n3 = exp(l2+2*l1)*(b2*sw2-a2*cw2) + exp(l1+2*l2)*(b1*sw1-a1*cw1)
+	local n2 = 2*exp(l1+l2)*((a1+a2)*cw2*cw1 - b1*cw2*sw1 - b2*cw1*sw2) + a2*exp(2*l1) + a1*exp(2*l2)
+	local n1 = exp(l2)*(b2*sw2-(a2+2*a1)*cw2) + exp(l1)*(b1*sw1-(a1+2*a2)*cw1)
 	local n0 = a1+a2
-	local d4 = math.exp(2*l1+2*l2)
-	local d3 = -2*math.exp(l1+2*l2)*cw1 - 2*math.exp(l2+2*l1)*cw2
-	local d2 = 4*math.exp(l1+l2)*cw2*cw1 + math.exp(2*l2) + math.exp(2*l1)
-	local d1 = -2*math.exp(l2)*cw2 - 2*math.exp(l1)*cw1
+	local d4 = exp(2*l1+2*l2)
+	local d3 = -2*exp(l1+2*l2)*cw1 - 2*exp(l2+2*l1)*cw2
+	local d2 = 4*exp(l1+l2)*cw2*cw1 + exp(2*l2) + exp(2*l1)
+	local d1 = -2*exp(l2)*cw2 - 2*exp(l1)*cw1
 	local m1 = n1 - d1*n0
 	local m2 = n2 - d2*n0
 	local m3 = n3 - d3*n0
@@ -62,7 +65,16 @@ local function gaussIIR(input, output, sigma, length, stride) -- add output, str
 	local oo = output
 	
 	--TODO: scaling issues at small sigma!
-	local norm = 1/math.sqrt(2*math.pi)/sigma;
+	local norm
+	if sigma>16 then -- threshold for accurate scaling ??
+		norm = 1/math.sqrt(2*math.pi)/sigma;
+	else
+		local sum = 0
+		for i = 1,sigma*10 do
+			sum = sum + gauss(i, sigma)
+		end
+		norm = 1/(sum*2+1)
+	end
 	
 	-- clear output/ make sure output is clean
 	
