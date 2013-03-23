@@ -156,7 +156,7 @@ if type(__sdl)=="table" then
 		--multithreading helper functions:
 		l.threadRunning = false
 		l.threadCounter = ffi.new("int[1]", 0)
-		-- FIXME does lua_thread_call call the processing function as well? this only sets up threads
+		-- FIXME does lua_thread_call call the processing function as well? this only sets up threads??
 		l.threadFunction = th.lua_thread_call
 		l.threadInstance = th.L
 		l.threadBufferWidth = 0
@@ -272,10 +272,8 @@ if type(__sdl)=="table" then
 				l.threadCounter[0] = 0
 				for i = 0, l.numCores-1 do
 					l.loadVariable(l.threadInstance[i], ...) -- loads processing function??
-					l.threadProgress[i+1]=0
-					-- FIXME does lua_thread_call call the processing function as well? this only sets up threads
-					-- it does the calling, check how to efficiently create a local ops table... 
-					thread[i] = __sdl.createThread(l.threadFunction, l.threadCounter)
+					l.threadProgress[i+1]=0 
+					thread[i] = __sdl.createThread(l.threadFunction, l.threadCounter) -- runs preset function in each instance!!!
 				end
 				l.threadRunning = true
 				procName = table.concat({...},".")
