@@ -213,7 +213,7 @@ if type(__sdl)=="table" then
 		end
 
 
-		function l.threadSetup(buflist, _, params)
+		function l.threadSetup(buflist, params)
 			local bufs = {}
 			local dims = {} -- x1, y1, z1, x2, y2, z2, x3, y3, z3 ...
 			local n
@@ -236,7 +236,7 @@ if type(__sdl)=="table" then
 			
 			if type(params)~="table" then
 				if type(params)=="number" then params = {params} else params = {} end
-			end			
+			end
 			
 			l.threadPushBuffers(bufs)
 			l.threadPushTable(dims, "__dims")
