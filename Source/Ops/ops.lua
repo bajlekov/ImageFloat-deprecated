@@ -253,11 +253,11 @@ ops.copy = function()
 	local instmax	= __global.instmax
 	
 	-- set max value of progress
-	progress[instmax+1] = s[4]
+	progress[instmax+1] = s.xmax
 	
-	for x = inst, s[4]-1, instmax do
+	for x = inst, s.xmax-1, instmax do
 		if progress[instmax]==-1 then break end
-		for y = 0, s[5]-1 do
+		for y = 0, s.ymax-1 do
 			s:up(x, y)
 			
 			-- main program
@@ -265,7 +265,7 @@ ops.copy = function()
 			b[2]:set3(c1, c2, c3)
 			
 		end
-		progress[inst] = (x - inst)/2 + (s[4]-1)/2
+		progress[inst] = x - inst
 	end
 	progress[inst] = -1
 end
