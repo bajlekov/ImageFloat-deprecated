@@ -36,6 +36,7 @@ local startstring_matrix = [[
 							local getxy = getxy
 							local set3xy = set3xy
 							local get3xy = get3xy
+							local progress = progress
 							for x = __instance, xmax-1, __tmax do
 								if progress[0]==-1 then break end
 								for y = 0, ymax-1 do
