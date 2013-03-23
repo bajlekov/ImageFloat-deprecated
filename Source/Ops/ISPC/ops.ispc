@@ -45,6 +45,12 @@ export void ispc_div(uniform float A[], uniform float B[], uniform float O[], un
   }
 }
 
+export void ispc_pow(uniform float A[], uniform float b, uniform float O[], uniform int size) {
+  foreach(i = 0 ... size) {
+    O[i] = pow(A[i], b);
+  }
+}
+
 // GtoL and LtoG gamma correcting functions
 const uniform float a = 0.055;
 const uniform float G = 1/0.42;

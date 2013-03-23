@@ -41,15 +41,20 @@ local file = "ops"
 
 -- ISPC implementation:
 local ISPC
+
 if jit.os=="Windows" then --32bit
 	--TODO: x86-64 / i386pep for 64bit dll
 	--TODO: Paths to executables
+	if __global==nil or __global.setup.optRecompile then
 	os.execute ("ispc --arch=x86 --opt=fast-math -o "..path..file..".obj "..path..file..".ispc")
 	os.execute ("ld -shared -mi386pe -o "..path..file..".dll "..path..file..".obj")
+	end
 	ISPC = ffi.load("median.dll")
 else --Linux 64bit
+	if __global==nil or __global.setup.optRecompile then
 	os.execute ("ispc --opt=fast-math --pic -o "..path..file..".o "..path..file..".ispc") print("compiling... (ispc)")
 	os.execute ("clang -shared -o "..path..file..".so "..path..file..".o") print("linking... (clang)")
+	end
 	ISPC = ffi.load("./"..path..file..".so")
 end
 
@@ -59,6 +64,7 @@ ffi.cdef[[
 	void ispc_sub(float* a, float* b, float* o, int size);
 	void ispc_mul(float* a, float* b, float* o, int size);
 	void ispc_div(float* a, float* b, float* o, int size);
+	void ispc_pow(float* a, float b, float* o, int size);
 	
 	void ispc_LtoG(float* src, float* dst, int size);
 	void ispc_GtoL(float* src, float* dst, int size);
@@ -68,9 +74,14 @@ optim.add = ISPC.ispc_add
 optim.sub = ISPC.ispc_sub
 optim.mul = ISPC.ispc_mul
 optim.div = ISPC.ispc_div
+optim.pow = ISPC.ispc_pow
+
+-- FIXME: gamma node fails if this test is not run!!! ... segfault calling ispc functions from thread
+-- on the bright side, this consistently triggers the error
+-- bug in ispc??
 
 --test
----[[
+--[[
 local LtoG
 local GtoL
 do
@@ -93,8 +104,9 @@ do
 	end
 end
 
+--[[
 
-local size = 4096*4096*3
+local size = 4096*128*3
 local a = ffi.new("float[?]", size)
 local b = ffi.new("float[?]", size)
 local c = ffi.new("float[?]", size)
@@ -106,6 +118,10 @@ for i = 0, size-1 do
 	b[i] = math.random()
 	c[i] = math.random()
 end
+
+local t = os.clock()
+	ISPC.ispc_pow(a, 2, b, size)
+print(os.clock() - t, "ISPC power")
 
 local t = os.clock()
 ISPC.ispc_LtoG(a, b, size)
