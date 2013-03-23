@@ -98,7 +98,7 @@ local node = require("node")
 --move to node?
 require("nodeCreate")(node, img)
 node:add("Input")
---node:add("Rotate")
+node:add("Rotate")
 node:add("Mixer")
 node:add("Add")
 node:add("Split")
