@@ -15,14 +15,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local ffi = require("ffi")
-
 --[[
 	Implementation of a Deriche-style Gaussian IIR filter after
 	Gunnar Farneback and Carl-Fredrik Westin "Improving Deriche-style Recursive
 	Gaussian Filters", Journal of Mathematics in Imaging and Vision (2006)
 --]]
-local function iirGauss(input, output, sigma, length, stride) -- add output, stride
+local exp = math.exp
+local function gauss(x, s) return exp(-(x)^2/2/s^2) end
+
+local function gaussIIR(input, output, sigma, length, stride) -- add output, stride
 	
 	stride = stride or 1
 	
@@ -41,14 +42,14 @@ local function iirGauss(input, output, sigma, length, stride) -- add output, str
 	local sw1 = math.sin(w1)
 	local sw2 = math.sin(w2)
 	
-	local n3 = math.exp(l2+2*l1)*(b2*sw2-a2*cw2) + math.exp(l1+2*l2)*(b1*sw1-a1*cw1)
-	local n2 = 2*math.exp(l1+l2)*((a1+a2)*cw2*cw1 - b1*cw2*sw1 - b2*cw1*sw2) + a2*math.exp(2*l1) + a1*math.exp(2*l2)
-	local n1 = math.exp(l2)*(b2*sw2-(a2+2*a1)*cw2) + math.exp(l1)*(b1*sw1-(a1+2*a2)*cw1)
+	local n3 = exp(l2+2*l1)*(b2*sw2-a2*cw2) + exp(l1+2*l2)*(b1*sw1-a1*cw1)
+	local n2 = 2*exp(l1+l2)*((a1+a2)*cw2*cw1 - b1*cw2*sw1 - b2*cw1*sw2) + a2*exp(2*l1) + a1*exp(2*l2)
+	local n1 = exp(l2)*(b2*sw2-(a2+2*a1)*cw2) + exp(l1)*(b1*sw1-(a1+2*a2)*cw1)
 	local n0 = a1+a2
-	local d4 = math.exp(2*l1+2*l2)
-	local d3 = -2*math.exp(l1+2*l2)*cw1 - 2*math.exp(l2+2*l1)*cw2
-	local d2 = 4*math.exp(l1+l2)*cw2*cw1 + math.exp(2*l2) + math.exp(2*l1)
-	local d1 = -2*math.exp(l2)*cw2 - 2*math.exp(l1)*cw1
+	local d4 = exp(2*l1+2*l2)
+	local d3 = -2*exp(l1+2*l2)*cw1 - 2*exp(l2+2*l1)*cw2
+	local d2 = 4*exp(l1+l2)*cw2*cw1 + exp(2*l2) + exp(2*l1)
+	local d1 = -2*exp(l2)*cw2 - 2*exp(l1)*cw1
 	local m1 = n1 - d1*n0
 	local m2 = n2 - d2*n0
 	local m3 = n3 - d3*n0
@@ -62,42 +63,59 @@ local function iirGauss(input, output, sigma, length, stride) -- add output, str
 	local ap0, ap1, ap2, ap3, ap4 = 0, 0, 0, 0, 0 -- delayed processed values
 	local dd = input
 	local oo = output
-	 
-	-- clear output
-	ffi.fill(oo, length)
+	
+	--TODO: scaling issues at small sigma!
+	local norm
+	if sigma>15 then -- threshold for accurate scaling ??
+		norm = 1/math.sqrt(2*math.pi)/sigma;
+	else
+		local sum = 0
+		for i = 1,sigma*15 do
+			sum = sum + gauss(i, sigma)
+		end
+		norm = 1/(sum*2+1)
+	end
+	
+	-- clear output/ make sure output is clean
 	
 	for i = 0, length-1 do
 		aa0 = dd[i*stride]								-- read input
 		ap0 = n0*aa0 + n1*aa1 + n2*aa2 + n3*aa3 - d1*ap1 - d2*ap2 - d3*ap3 - d4*ap4
-		oo[i*stride] = oo[i*stride] + ap0						-- write/add to output
+		oo[i*stride] = oo[i*stride] + ap0*norm			-- write/add to output
 		aa1, aa2, aa3 = aa0, aa1, aa2			-- roll aa
 		ap1, ap2, ap3, ap4 = ap0, ap1, ap2, ap3	-- roll ap
 	end
 	
+	local aa0, aa1, aa2, aa3, aa4 = 0, 0, 0, 0, 0 -- delayed input values
+	local ap0, ap1, ap2, ap3, ap4 = 0, 0, 0, 0, 0 -- delayed processed values
+		
 	for i = length-1, 0, -1 do
 		aa0 = dd[i*stride]								-- read input
 		ap0 = m1*aa1 + m2*aa2 + m3*aa3 +m4*aa4 - d1*ap1 - d2*ap2 - d3*ap3 - d4*ap4
-		oo[i*stride] = oo[i*stride] + ap0						-- write/add to output
+		oo[i*stride] = oo[i*stride] + ap0*norm			-- write/add to output
 		aa1, aa2, aa3, aa4 = aa0, aa1, aa2, aa3	-- roll aa
 		ap1, ap2, ap3, ap4 = ap0, ap1, ap2, ap3	-- roll ap
 	end
 	
 end
 
-
 --test
 --[[
+local ffi = require("ffi")
+
 local i = ffi.new("float[100]")
 local o = ffi.new("float[100]")
 
-i[20] = 1
+i[50] = 1
 
-iirGauss(i, o, 3, 25,4)
+gaussIIR(i, o, 100, 100,1)
 
-for i = 0, 100 do
-print(i, o[i])
+local s = 0
+for i = 0, 99 do
+	print(i, o[i])
+	s = s + o[i]
 end
+print(s)
 --]]
 
-
-
+return gaussIIR

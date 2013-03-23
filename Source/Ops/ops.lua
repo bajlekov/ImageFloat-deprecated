@@ -28,144 +28,140 @@ require("mathtools")
 
 -- generic pixel function loop
 local startstring_matrix = [[
-							local set = set
-							local get = get
-							local set3 = set3
-							local get3 = get3
-							local setxy = setxy
-							local getxy = getxy
-							local set3xy = set3xy
-							local get3xy = get3xy
-							for x = __instance, xmax-1, __tmax do
-								if progress[0]==-1 then break end
-								for y = 0, ymax-1 do
-									__pp = (x * ymax + y)
+							local s = __global.state
+							local b = __global.buf
+							local p = __global.params
+							local progress	= __global.progress
+							local inst	= __global.instance
+							local instmax	= __global.instmax
+							
+							for x = inst, s.xmax-1, instmax do
+								if progress[instmax]==-1 then break end
+								for y = 0, s.ymax-1 do
+									s:up(x, y)
 ]]
 
 local endstring_matrix = [[
 									end
-								progress[__instance+1] = x - __instance
+								progress[inst] = x - inst
 							end
-							progress[__instance+1] = -1
+							progress[inst] = -1
 ]]
 
 
 --for value/colour processing:
-local startstring_single = [[ __pp = 0 ]]
-local endstring_single = [[ progress[__instance+1] = -1 ]]
+--local startstring_single = [[ __pp = 0 ]]
+--local endstring_single = [[ progress[__instance+1] = -1 ]]
 
 -- TODO: refactor ops, remove inner loops! see Test/opsInterface.lua
 ops.strings = {
 
 	invert = [[ -- 2, 1
 	for c = 0, 2 do
-		set[1]( (1-get[1](c))*get[2](c) + get[1](c)*(1-get[2](c)), c)
+		b[3]:set( (1-b[1]:get(c))*b[2]:get[2](c) + b[1]:get(c)*(1-b[2]:get(c)), c)
 	end ]],
 
 	mixer = [[ -- 4, 1
-	set[1]( get[2](0)*get[1](0) + get[2](1)*get[1](1) + get[2](2)*get[1](2), 0)
-	set[1]( get[3](0)*get[1](0) + get[3](1)*get[1](1) + get[3](2)*get[1](2), 1)
-	set[1]( get[4](0)*get[1](0) + get[4](1)*get[1](1) + get[4](2)*get[1](2), 2)
+	b[5]:set( b[2]:get(0)*b[1]:get(0) + b[2]:get(1)*b[1]:get(1) + b[2]:get(2)*b[1]:get(2), 0)
+	b[5]:set( b[3]:get(0)*b[1]:get(0) + b[3]:get(1)*b[1]:get(1) + b[3]:get(2)*b[1]:get(2), 1)
+	b[5]:set( b[4]:get(0)*b[1]:get(0) + b[4]:get(1)*b[1]:get(1) + b[4]:get(2)*b[1]:get(2), 2)
 	]],
 
 	cstransform = [[ --1, 1, {9}
-	local c1, c2, c3 = get3[1]()
+	local c1, c2, c3 = b[1]:get3()
 	local p1, p2, p3
-	p1 = params[1]*c1 + params[2]*c2 + params[3]*c3
-	p2 = params[4]*c1 + params[5]*c2 + params[6]*c3
-	p3 = params[7]*c1 + params[8]*c2 + params[9]*c3
-	set3[1](p1, p2, p3)
+	p1 = p[1]*c1 + p[2]*c2 + p[3]*c3
+	p2 = p[4]*c1 + p[5]*c2 + p[6]*c3
+	p3 = p[7]*c1 + p[8]*c2 + p[9]*c3
+	b[2]:set3(p1, p2, p3)
 	]],
 
 	copy = [[ -- 1, 1
-	set3[1]( get3[1]())
+	b[2]:set3( b[1]:get3())
 	]],
 
 	hsxedit = [[ -- 2,1
-	local x = get[2](0)+get[1](0)
+	local x = b[2]:get(0)+b[1]:get(0)
 	x = x>1 and x-1 or x
-	set[1]( x, 0)
-	set[1]( get[2](1)*get[1](1), 1)
-	set[1]( get[2](2)*get[1](2), 2)
+	b[3]:set( x, 0)
+	b[3]:set( b[2]:get(1)*b[1]:get(1), 1)
+	b[3]:set( b[2]:get(2)*b[1]:get(2), 2)
 	]],
 
 	lchedit = [[ -- 2,1
-	local x = get[2](2)+get[1](2)
+	local x = b[2]:get(2)+b[1]:get(2)
 	x = x>1 and x-1 or x
-	set[1]( get[2](0)*get[1](0), 0)
-	set[1]( get[2](1)*get[1](1), 1)
-	set[1]( x, 2)
+	b[3]:set( b[2]:get(0)*b[1]:get(0), 0)
+	b[3]:set( b[2]:get(1)*b[1]:get(1), 1)
+	b[3]:set( x, 2)
 	]],
 
 	rgbedit = [[ -- 3,1
 	for c = 0, 2 do
-		set[1]( get[1](c)*get[2](c)+get[3](c) , c)
+		b[4]:set( b[1]:get(c)*b[2]:get(c)+b[3]:get(c) , c)
 	end	]],
 
 	compose = [[ -- 3,1
-	set3[1]( get[1](0), get[2](1), get[3](2) )
+	b[4]:set3( b[1]:get(0), b[2]:get(1), b[3]:get(2) )
 	]],
 
 	decompose = [[ -- 1,3
-		set[1](get[1](0))
-		set[2](get[1](1))
-		set[3](get[1](2))
+		b[2]:set(b[1]:get(0))
+		b[3]:set(b[1]:get(1))
+		b[4]:set(b[1]:get(2))
 	]],
 
 	merge = [[ -- 3,1
 	for c = 0, 2 do
-		set[1]( get[1](c)*get[3](c) + get[2](c)*(1-get[3](c)), c)
+		b[4]:set( b[1]:get(c)*b[3]:get(c) + b[2]:get(c)*(1-b[3]:get(c)), c)
 	end	]],
 
 	add = [[ -- 2,1
 	for c = 0, 2 do
-		set[1]( get[1](c) + get[2](c), c)
+		b[3]:set( b[1]:get(c) + b[2]:get(c), c)
 	end	]],
 
 	sub = [[ -- 2,1
 	for c = 0, 2 do
-		set[1]( get[1](c) - get[2](c), c)
+		b[3]:set( b[1]:get(c) - b[2]:get(c), c)
 	end	]],
 
 	mult = [[ -- 2,1
 	for c = 0, 2 do
-		set[1]( get[1](c) * get[2](c), c)
+		b[3]:set( b[1]:get(c) * b[2]:get(c), c)
 	end	]],
 
 	div = [[ -- 2,1
 	for c = 0, 2 do
-		set[1]( get[1](c) / get[2](c), c)
+		b[3]:set( b[1]:get(c) / b[2]:get(c), c)
 	end	]],
 
 	compMult = [[ -- 4, 2
 	for c = 0, 2 do
-		set[1]( get[1](c)*get[3](c) - get[2](c)*get[4](c), c)
-		set[2]( get[1](c)*get[4](c) + get[2](c)*get[3](c), c)
+		b[5]:set( b[1]:get(c)*b[3]:get(c) - b[2]:get(c)*b[4]:get(c), c)
+		b[6]:set( b[1]:get(c)*b[4]:get(c) + b[2]:get(c)*b[3]:get(c), c)
 	end
 	]],
 
 	zero = [[ -- 0,1
 	for c = 0, 2 do
-		set[1]( 0, c)
+		b[1]:set( 0, c)
 	end	]],
 
 	equaliseGB = [[ -- 1,1
-		local GB = (get[1](1)+get[1](2))/2
-		set[1]( GB, 1)
-		set[1]( GB, 2)
+		local GB = (b[1]:get(1)+b[1]:get(2))/2
+		b[2]:set( GB, 1)
+		b[2]:set( GB, 2)
 	]],
 
 	invertR_GB = [[ -- 1,1
-		local GB = 1-get[1](0)
-		set[1]( GB, 1)
-		set[1]( GB, 2)
-	]],
-
-	pass = [[ -- 1, 1
-	set3[1](get3[1]())
+		local GB = 1-b[1]:get(0)
+		b[2]:set( GB, 1)
+		b[2]:set( GB, 2)
 	]],
 }
 
+--[[
 do
 	local function filter(func, flag)
 		for x = __instance, xmax/2, __tmax do
@@ -193,16 +189,17 @@ do
 	function ops.gauss_wrap() return filter(math.func.gauss, true) end
 	function ops.lorenz_wrap() return filter(math.func.lorenz, true) end
 end
+--]]
 
 -- construct all pixel functions from ops.strings
 for k, v in pairs(ops.strings) do
 	ops[k] = loadstring(startstring_matrix..v..endstring_matrix)
 end
-
 ops.strings = nil
 
-ops.empty = function() progress[__instance+1] = -1 end
+ops.empty = function() __global.progress[__global.inst] = -1 end
 
+--[[
 ops.norm = function()	-- 1,1
 	local sum = {[0]=0, [1]=0, [2]=0}
 
@@ -234,37 +231,62 @@ ops.norm = function()	-- 1,1
 
 	progress[__instance+1] = -1
 end
+--]]
 
-return ops
 
+-- Example functions
 --[[
-PROTOTYPES
--- performance note: memory-align loops in same order as array [x][y][c]
-cs.LRGBtoSRGB = function()
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		for y = 0, ymax-1 do
-			__pp = (x * ymax + y) * 3
-			for c = 0, 2 do
-				set[1]( LRGBtoSRGB(get[1](c))*get[2](c) + get[1](c)*(1-get[2](c)), c)
-			end
+--bufs:[in, out]
+ops.copy = function()	
+	local s = __global.state
+	local b = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
+	
+	for x = inst, s.xmax-1, instmax do
+		if progress[instmax]==-1 then break end
+		for y = 0, s.ymax-1 do
+			s:up(x, y)
+			
+			-- main program
+			local c1, c2, c3 = b[1]:get3()
+			b[2]:set3(c1, c2, c3)
+			
 		end
-		progress[__instance+1] = x - __instance
+		progress[inst] = x - inst
 	end
-	progress[__instance+1] = -1
+	progress[inst] = -1
 end
 
-cs.SRGBtoLRGB = function()
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		for y = 0, ymax-1 do
-			__pp = (x * ymax + y) * 3
-			for c = 0, 2 do
-				set[1]( SRGBtoLRGB(get[1](c))*get[2](c) + get[1](c)*(1-get[2](c)), c)
-			end
+ops.merge = function()
+	local s = __global.state
+	local b = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
+	
+	for x = inst, s.xmax-1, instmax do
+		if progress[instmax]==-1 then break end
+		for y = 0, s.ymax-1 do
+			s:up(x, y)
+			
+			-- main program
+			local a1, a2, a3 = b[1]:get3()
+			local b1, b2, b3 = b[2]:get3()
+			local f1, f2, f3 = b[3]:get3()
+			local c1, c2, c3 = 	a1*f1+b1*(1-f1),
+								a2*f2+b2*(1-f2),
+								a3*f3+b3*(1-f3)
+			b[4]:set3(c1, c2, c3)
+			
 		end
-		progress[__instance+1] = x - __instance
+		progress[inst] = x - inst
 	end
-	progress[__instance+1] = -1
+	progress[inst] = -1	
 end
 --]]
+
+return ops
