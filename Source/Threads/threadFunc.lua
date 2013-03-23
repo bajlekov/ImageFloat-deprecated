@@ -62,6 +62,11 @@ ops = require("ops") -- global ops are required to ease calling
 
 function __init() -- initialisation function, runs once when instance is started
 	__global.progress = ffi.cast("int*", __progress)
+	__global.instance = __instance
+	__global.instmax = __tmax
+	__progress = nil
+	__instance = nil
+	__tmax = nil
 	-- FIXME figure out where gc causes trouble!!
 	collectgarbage("stop")
 end
@@ -95,15 +100,64 @@ function __setup() -- set up instance for processing after node parameters are p
 	
 	buf.max = n
 	
+	__global.state = {0, 0, 0, xmax, ymax, zmax}
+	function __global.state:up(x, y, z)
+		self[1] = x or self[1]
+		self[2] = y or self[2]
+		self[3] = z or self[3]
+	end
+	
 	-- setup getters/setters
+	for i = 1, n do
+		local b = buf[i]
+		local s = __global.state
+		
+		if b.x==1 and b.y==1 and b.z==1 then
+			function b:get() return self.data[0] end
+			function b:set(c) self.data[0] = c end
+			function b:get3() local c = self:get() return c, c, c end
+			--function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
+			b.getxy = self.get
+			--b.setxy = self.set
+			b.get3xy = self.get3
+			--b.set3xy = self.set3
+		elseif (b.x>1 or b.y>1) and b.z==1 then
+			function b:get() return self.data[s[1]*s[5]+s[2]] end 
+			function b:set(c) self.data[s[1]*s[5]+s[2]] = c end
+			function b:get3() local c = self:get() return c, c, c end
+			--function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
+			function b:getxy(n, x, y) return self.data[x*s[5]+y] end
+			function b:setxy(c, n, x, y) self.data[x*s[5]+y] = c end
+			function b:get3xy(x, y) local c = self:getxy(x, y) return c, c, c end
+			--function b:set3xy(c1, c2, c3, x, y) local c = (c1+c2+c3)/3 self:setxy(c, x, y) end
+		elseif b.x==1 and b.y==1 and b.z==3 then
+			function b:get(n) return self.data[n or s[3]] end
+			function b:set(c, n) self.data[n or s[3]] = c end
+			function b:get3() return self.data[0], self.data[1], self.data[2] end
+			function b:set3(c1, c2, c3) self.data[0], self.data[1], self.data[2] = c1, c2, c3 end
+			b.getxy = b.get
+			--b.setxy = b.set
+			b.get3xy = b.get3
+			--b.set3xy = b.set3
+		elseif (b.x>1 or b.y>1) and b.z==3 then
+			function b:get(n) return self.data[s[1]*s[5]*s[6]+s[2]*s[6]+(n or s[3])] end
+			function b:set(c, n) self.data[s[1]*s[5]*s[6]+s[2]*s[6]+(n or s[3])] = c end
+			function b:get3() return self:get(0), self:get(1), self:get(2) end
+			function b:set3(c1, c2, c3) self:set(c1, 0) self:set(c2, 1) self:set(c3, 2) end
+			function b:getxy(n, x, y) return self.data[x*s[5]*s[6]+y*s[6]+(n or s[3])] end
+			function b:setxy(c, n, x, y) self.data[x*s[5]*s[6]+y*s[6]+(n or s[3])] = c end
+			function b:get3xy(x, y) return self:getxy(0, x, y), self:getxy(1, x, y), self:getxy(2, x, y) end
+			function b:get3xy(c1, c2, c3, x, y) self.setxy(c1, 0, x, y) self.setxy(c2, 1, x, y) self.setxy(c3, 2, x, y) end
+		end
+	
+	
+	end
 	
 	__global.buf = buf
 	__global.params = __params
 	__params = nil
 	__bufs = nil
 	__dims = nil
-	
-	__global.state = {0, 0, 0, xmax, ymax, zmax}
 end
 
 	--[[

@@ -242,13 +242,32 @@ end
 
 
 
-ops.copy = function()
-	print("hi, op!")
-	local bufi = __global.buf[1]
-	local bufo = __global.buf[2]
-	print(bufi)
-	print(bufi.x, bufi.y, bufi.z)
-	print(bufo.x, bufo.y, bufo.z)
+--bufs:[in, out]
+ops.copy = function()	
+	-- use local references
+	local s = __global.state
+	local b = __global.buf
+	local p = __global.params
+	local progress	= __global.progress
+	local inst	= __global.instance
+	local instmax	= __global.instmax
+	
+	-- set max value of progress
+	progress[instmax+1] = s[4]
+	
+	for x = inst, s[4]-1, instmax do
+		if progress[instmax]==-1 then break end
+		for y = 0, s[5]-1 do
+			s:up(x, y)
+			
+			-- main program
+			local c1, c2, c3 = b[1]:get3()
+			b[2]:set3(c1, c2, c3)
+			
+		end
+		progress[inst] = (x - inst)/2 + (s[4]-1)/2
+	end
+	progress[inst] = -1
 end
 
 
