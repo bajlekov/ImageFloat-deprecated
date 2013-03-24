@@ -65,6 +65,7 @@ ffi.cdef[[
 	void ispc_mul(float* a, float* b, float* o, int size);
 	void ispc_div(float* a, float* b, float* o, int size);
 	void ispc_pow(float* a, float b, float* o, int size);
+	void ispc_move(float* i, float* o, int size);
 	
 	void ispc_LtoG(float* src, float* dst, int size);
 	void ispc_GtoL(float* src, float* dst, int size);
@@ -75,6 +76,7 @@ optim.sub = ISPC.ispc_sub
 optim.mul = ISPC.ispc_mul
 optim.div = ISPC.ispc_div
 optim.pow = ISPC.ispc_pow
+optim.mov = ISPC.ispc_move
 
 -- FIXME: gamma node fails if this test is not run!!! ... segfault calling ispc functions from thread
 -- on the bright side, this consistently triggers the error
@@ -104,7 +106,7 @@ do
 	end
 end
 
---[[
+---[[
 
 local size = 4096*128*3
 local a = ffi.new("float[?]", size)
