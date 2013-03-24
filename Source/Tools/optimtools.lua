@@ -49,7 +49,7 @@ if jit.os=="Windows" then --32bit
 	os.execute ("ispc --arch=x86 --opt=fast-math -o "..path..file..".obj "..path..file..".ispc")
 	os.execute ("ld -shared -mi386pe -o "..path..file..".dll "..path..file..".obj")
 	end
-	ISPC = ffi.load("median.dll")
+	ISPC = ffi.load("./"..path..file..".dll")
 else --Linux 64bit
 	if __global==nil or __global.setup.optRecompile then
 	os.execute ("ispc --opt=fast-math --pic -o "..path..file..".o "..path..file..".ispc") print("compiling... (ispc)")
