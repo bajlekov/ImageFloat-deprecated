@@ -536,9 +536,15 @@ if ispc then
 		for x = inst, s.xmax-1, instmax do
 			if progress[instmax]==-1 then break end
 			
-			print(x*s.ymax*s.zmax + s.ymax*s.zmax, s.xmax*s.ymax*s.zmax)
-			print(b[1].data, b[2].data)
+			-- regular access to memory works
+			for i = 0, s.ymax*s.zmax do
+				b[2].data[x*s.ymax*s.zmax + i] = b[1].data[x*s.ymax*s.zmax + i]^p[1]
+			end
+			
+			print("***", p[1])
+			
 			opt.pow(b[1].data + x*s.ymax*s.zmax, p[1], b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			--opt.mov(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
 			
 			progress[inst] = x - inst
 		end
