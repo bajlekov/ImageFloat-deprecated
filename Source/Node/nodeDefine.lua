@@ -368,15 +368,24 @@ nodeTable["WhiteBalance"] = function(self)
 		bo[4].buf = img:newC(x,y,z)
 		
 		--depending on speed it might be better to call just one coroutine.yield() ??
+		
+		-- fuse ops!! check on how to do it for ispc code ...
 		lua.threadSetup({bo[0].buf, bo[0].buf})
-		lua.threadRun("ops", "cs", "SRGB", "XYZ")
+		lua.threadRun("ops", "cs", "SRGB", "LRGB")
 		coroutine.yield(num)
+		lua.threadSetup({bo[0].buf, bo[0].buf})
+		lua.threadRun("ops", "cs", "LRGB", "XYZ")
+		coroutine.yield(num)
+		
 		local tr = vonKriesTransform({x, y, z}, "D65")
 		lua.threadSetup({bo[0].buf, bo[0].buf}, tr)
 		lua.threadRun("ops", "cstransform")
 		coroutine.yield(num)
 		lua.threadSetup({bo[0].buf, bo[0].buf})
-		lua.threadRun("ops", "cs", "XYZ", "SRGB")
+		lua.threadRun("ops", "cs", "XYZ", "LRGB")
+		coroutine.yield(num)
+		lua.threadSetup({bo[0].buf, bo[0].buf})
+		lua.threadRun("ops", "cs", "LRGB", "SRGB")
 		coroutine.yield(num)
 		bufsIn = {}
 	end
