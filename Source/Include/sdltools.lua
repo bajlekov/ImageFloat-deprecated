@@ -129,6 +129,8 @@ end
 
 function SDL.createMutex() return _SDL.SDL_CreateMutex() end
 function SDL.destroyMutex(m) _SDL.SDL_DestroyMutex(m) end
+function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
+function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
 function SDL.createThread(fun, ptr) return _SDL.SDL_CreateThread(fun, ptr) end
 function SDL.waitThread(t) _SDL.SDL_WaitThread(t, NULL) end
 

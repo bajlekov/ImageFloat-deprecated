@@ -35,6 +35,8 @@ __global = {}
 __global.setup = require("IFsetup")
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
+local sdl = require("sdltools")
+
 if __global.setup.optCompile.ispc then
 	__global.ISPC = ffi.load("./Ops/ISPC/ops.so")
 	ffi.cdef[[

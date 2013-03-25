@@ -27,6 +27,39 @@ ops.layer = require("opsLayer")
 require("mathtools")
 local ffi = require("ffi")
 
+-- function to synchronise between a multi-pass operation
+local function syncThreads()
+	local progress	= __global.progress
+	local inst		= __global.instance
+	local instmax	= __global.instmax
+	local old = progress[inst]
+	
+	progress[inst] = -2 -- set thread to waiting
+	local hold = true
+	
+	while hold do
+		hold = false
+		for i = 0, instmax-1 do
+			if progress[i]~=-2 then
+				hold = true
+				break
+			end
+		end
+		
+		__sdl.lockMutex(__mut)
+		if progress[inst]==-3 then
+			hold = false
+		elseif hold==false then
+			for i = 0, instmax-1 do
+				progress[i] = -3
+			end
+			hold = false
+		end
+		__sdl.unlockMutex(__mut)
+	end
+	
+	progress[inst] = old --return to old state
+end
 
 -- refactor to avoid small loops along Z-dim
 -- and to avoid compiling of text functions
@@ -90,7 +123,7 @@ local function wrapLoop(fun, preFun)
 end
 
 -- make wrapper functions available through __global.tools
-__global.tools = {wrapChan=wrapChan, wrapLoop=wrapLoop}
+__global.tools = {wrapChan=wrapChan, wrapLoop=wrapLoop, syncThreads=syncThreads}
 
 local function invert(b, p, c) -- 2, 1
 	b[3]:set( (1-b[1]:get(c))*b[2]:get(c) + b[1]:get(c)*(1-b[2]:get(c)), c)
