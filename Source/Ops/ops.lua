@@ -25,6 +25,7 @@ ops.filter = require("opsFilter")
 ops.layer = require("opsLayer")
 
 require("mathtools")
+local ffi = require("ffi")
 
 
 -- refactor to avoid small loops along Z-dim
@@ -113,6 +114,31 @@ local function cstransform(b, p) -- 1, 1, 9
 	b[2]:set3(p1, p2, p3)
 end 
 ops.cstransform = wrapLoop(cstransform)
+
+if __global.setup.optCompile.ispc then
+	function ops.cstransform()		
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		local mul = __global.ISPC.ispc_mat3mul
+		local mat = ffi.new("float[9]", p)
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
 
 local function copy(b, p, z) -- 1, 1
 	b[2]:set(b[1]:get(z), z)

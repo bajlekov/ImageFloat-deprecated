@@ -829,7 +829,6 @@ if __global.setup.optCompile.ispc then
 		local instmax	= __global.instmax
 		
 		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
-		print("cs.LRGB.XYZ_ISPC")
 		
 		for x = inst, s.xmax-1, instmax do
 			if progress[instmax]==-1 then break end
