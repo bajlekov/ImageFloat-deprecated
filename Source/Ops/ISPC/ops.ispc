@@ -81,3 +81,25 @@ export void ispc_GtoL(uniform float src[], uniform float dst[], uniform int size
     }
   }
 }
+
+export void ispc_mat3mul(uniform float src[], uniform float dst[], uniform float mat[], uniform int size){
+	varying float ri, gi, bi;
+	varying float ro, go, bo;
+	foreach(i = 0 ... size/3) {
+		ri = src[i*3];
+		gi = src[i*3+1];
+		bi = src[i*3+2];
+		
+		ro = mat[0]*ri + mat[1]*gi + mat[2]*bi;
+		go = mat[3]*ri + mat[4]*gi + mat[5]*bi;
+		bo = mat[6]*ri + mat[7]*gi + mat[8]*bi;
+		
+		dst[i*3] = ro;
+		dst[i*3+1] = go;
+		dst[i*3+2] = bo;
+	}
+}
+
+
+
+

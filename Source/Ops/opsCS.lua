@@ -299,6 +299,8 @@ do
 	end
 end
 
+
+
 -- dcraw RAWtoXYZ using D65 illuminant --in 16bit int?
 local RAW = {}
 RAW["OLYMPUS E-620"] = 
@@ -802,6 +804,53 @@ if __global.setup.optCompile.ispc then
 			if progress[instmax]==-1 then break end
 			
 			GtoL(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
+
+
+ffi.cdef("void ispc_mat3mul(float* src, float* dst, float* mat, int size)")
+if __global.setup.optCompile.ispc then
+	function cs.LRGB.XYZ()
+		local mul = __global.ISPC.ispc_mat3mul
+		local mat = ffi.new("float[9]", C)
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+			
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+function cs.XYZ.LRGB()
+		local mul = __global.ISPC.ispc_mat3mul
+		local mat = ffi.new("float[9]", CI)
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+			
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
 			
 			progress[inst] = x - inst
 		end
