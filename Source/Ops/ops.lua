@@ -26,140 +26,186 @@ ops.layer = require("opsLayer")
 
 require("mathtools")
 
--- generic pixel function loop
-local startstring_matrix = [[
-							local s = __global.state
-							local b = __global.buf
-							local p = __global.params
-							local progress	= __global.progress
-							local inst	= __global.instance
-							local instmax	= __global.instmax
-							
-							for x = inst, s.xmax-1, instmax do
-								if progress[instmax]==-1 then break end
-								for y = 0, s.ymax-1 do
-									s:up(x, y)
-]]
 
-local endstring_matrix = [[
-									end
-								progress[inst] = x - inst
-							end
-							progress[inst] = -1
-]]
+-- refactor to avoid small loops along Z-dim
+-- and to avoid compiling of text functions
+-- and to avoid overhead for single channel ops
+
+-- wrap single channel ops in multichannel functions:
+local function wrapChan(fun)
+	return function(b, p, zSize)
+		if zSize==nil then
+			fun(b, p, 0)
+			fun(b, p, 1)
+			fun(b, p, 2)
+		elseif zSize==1 then
+			fun(b, p, 0)
+		elseif zSize==2 then
+			fun(b, p, 0)
+			fun(b, p, 1)
+		elseif zSize==3 then
+			fun(b, p, 0)
+			fun(b, p, 1)
+			fun(b, p, 2)
+		elseif zSize==4 then
+			fun(b, p, 0)
+			fun(b, p, 1)
+			fun(b, p, 2)
+			fun(b, p, 3)
+		else
+			for z = 0, zSize-1 do	-- if none of the above still perform loop
+				fun(b, p, z)
+			end
+		end
+	end
+end
+
+-- wrap single pixel ops in loops:
+local function wrapLoop(fun, preFun)
+	return function()	
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		-- preprocessing function, if needed
+		if preFun then preFun(b, p, s) end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			for y = 0, s.ymax-1 do
+				s:up(x, y)
+				
+				-- possibly pass through (x, y) 
+				fun(b, p, s.zmax)
+				
+			end
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
+
+-- make wrapper functions available through __global.tools
+__global.tools = {wrapChan=wrapChan, wrapLoop=wrapLoop}
+
+local function invert(b, p, c) -- 2, 1
+	b[3]:set( (1-b[1]:get(c))*b[2]:get(c) + b[1]:get(c)*(1-b[2]:get(c)), c)
+end
+ops.invert = wrapLoop(wrapChan(invert))
 
 
---for value/colour processing:
---local startstring_single = [[ __pp = 0 ]]
---local endstring_single = [[ progress[__instance+1] = -1 ]]
-
--- TODO: refactor ops, remove inner loops! see Test/opsInterface.lua
-ops.strings = {
-
-	invert = [[ -- 2, 1
-	for c = 0, 2 do
-		b[3]:set( (1-b[1]:get(c))*b[2]:get[2](c) + b[1]:get(c)*(1-b[2]:get(c)), c)
-	end ]],
-
-	mixer = [[ -- 4, 1
+local function mixer(b, p) -- 4, 1
 	b[5]:set( b[2]:get(0)*b[1]:get(0) + b[2]:get(1)*b[1]:get(1) + b[2]:get(2)*b[1]:get(2), 0)
 	b[5]:set( b[3]:get(0)*b[1]:get(0) + b[3]:get(1)*b[1]:get(1) + b[3]:get(2)*b[1]:get(2), 1)
 	b[5]:set( b[4]:get(0)*b[1]:get(0) + b[4]:get(1)*b[1]:get(1) + b[4]:get(2)*b[1]:get(2), 2)
-	]],
+end
+ops.mixer = wrapLoop(mixer)
 
-	cstransform = [[ --1, 1, {9}
+local function cstransform(b, p) -- 1, 1, 9
 	local c1, c2, c3 = b[1]:get3()
 	local p1, p2, p3
 	p1 = p[1]*c1 + p[2]*c2 + p[3]*c3
 	p2 = p[4]*c1 + p[5]*c2 + p[6]*c3
 	p3 = p[7]*c1 + p[8]*c2 + p[9]*c3
 	b[2]:set3(p1, p2, p3)
-	]],
+end 
+ops.cstransform = wrapLoop(cstransform)
 
-	copy = [[ -- 1, 1
-	b[2]:set3( b[1]:get3())
-	]],
+local function copy(b, p, z) -- 1, 1
+	b[2]:set(b[1]:get(z), z)
+end
+ops.copy = wrapLoop(wrapChan(copy))
 
-	hsxedit = [[ -- 2,1
+
+local function hsxedit(b, p) -- 2, 1
 	local x = b[2]:get(0)+b[1]:get(0)
 	x = x>1 and x-1 or x
 	b[3]:set( x, 0)
 	b[3]:set( b[2]:get(1)*b[1]:get(1), 1)
 	b[3]:set( b[2]:get(2)*b[1]:get(2), 2)
-	]],
+end
+ops.hsxedit = wrapLoop(hsxedit)
 
-	lchedit = [[ -- 2,1
-	local x = b[2]:get(2)+b[1]:get(2)
-	x = x>1 and x-1 or x
-	b[3]:set( b[2]:get(0)*b[1]:get(0), 0)
-	b[3]:set( b[2]:get(1)*b[1]:get(1), 1)
-	b[3]:set( x, 2)
-	]],
+local function lchedit(b, p) -- 2, 1
+local x = b[2]:get(2)+b[1]:get(2)
+x = x>1 and x-1 or x
+b[3]:set( b[2]:get(0)*b[1]:get(0), 0)
+b[3]:set( b[2]:get(1)*b[1]:get(1), 1)
+b[3]:set( x, 2)
+end
+ops.lchedit = wrapLoop(lchedit)
 
-	rgbedit = [[ -- 3,1
-	for c = 0, 2 do
-		b[4]:set( b[1]:get(c)*b[2]:get(c)+b[3]:get(c) , c)
-	end	]],
+local function rgbedit(b, p, c) -- 3, 1
+	b[4]:set( b[1]:get(c)*b[2]:get(c)+b[3]:get(c) , c)
+end
+ops.rgbedit = wrapLoop(wrapChan(rgbedit))
 
-	compose = [[ -- 3,1
-	b[4]:set3( b[1]:get(0), b[2]:get(1), b[3]:get(2) )
-	]],
+local function compose(b, p) -- 3,1
+b[4]:set3( b[1]:get(0), b[2]:get(1), b[3]:get(2) )
+end
+ops.compose = wrapLoop(compose)
 
-	decompose = [[ -- 1,3
-		b[2]:set(b[1]:get(0))
-		b[3]:set(b[1]:get(1))
-		b[4]:set(b[1]:get(2))
-	]],
+local function decompose(b, p) -- 1,3
+	b[2]:set(b[1]:get(0))
+	b[3]:set(b[1]:get(1))
+	b[4]:set(b[1]:get(2))
+end
+ops.decompose = wrapLoop(decompose)
 
-	merge = [[ -- 3,1
-	for c = 0, 2 do
-		b[4]:set( b[1]:get(c)*b[3]:get(c) + b[2]:get(c)*(1-b[3]:get(c)), c)
-	end	]],
+local function merge(b, p, c) -- 3,1
+	b[4]:set( b[1]:get(c)*b[3]:get(c) + b[2]:get(c)*(1-b[3]:get(c)), c)
+end
+ops.merge = wrapLoop(wrapChan(merge))
 
-	add = [[ -- 2,1
-	for c = 0, 2 do
-		b[3]:set( b[1]:get(c) + b[2]:get(c), c)
-	end	]],
+--ops.strings = {
 
-	sub = [[ -- 2,1
-	for c = 0, 2 do
-		b[3]:set( b[1]:get(c) - b[2]:get(c), c)
-	end	]],
+local function add(b, p, c) -- 2, 1
+	b[3]:set( b[1]:get(c) + b[2]:get(c), c)
+end
+ops.add = wrapLoop(wrapChan(add))
 
-	mult = [[ -- 2,1
-	for c = 0, 2 do
-		b[3]:set( b[1]:get(c) * b[2]:get(c), c)
-	end	]],
+local function sub(b, p, c) -- 2, 1
+	b[3]:set( b[1]:get(c) - b[2]:get(c), c)
+end
+ops.sub = wrapLoop(wrapChan(sub))
 
-	div = [[ -- 2,1
-	for c = 0, 2 do
-		b[3]:set( b[1]:get(c) / b[2]:get(c), c)
-	end	]],
+local function mul(b, p, c) -- 2, 1
+	b[3]:set( b[1]:get(c) * b[2]:get(c), c)
+end
+ops.mul = wrapLoop(wrapChan(mul))
 
-	compMult = [[ -- 4, 2
-	for c = 0, 2 do
-		b[5]:set( b[1]:get(c)*b[3]:get(c) - b[2]:get(c)*b[4]:get(c), c)
-		b[6]:set( b[1]:get(c)*b[4]:get(c) + b[2]:get(c)*b[3]:get(c), c)
-	end
-	]],
+local function div(b, p, c) -- 2, 1
+	b[3]:set( b[1]:get(c) / b[2]:get(c), c)
+end
+ops.div = wrapLoop(wrapChan(div))
 
-	zero = [[ -- 0,1
-	for c = 0, 2 do
-		b[1]:set( 0, c)
-	end	]],
+local function compMult(b, p, c) -- 4, 2
+	b[5]:set( b[1]:get(c)*b[3]:get(c) - b[2]:get(c)*b[4]:get(c), c)
+	b[6]:set( b[1]:get(c)*b[4]:get(c) + b[2]:get(c)*b[3]:get(c), c)
+end
+ops.compMult = wrapLoop(wrapChan(compMult))
 
-	equaliseGB = [[ -- 1,1
-		local GB = (b[1]:get(1)+b[1]:get(2))/2
-		b[2]:set( GB, 1)
-		b[2]:set( GB, 2)
-	]],
+local function zero(b, p, c)-- 0,1
+	b[1]:set( 0, c)
+end
+ops.zero = wrapLoop(wrapChan(zero))
 
-	invertR_GB = [[ -- 1,1
-		local GB = 1-b[1]:get(0)
-		b[2]:set( GB, 1)
-		b[2]:set( GB, 2)
-	]],
-}
+local function equaliseGB(b, p) -- 1,1
+	local GB = (b[1]:get(1)+b[1]:get(2))/2
+	b[2]:set( GB, 1)
+	b[2]:set( GB, 2)
+end
+ops.equaliseGB = wrapLoop(equaliseGB)
+
+local function invertR_GB(b, p) -- 1,1
+	local GB = 1-b[1]:get(0)
+	b[2]:set( GB, 1)
+	b[2]:set( GB, 2)
+end
+ops.invertR_GB = wrapLoop(invertR_GB)
 
 --[[
 do
@@ -190,14 +236,6 @@ do
 	function ops.lorenz_wrap() return filter(math.func.lorenz, true) end
 end
 --]]
-
--- construct all pixel functions from ops.strings
-for k, v in pairs(ops.strings) do
-	ops[k] = loadstring(startstring_matrix..v..endstring_matrix)
-end
-ops.strings = nil
-
-ops.empty = function() __global.progress[__global.inst] = -1 end
 
 --[[
 ops.norm = function()	-- 1,1
