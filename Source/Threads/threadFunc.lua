@@ -35,6 +35,11 @@ __global = {}
 __global.setup = require("IFsetup")
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
+if __global.setup.optCompile.ispc then
+	__global.ISPC = ffi.load("./Ops/ISPC/ops.so")
+	ffi.cdef("void ispc_pow(float* a, float b, float* o, int size)")
+end
+
 --[[
 function loadlib(lib)
 	local path = __global.libPath

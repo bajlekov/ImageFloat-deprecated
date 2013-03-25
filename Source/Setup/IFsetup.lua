@@ -5,7 +5,7 @@
 
 return {
 	windowSize = {1280, 600},
-	numThreads = 1,
+	numThreads = 8,
 	bufferPrecision = {"float",4}, -- {"float", 4} or {"double", 8}
 	
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
@@ -26,7 +26,7 @@ return {
 	incPath = "./Include/",
 	
 	--optimizations
-	optRecompile = true,
+	optRecompile = false,
 	optCompile	= {
 			c	= false,
 			sse	= false,
