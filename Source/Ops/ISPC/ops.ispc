@@ -62,27 +62,7 @@ const uniform float k = 0.039827586206897;
 const uniform float k_f = 0.0032267641951848;
 const uniform float f_1 = 0.08101832178386;
 
-export void ispc_LtoG(uniform float src[], uniform float dst[], uniform int size) {
-  foreach(i = 0 ... size) {
-    cif (src[i]<=k_f) {
-    	dst[i] = src[i] * f;
-    } else {
-    	dst[i] = (a+1)*pow(src[i], G_1)-a;
-    }
-  }
-}
-
-export void ispc_GtoL(uniform float src[], uniform float dst[], uniform int size) {
-  foreach(i = 0 ... size) {
-    cif (src[i]<=k) {
-    	dst[i] = src[i] * f_1;
-    } else {
-    	dst[i] = pow((src[i]+a)*a_1, G);
-    }
-  }
-}
-
-float LtoG(float i) {
+inline float LtoG(float i) {
 	cif (i<=k_f) {
     	return i * f;
     } else {
@@ -90,12 +70,20 @@ float LtoG(float i) {
     }
 }
 
-float GtoL(float i) {
+inline float GtoL(float i) {
     cif (i<=k) {
     	return i * f_1;
     } else {
     	return pow((i+a)*a_1, G);
     }
+}
+
+export void ispc_LtoG(uniform float src[], uniform float dst[], uniform int size) {
+  foreach(i = 0 ... size) dst[i] = LtoG(src[i]);
+}
+
+export void ispc_GtoL(uniform float src[], uniform float dst[], uniform int size) {
+  foreach(i = 0 ... size) dst[i] = GtoL(src[i]);
 }
 
 export void ispc_mat3mul(uniform float src[], uniform float dst[], uniform float mat[], uniform int size){
