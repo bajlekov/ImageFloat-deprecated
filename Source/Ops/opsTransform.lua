@@ -213,7 +213,9 @@ end
 
 
 local gaussIIR = require("gaussIIR")
-function transform.gaussV()
+function transform.gaussV(i, o)
+	i = i or 1
+	o = o or 2
 	local s = __global.state
 	local b = __global.buf
 	local p = __global.params
@@ -230,11 +232,11 @@ function transform.gaussV()
 	for x = inst, s.xmax-1, instmax do
 		if progress[instmax]==-1 then break end
 		if s.zmax==3 then
-			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
-			gaussIIR(b[1].data + x*step + 1, b[2].data + x*step + 1, sigma, length, stride)
-			gaussIIR(b[1].data + x*step + 2, b[2].data + x*step + 2, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 0, b[o].data + x*step + 0, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 1, b[o].data + x*step + 1, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 2, b[o].data + x*step + 2, sigma, length, stride)
 		elseif s.zmax==1 then
-			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 0, b[o].data + x*step + 0, sigma, length, stride)
 		end
 		
 		progress[inst] = x - inst
@@ -242,7 +244,9 @@ function transform.gaussV()
 	progress[inst] = -1
 end
 
-function transform.gaussH()
+function transform.gaussH(i, o)
+	i = i or 1
+	o = o or 2
 	local s = __global.state
 	local b = __global.buf
 	local p = __global.params
@@ -259,16 +263,15 @@ function transform.gaussH()
 	local length = s.xmax
 	sigma = sigma<0.000001 and 0.000001 or sigma
 	
-	--TODO: correct for shading due to edge cutoff
 	for x = inst, s.ymax-1, instmax do
 		if progress[instmax]==-1 then break end
 		
 		if s.zmax==3 then
-			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
-			gaussIIR(b[1].data + x*step + 1, b[2].data + x*step + 1, sigma, length, stride)
-			gaussIIR(b[1].data + x*step + 2, b[2].data + x*step + 2, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 0, b[o].data + x*step + 0, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 1, b[o].data + x*step + 1, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 2, b[o].data + x*step + 2, sigma, length, stride)
 		elseif s.zmax==1 then
-			gaussIIR(b[1].data + x*step + 0, b[2].data + x*step + 0, sigma, length, stride)
+			gaussIIR(b[i].data + x*step + 0, b[o].data + x*step + 0, sigma, length, stride)
 		end
 		
 		progress[inst] = x - inst
@@ -276,7 +279,11 @@ function transform.gaussH()
 	progress[inst] = -1
 end
 
-function transform.gaussCorrect()
+function transform.gaussCorrect(i, o)
+	i = i or 1
+	o = o or 1
+	print(i, o)
+	
 	local s = __global.state
 	local b = __global.buf
 	local p = __global.params
@@ -305,18 +312,26 @@ function transform.gaussCorrect()
 			
 			local f = xcorr[x]*ycorr[y]
 			if s.zmax==3 then
-				local c1, c2, c3 = b[1]:get3()
+				local c1, c2, c3 = b[i]:get3()
 				c1, c2, c3 = c1*f, c2*f, c3*f
-				b[1]:set3(c1, c2, c3)
+				b[o]:set3(c1, c2, c3)
 			elseif s.zmax==1 then
-				local c = b[1]:get()
-				b[1]:set(c*f)
+				local c = b[i]:get()
+				b[o]:set(c*f)
 			end
 			
 		end
 		progress[inst] = x - inst
 	end
 	progress[inst] = -1
+end
+
+function transform.gauss()
+	transform.gaussH(1, 2)
+	__global.tools.syncThreads()
+	transform.gaussV(2, 3)
+	__global.tools.syncThreads()
+	transform.gaussCorrect(3, 3)
 end
 
 return transform

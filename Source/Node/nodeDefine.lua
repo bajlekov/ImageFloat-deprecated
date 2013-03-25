@@ -567,25 +567,19 @@ nodeTable["Gaussian"] = function(self)
 		
 		local tempBuf
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0)			-- input
+			bufsIn[1] = getBufIn(0)		-- input
 			bo[0].buf = bufsIn[1]:new()	-- output
-			tempBuf = bufsIn[1]:new()
+			tempBuf = bufsIn[1]:new()	-- temporary
 		else
 			bufsIn[1] = img:newV()		-- input
 			bo[0].buf = bufsIn[1]:new()	-- output
-			tempBuf = bufsIn[1]:new()
+			tempBuf = bufsIn[1]:new()	-- temporary
 		end
 		
 		local blur = p[1].value[1]^2
 		
-		lua.threadSetup({bufsIn[1], tempBuf}, blur)
-		lua.threadRun("ops", "transform", "gaussV")
-		coroutine.yield(num)
-		lua.threadSetup({tempBuf, bo[0].buf}, blur)
-		lua.threadRun("ops", "transform", "gaussH")
-		coroutine.yield(num)
-		lua.threadSetup(bo[0].buf, blur)
-		lua.threadRun("ops", "transform", "gaussCorrect")
+		lua.threadSetup({bufsIn[1], tempBuf, bo[0].buf}, blur)
+		lua.threadRun("ops", "transform", "gauss")
 		coroutine.yield(num)
 	end
 	return n
