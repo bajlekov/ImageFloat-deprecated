@@ -250,6 +250,12 @@ end
 
 --function updating the image and checking when processing should be advanced
 local t = sdl.ticks()
+local vLineAdd = vLineAdd
+local hLineAdd = hLineAdd
+local fpsSmooth = 128 -- smoothing parameter
+local fpsData = ffi.new("double[?]", fpsSmooth)
+local fpsCounter = 0
+
 local function imageProcess(flag)
 	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
 		if cp==-1 then
@@ -260,8 +266,24 @@ local function imageProcess(flag)
 	
 	sdl.screenPut(surf, 350, 20)
 	
-	print(math.floor(1/(sdl.ticks()-t)*1000).."FPS")
+	-- fps averaging
+	local tt = sdl.ticks()-t
 	t = sdl.ticks()
+	
+	if tt<250 then -- filter outliers!
+		fpsData[fpsCounter] = tt 
+		fpsCounter = fpsCounter + 1
+		fpsCounter = fpsCounter==fpsSmooth and 0 or fpsCounter
+	else
+		print("*** slow screen refresh ***")
+	end
+	
+	local fpsAverage = 0
+	for i = 0, fpsSmooth-1 do
+		fpsAverage = fpsAverage + fpsData[i]
+	end
+	
+	sdl.text(math.floor(1/(fpsAverage/fpsSmooth)*1000).."FPS", font.normal, 12, 12)
 
 	-- put histogram buffer
 	for i=1, 255 do

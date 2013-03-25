@@ -164,7 +164,7 @@ if type(__sdl)=="table" then
 		function l.threadInit(n, file)	--number of threads, file to load in new instances
 			l.numCores = n
 			print("using "..l.numCores.." threads...")
-			l.threadProgress = ffi.new("int[?]", l.numCores+4) -- TH states... , abort, max, ?, ?
+			l.threadProgress = ffi.new("int[?]", l.numCores+4) -- TH states... , abort, sync, ?, ?
 			l.threadProgress[l.numCores+1]=1 
 			th.mut = __sdl.createMutex()
 			for i=0, l.numCores-1 do
