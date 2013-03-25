@@ -180,6 +180,9 @@ RGB.wide 		= {0.735, 0.265, 0, 0.115, 0.826, 0.059, 0.157, 0.018, 0.825, wp=WP.D
 RGB.prophoto 	= {0.7347, 0.2653, 0, 0.1596, 0.8404, 0, 0.0366, 0.0001, 0.9633, wp=WP.D50}
 
 --inverse transform
+local mat = {}	-- matrix operations
+local C			-- convert xyz to rgb
+local CI		-- convert rgb to xyz
 do
 	local function det2(a, b, c, d) return a*d-b*c end
 	local function det3(a1,a2,a3,b1,b2,b3,c1,c2,c3)
@@ -271,7 +274,6 @@ do
 	C = diagMult(P,D)
 	CI = inv(C)
 
-	mat = {}
 	mat.mult = mult
 	mat.matMult = matMult
 	mat.diagMult = diagMult
@@ -298,10 +300,11 @@ do
 end
 
 -- dcraw RAWtoXYZ using D65 illuminant --in 16bit int?
-RAW = {}
+local RAW = {}
 RAW["OLYMPUS E-620"] = 
 	{ 8453,-2198,-1092,-7609,15681,2008,-1725,2337,7824, b=0, w=0xfaf}
 
+local CCT
 do
 	local xe =	0.3366
 	local ye =	0.1735
@@ -320,6 +323,13 @@ do
 	-- use sampling at 1K to find matching temperature and green-balance
 end
 
+--local TtoXY
+--local tanTtoXY
+--local norTtoXY
+local TtoM
+local MtoT
+local dMatT
+--local dTdMatT
 do
 	local a, b, c, d, e, f, g, h
 	a = {-0.2661239e9,-3.0258469e9}
@@ -360,6 +370,7 @@ do
 	function dTdMatT(T) return (MtoT(TtoM(T)+0.5)-MtoT(TtoM(T)-0.5)) end --get offset in K for 1 mired at T 
 end
 
+local TtoXY_D
 do
 	local a, b, c, d, e, f, g
 	a = { 0.145986 , 0.244063, 0.237040}
@@ -378,7 +389,7 @@ do
 	end
 end
 
-function XYtoT(x,y)
+local function XYtoT(x,y)
 	local xe = 0.3320
 	local ye = 0.1858
 	local n = (x - xe)/(y - ye)
@@ -394,7 +405,7 @@ function XYtoXYZ(x,y)
 	Z = (1-x-y) * (1/y)
 	return X, 1, Z
 end
-function XYZtoXY(X,Y,Z)
+local function XYZtoXY(X,Y,Z)
 	local x, y
 	x = X/(X+Y+Z)
 	y = Y/(X+Y+Z)
