@@ -37,7 +37,12 @@ __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.a
 
 if __global.setup.optCompile.ispc then
 	__global.ISPC = ffi.load("./Ops/ISPC/ops.so")
-	ffi.cdef("void ispc_pow(float* a, float b, float* o, int size)")
+	ffi.cdef[[
+	void ispc_pow(float* a, float b, float* o, int size);
+	
+	void ispc_LtoG(float* src, float* dst, int size);
+	void ispc_GtoL(float* src, float* dst, int size);
+	]]
 end
  
 ops = require("ops") -- global ops are required to ease calling

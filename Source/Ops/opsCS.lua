@@ -759,4 +759,43 @@ end
 
 --]]
 
+if __global.setup.optCompile.ispc then
+	function cs.LRGB.SRGB()
+		local LtoG = __global.ISPC.ispc_LtoG
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			LtoG(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+	function cs.SRGB.LRGB()
+		local GtoL = __global.ISPC.ispc_GtoL
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			GtoL(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
+
 return cs
