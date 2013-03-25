@@ -371,21 +371,14 @@ nodeTable["WhiteBalance"] = function(self)
 		
 		-- fuse ops!! check on how to do it for ispc code ...
 		lua.threadSetup({bo[0].buf, bo[0].buf})
-		lua.threadRun("ops", "cs", "SRGB", "LRGB")
+		lua.threadRun("ops", "cs", "SRGB", "XYZ")
 		coroutine.yield(num)
-		lua.threadSetup({bo[0].buf, bo[0].buf})
-		lua.threadRun("ops", "cs", "LRGB", "XYZ")
-		coroutine.yield(num)
-		
 		local tr = vonKriesTransform({x, y, z}, "D65")
 		lua.threadSetup({bo[0].buf, bo[0].buf}, tr)
 		lua.threadRun("ops", "cstransform")
 		coroutine.yield(num)
 		lua.threadSetup({bo[0].buf, bo[0].buf})
-		lua.threadRun("ops", "cs", "XYZ", "LRGB")
-		coroutine.yield(num)
-		lua.threadSetup({bo[0].buf, bo[0].buf})
-		lua.threadRun("ops", "cs", "LRGB", "SRGB")
+		lua.threadRun("ops", "cs", "XYZ", "SRGB")
 		coroutine.yield(num)
 		bufsIn = {}
 	end
