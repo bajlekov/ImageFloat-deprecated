@@ -112,6 +112,7 @@ node:add("Color HSV")
 node:add("GradientRot")
 node:add("Merge")
 node:add("Gaussian")
+node:add("Gamma")
 
 node:setInput(mouse)
 
@@ -204,7 +205,7 @@ local hist = require("histogram")
 
 function funProcess()
 	cp=1							-- reset processing coroutine
-	node[1].bufIn = buf 					--initialise input node, move to other location!
+	node[1].bufIn = buf 			-- initialise input node, move to other location!
 
 	-- find output node, make selector for this.../one fixed output node
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end

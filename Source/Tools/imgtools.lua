@@ -16,6 +16,9 @@
 ]]
 
 local ffi = require "ffi"
+local optim = require "optimtools"
+local ispc = __global.setup.optCompile.ispc
+if ispc then print ("Optimization for buffer ops enabled...") end
 
 local prec
 if __global==nil then
@@ -70,10 +73,14 @@ function buffer.meta.__add(a, b)
 			return nil
 		else
 			local o = a:new()
-			for i = 0, a.x-1 do
-				for j = 0, a.y-1 do
-					for k = 0, a.z-1 do
-						o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )				
+			if ISPC then
+				optim.add(a.data, b.data, o.data, a.x*a.y*a.z)
+			else
+				for i = 0, a.x-1 do
+					for j = 0, a.y-1 do
+						for k = 0, a.z-1 do
+							o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )				
+						end
 					end
 				end
 			end
@@ -102,10 +109,14 @@ function buffer.meta.__sub(a, b)
 			return nil
 		else
 			local o = a:new()
-			for i = 0, a.x-1 do
-				for j = 0, a.y-1 do
-					for k = 0, a.z-1 do
-						o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )				
+			if ISPC then
+				optim.sub(a.data, b.data, o.data, a.x*a.y*a.z)
+			else
+				for i = 0, a.x-1 do
+					for j = 0, a.y-1 do
+						for k = 0, a.z-1 do
+							o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )				
+						end
 					end
 				end
 			end
@@ -134,10 +145,14 @@ function buffer.meta.__mul(a, b)
 			return nil
 		else
 			local o = a:new()
-			for i = 0, a.x-1 do
-				for j = 0, a.y-1 do
-					for k = 0, a.z-1 do
-						o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )				
+			if ISPC then
+				optim.mul(a.data, b.data, o.data, a.x*a.y*a.z)
+			else
+				for i = 0, a.x-1 do
+					for j = 0, a.y-1 do
+						for k = 0, a.z-1 do
+							o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )				
+						end
 					end
 				end
 			end
@@ -166,10 +181,14 @@ function buffer.meta.__div(a, b)
 			return nil
 		else
 			local o = a:new()
-			for i = 0, a.x-1 do
-				for j = 0, a.y-1 do
-					for k = 0, a.z-1 do
-						o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )				
+			if ISPC then
+				optim.div(a.data, b.data, o.data, a.x*a.y*a.z)
+			else
+				for i = 0, a.x-1 do
+					for j = 0, a.y-1 do
+						for k = 0, a.z-1 do
+							o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )				
+						end
 					end
 				end
 			end
