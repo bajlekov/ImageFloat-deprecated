@@ -199,6 +199,87 @@ ops.strings = nil
 
 ops.empty = function() __global.progress[__global.inst] = -1 end
 
+
+
+-- refactor to avoid small loops along Z-dim
+-- and to avoid compiling of text functions
+-- and to avoid overhead for single channel ops
+
+do
+-- wrap single channel ops in multichannel functions:
+local function wrapChan(fun)
+	return function(b, p, zSize)
+		if zSize==nil then
+			fun(b, p, 0)
+			fun(b, p, 1)
+			fun(b, p, 2)
+		elseif zSize==1 then
+			fun(b, p, 0)
+		elseif zSize==2 then
+			fun(b, p, 0)
+			fun(b, p, 1)
+		elseif zSize==3 then
+			fun(b, p, 0)
+			fun(b, p, 1)
+			fun(b, p, 2)
+		elseif zSize==4 then
+			fun(b, p, 0)
+			fun(b, p, 1)
+			fun(b, p, 2)
+			fun(b, p, 3)
+		else
+			for z = 0, zSize-1 do	-- if none of the above still perform loop
+				fun(b, p, z)
+			end
+		end
+	end
+end
+
+-- wrap single pixel ops in loops:
+local function wrapLoop(fun, preFun)
+	return function()	
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		-- preprocessing function, if needed
+		if preFun then preFun(b, p, s) end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			for y = 0, s.ymax-1 do
+				s:up(x, y)
+				
+				-- possibly pass through (x, y) 
+				fun(b, p, s.zmax)
+				
+			end
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
+
+-- test code:
+--[[
+--write function(b, p, z):
+local function copy(b, p, z)
+	b[2]:set(b[1]:get(z), z)
+end
+ops.copy = wrapLoop(wrapChan(copy))
+
+local function copy(b, p)
+	b[2]:set3(b[1]:get3())
+end
+ops.copy = wrapLoop(copy)
+--]]
+end
+
+
+
 --[[
 ops.norm = function()	-- 1,1
 	local sum = {[0]=0, [1]=0, [2]=0}
