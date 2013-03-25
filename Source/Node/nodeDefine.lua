@@ -412,7 +412,6 @@ nodeTable["Output"] = function(self)
 			bufsIn[1]=getBufIn(0):copyC() --FIXME: better way to handle GS => color
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
 			lua.threadSetup({bufsIn[1], self.bufOut})
-			print("setup done")
 			lua.threadRun("ops", "copy")
 			coroutine.yield(num)
 		else
