@@ -204,6 +204,8 @@ local calcUpdate
 local hist = require("histogram")
 
 function funProcess()
+	if not __global.preview then print("=========================================") end
+	local t = sdl.ticks()
 	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 			-- initialise input node, move to other location!
 
@@ -213,17 +215,19 @@ function funProcess()
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
 
 	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
-
+	if not __global.preview then print("Setup in: "..tonumber(sdl.ticks()-t).."ms") end
+	
+	local t = sdl.ticks()
+	local tt = sdl.ticks()
 	for k, v in ipairs(node.execOrder) do
-		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name) end
 		node[v]:processRun(k)
-		print("node:", k, v)
+		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name.." ("..tonumber(sdl.ticks()-t).."ms)") end
+		t = sdl.ticks()
 	end
-
+	if not __global.preview then print("Process in: "..tonumber(sdl.ticks()-tt).."ms") end
+	
+	local t = sdl.ticks()
 	bufout = node[outNode].bufOut
-
-	--update previews
-	---[[
 	if __global.preview then
 		img.toSurfaceQuad(bufout, surf)
 	else
@@ -232,24 +236,32 @@ function funProcess()
 		img.toSurfaceQuad(bufoutS, surfS)
 		-- why is bufoutL not used??
 	end
-	--]]
-	--print("prehist")
-	hist.calculate(bufout)
-	--print("posthist")
-	toc("Process in ")
-	tic()
+	if not __global.preview then print("Preview in: "..tonumber(sdl.ticks()-t).."ms") end
 
+	local t = sdl.ticks()
+	hist.calculate(bufout)
+	if not __global.preview then print("Histogram in: "..tonumber(sdl.ticks()-t).."ms") end
+	
+	toc("Loop total")
+	tic()
+	
 	coroutine.yield(-1)
 end
 
 --function updating the image and checking when processing should be advanced
+local t = sdl.ticks()
 local function imageProcess(flag)
 	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
-		if cp==-1 then coProcess=coroutine.wrap(funProcess) end -- if processing is done then start again
+		if cp==-1 then
+			coProcess=coroutine.wrap(funProcess)
+		end -- if processing is done then start again
 		cp = coProcess() -- go to next step
 	end
-
+	
 	sdl.screenPut(surf, 350, 20)
+	
+	print(math.floor(1/(sdl.ticks()-t)*1000).."FPS")
+	t = sdl.ticks()
 
 	-- put histogram buffer
 	for i=1, 255 do

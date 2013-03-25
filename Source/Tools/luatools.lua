@@ -248,16 +248,18 @@ if type(__sdl)=="table" then
 		end
 
 		do
+			local sdl = __sdl
 			local thread = {}
 			local procTime
+			local loopTime = sdl.ticks()
 			local procName
 			function l.threadRun(...)
-				procTime = __sdl.ticks()
+				procTime = sdl.ticks()
 				l.threadCounter[0] = 0
 				for i = 0, l.numCores-1 do
 					l.threadProgress[i]=0
 					l.loadVariable(l.threadInstance[i], ...) -- loads processing function
-					thread[i+1] = __sdl.createThread(l.threadFunction, l.threadCounter) -- runs preset function in each instance!!!
+					thread[i+1] = sdl.createThread(l.threadFunction, l.threadCounter) -- runs preset function in each instance!!!
 				end
 				l.threadRunning = true
 				procName = table.concat({...},".")
@@ -265,9 +267,12 @@ if type(__sdl)=="table" then
 			function l.threadWait()
 				if l.threadRunning==true then
 					for i = 0, l.numCores-1 do
-						__sdl.waitThread(thread[i+1], NULL)
+						sdl.waitThread(thread[i+1], NULL)
 					end
-					if not __global.preview then print("("..procName.."): "..tonumber(__sdl.ticks()-procTime).."ms") end
+					if not __global.preview then
+						print("("..procName.."): "..tonumber(sdl.ticks()-procTime).."ms ("..tonumber(sdl.ticks()-loopTime).."ms)")
+					end
+					loopTime = sdl.ticks()
 				end
 				l.threadRunning = false
 				for i=0,l.numCores do
