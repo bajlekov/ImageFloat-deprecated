@@ -181,7 +181,7 @@ if type(__sdl)=="table" then
 			for i=0, l.numCores-1 do
 				l.closeState(l.threadInstance[i])
 			end
-			__sdl.destroyMutex(th.mut)
+			--__sdl.destroyMutex(th.mut)
 		end
 
 		function l.threadPushMultiple(t)
