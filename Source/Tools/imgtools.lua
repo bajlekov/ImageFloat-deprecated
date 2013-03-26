@@ -16,7 +16,7 @@
 ]]
 
 local ffi = require "ffi"
-local optim = require "optimtools"
+local optim = require "Tools.optimtools"
 local ispc = __global.setup.optCompile.ispc
 if ispc then print ("Optimization for buffer ops enabled...") end
 
@@ -37,14 +37,27 @@ ffi.cdef[[
 	typedef double double_a __attribute__ ((aligned (16)));
 ]] -- allocate aligned memory for use with SSE
 
+
+local allocCount = 0
+local function free(p)
+	allocCount = allocCount - 1
+	ffi.C.free(p)
+end
+
 -- allocate aligned floats
 local function allocF(size)
-	return ffi.gc(ffi.cast("float_a*", ffi.C.calloc(size, 4)), ffi.C.free)
+	allocCount = allocCount + 1
+	return ffi.gc(ffi.cast("float_a*", ffi.C.calloc(size, 4)), free)
 end
 
 -- allocate aligned doubles
 local function allocD(size)
-	return ffi.gc(ffi.cast("double_a*", ffi.C.calloc(size, 8)), ffi.C.free)
+	allocCount = allocCount + 1
+	return ffi.gc(ffi.cast("double_a*", ffi.C.calloc(size, 8)), free)
+end
+
+function __getAllocCount()
+	return allocCount
 end
 
 
