@@ -282,7 +282,6 @@ end
 function transform.gaussCorrect(i, o)
 	i = i or 1
 	o = o or 1
-	print(i, o)
 	
 	local s = __global.state
 	local b = __global.buf
