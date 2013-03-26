@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+if __global and (not __global.setup.optCompile.ispc) then return {} end
+
 -- implement compiled functions for buffer operations:
 local optim = {}
 --[[
