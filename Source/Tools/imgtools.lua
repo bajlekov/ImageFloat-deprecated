@@ -464,6 +464,10 @@ function buffer:clean()
 	self.z=1
 end
 
+function buffer:free()
+	ffi.C.free(ffi.gc(self.data, nil))
+end
+
 do
 	local b = ffi.new("double[9]")  
 	function buffer:mDilate()
