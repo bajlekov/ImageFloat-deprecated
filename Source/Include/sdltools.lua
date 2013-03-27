@@ -115,7 +115,7 @@ function SDL.pixbuf() return ffi.cast("uint8_t*", SDL.screen.pixels) end
 
 function SDL.flip() _SDL.SDL_Flip(SDL.screen) end
 function SDL.flipRect(x, y, w, h) _SDL.SDL_UpdateRect(SDL.screen, x, y, w, h) end
-function SDL.destroySurface(surf) print(debug.traceback("DEPRECATED!")) end -- was: _SDL.SDL_FreeSurface(surf)
+function SDL.destroySurface(surf) _SDL.SDL_FreeSurface(ffi.gc(surf, nil)) end
 function SDL.createSurface(width, height, flags)
 	local fmt = SDL.screen.format
 	local t =_SDL.SDL_CreateRGBSurface(flags, width, height,
@@ -123,7 +123,10 @@ function SDL.createSurface(width, height, flags)
 	return ffi.gc(t, _SDL.SDL_FreeSurface) -- register for GC
 end
 
-function SDL.screenSurface() return SDL.createSurface(SDL.screen.w, SDL.screen.h, 0) end
+function SDL.screenSurface()
+	local t = SDL.createSurface(SDL.screen.w, SDL.screen.h, 0)
+	return ffi.gc(t, _SDL.SDL_FreeSurface)
+end
 function SDL.blit(buf1, rect1, buf2, rect2) _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) end
 function SDL.screenCopy(buffer) SDL.blit(SDL.screen, nil, buffer, nil) end
 function SDL.screenPaste(buffer) SDL.blit(buffer, nil, SDL.screen, nil) end
