@@ -578,8 +578,14 @@ nodeTable["Gaussian"] = function(self)
 		
 		local blur = p[1].value[1]^2
 		
-		lua.threadSetup({bufsIn[1], tempBuf, bo[0].buf}, blur)
-		lua.threadRun("ops", "transform", "gauss")
+		lua.threadSetup({bufsIn[1], tempBuf}, blur)
+		lua.threadRun("ops", "transform", "gaussH")
+		coroutine.yield(num)
+		lua.threadSetup({tempBuf, bo[0].buf}, blur)
+		lua.threadRun("ops", "transform", "gaussV")
+		coroutine.yield(num)
+		lua.threadSetup({bo[0].buf, bo[0].buf}, blur)
+		lua.threadRun("ops", "transform", "gaussCorrect")
 		coroutine.yield(num)
 	end
 	return n
