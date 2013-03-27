@@ -205,6 +205,7 @@ local hist = require("histogram")
 
 function funProcess()
 	if not __global.preview then print("=========================================") end
+	
 	local t = sdl.ticks()
 	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 			-- initialise input node, move to other location!
@@ -242,6 +243,12 @@ function funProcess()
 	hist.calculate(bufout)
 	if not __global.preview then print("Histogram in: "..tonumber(sdl.ticks()-t).."ms") end
 	
+	
+	if not __global.preview then
+		dbg.gc()
+		print(string.format("C-buffers: %.1fMB (", __getAllocSize())..__getAllocCount()..")")
+		dbg.mem("Lua state")
+	end
 	toc("Loop total")
 	tic()
 	
@@ -427,7 +434,7 @@ while true do
 		}
 		local writeFun = writeFunTable[__global.setup.imageSaveType]
 
-		d = ppm.fromBuffer(bufout)
+		local d = ppm.fromBuffer(bufout)
 		d.name = __global.saveFile
 		writeFun(d, __global.setup.imageSaveParams)
 		d = nil
@@ -490,8 +497,6 @@ end
 
 --cleanup
 lua.threadStop()
-sdl.destroyFont(font.normal)
-sdl.destroyFont(font.big)
 node:cleanup()
 
 lua.threadQuit()

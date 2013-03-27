@@ -39,25 +39,39 @@ ffi.cdef[[
 
 
 local allocCount = 0
+local allocTable = {}
+setmetatable(allocTable, {__mode="k"})
 local function free(p)
 	allocCount = allocCount - 1
+	allocTable[p] = nil
 	ffi.C.free(p)
 end
 
 -- allocate aligned floats
 local function allocF(size)
 	allocCount = allocCount + 1
-	return ffi.gc(ffi.cast("float_a*", ffi.C.calloc(size, 4)), free)
+	local t = ffi.cast("float_a*", ffi.C.calloc(size, 4))
+	allocTable[t] = size * 4
+	return ffi.gc(t, free)
 end
 
 -- allocate aligned doubles
 local function allocD(size)
 	allocCount = allocCount + 1
-	return ffi.gc(ffi.cast("double_a*", ffi.C.calloc(size, 8)), free)
+	local t = ffi.cast("double_a*", ffi.C.calloc(size, 8))
+	allocTable[t] = size * 8
+	return ffi.gc(t, free)
 end
 
 function __getAllocCount()
 	return allocCount
+end
+function __getAllocSize()
+	local sum = 0
+	for _, v in pairs(allocTable) do
+		sum = sum + v
+	end
+	return sum/1024/1024
 end
 
 
