@@ -52,6 +52,11 @@ ffi.cdef([[
 	int luaopen_bit(lua_State *L);
 	int luaopen_jit(lua_State *L);
 	int luaopen_ffi(lua_State *L);
+	
+	// get stack size
+	int lua_gettop (lua_State *L);
+	// set stack position (0 = clean)
+	void lua_settop (lua_State *L, int index);
 ]])
 
 local l = {}
@@ -258,6 +263,7 @@ if type(__sdl)=="table" then
 				l.threadCounter[0] = 0
 				for i = 0, l.numCores-1 do
 					l.threadProgress[i]=0
+					lua.lua_settop(l.threadInstance[i], 0) -- restore stack
 					l.loadVariable(l.threadInstance[i], ...) -- loads processing function
 					thread[i+1] = sdl.createThread(l.threadFunction, l.threadCounter) -- runs preset function in each instance!!!
 				end
