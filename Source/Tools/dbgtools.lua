@@ -37,9 +37,9 @@ end
 function dbg.mem(m)
 	collectgarbage("collect")
 	if m then
-		print(string.format(m..": %.1fMB", collectgarbage("count")/1000))
+		print(string.format(m..": %.1fMB", collectgarbage("count")/1024))
 	else
-		print(string.format("%.1fMB", collectgarbage("count")/1000))
+		print(string.format("%.1fMB", collectgarbage("count")/1024))
 	end
 end
 
