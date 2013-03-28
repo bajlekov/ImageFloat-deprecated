@@ -137,10 +137,11 @@ function SDL.screenGet(buffer, x, y, w, h)
 	SDL.blit(SDL.screen, SLD.rectangle(x, y, w or buffer.w, h or buffer.h), buffer, nil)
 end
 
---function SDL.destroyMutex(m) _SDL.SDL_DestroyMutex(m) end
+function SDL.destroyMutex(m) _SDL.SDL_DestroyMutex(m) end
 function SDL.createMutex()
-	local t = _SDL.SDL_CreateMutex()
-	return ffi.gc(t, _SDL.SDL_DestroyMutex) 
+	-- handle mutexes manually!!
+	return _SDL.SDL_CreateMutex()
+	--return ffi.gc(t, _SDL.SDL_DestroyMutex) 
 end
 
 function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
