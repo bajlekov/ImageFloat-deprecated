@@ -30,6 +30,10 @@ package.path = 	"./?.lua;"..
 
 local ffi = require("ffi")
 
+-- set GC parameters for collector to keep up with allocated data
+collectgarbage("setpause", 120)
+--collectgarbage("setstepmul")
+
 -- TODO internal console for debugging etc.
 -- TODO	currently not working with luaJIt 2.1 alpha
 -- FIXME nodes with undefined inputs crash!!!!!!!!!
@@ -245,7 +249,6 @@ function funProcess()
 	
 	
 	if not __global.preview then
-		dbg.gc()
 		print(string.format("C-buffers: %.1fMB (", __getAllocSize())..__getAllocCount()..")")
 		dbg.mem("Lua state")
 	end
@@ -453,6 +456,10 @@ while true do
 		node:draw()
 	end
 	if mouse.key.num==113 then--"Q"
+		lua.threadStop()
+		node:cleanup()
+		lua.threadQuit()
+		sdl.quit()
 		os.exit()
 	end
 
@@ -491,14 +498,11 @@ while true do
 			end
 		end
 	end
-	if mouse.quit then break end
+	if mouse.quit then
+		lua.threadStop()
+		node:cleanup()
+		lua.threadQuit()
+		sdl.quit()
+		os.exit()
+	end
 end
-
-
---cleanup
-lua.threadStop()
-node:cleanup()
-
-lua.threadQuit()
-sdl.quit()
-
