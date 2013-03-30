@@ -148,23 +148,19 @@ return function(SDL)
 		SDLK_z = 122,
 		]]
 
-		-- event functions like on_click etc.
-
 		--timer delay for 60fps
-		while not input.interrupt() do
-			if (startTime+refreshDelay-__sdl.ticks())<0.1 then break end
-			SDL.SDL_Delay(.1)
-		end
-		---[[
-		do
-			local t = __sdl.ticks()-startTime
-			--if t > 33 then print("***",t) end
-		end
-		--]]
-		startTime = __sdl.ticks()
+		if __sdl.ticks()-startTime < 1.25*refreshDelay then 
+			while not input.interrupt() do
+				if __sdl.ticks()-startTime > refreshDelay  then break end
+				SDL.SDL_Delay(1)
+			end 
+			startTime = startTime + refreshDelay
+		else
+			startTime = __sdl.ticks()
+		end		
 
 		--help in detecting unreferenced cdata
-		--__dbg.gc()
+		--collectgarbage("collect")
 	end
 
 	return input
