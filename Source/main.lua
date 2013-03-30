@@ -36,8 +36,8 @@ collectgarbage("setpause", 120)
 
 -- TODO internal console for debugging etc.
 -- TODO	currently not working with luaJIt 2.1 alpha
--- FIXME nodes with undefined inputs crash!!!!!!!!!
--- FIXME segfault with GC on
+
+-- FIXME memory consumption rises above 300MB, leads to unpredicted behaviour and crashes
 
 print([[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
@@ -265,6 +265,7 @@ local hLineAdd = hLineAdd
 local fpsSmooth = 128 -- smoothing parameter
 local fpsData = ffi.new("double[?]", fpsSmooth)
 local fpsCounter = 0
+local fpsAverage = 0
 
 local function imageProcess(flag)
 	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
@@ -281,16 +282,12 @@ local function imageProcess(flag)
 	t = sdl.ticks()
 	
 	if tt<250 then -- filter outliers!
+		fpsAverage = fpsAverage + tt - fpsData[fpsCounter]
 		fpsData[fpsCounter] = tt 
 		fpsCounter = fpsCounter + 1
 		fpsCounter = fpsCounter==fpsSmooth and 0 or fpsCounter
 	else
 		print("*** slow screen refresh ***")
-	end
-	
-	local fpsAverage = 0
-	for i = 0, fpsSmooth-1 do
-		fpsAverage = fpsAverage + fpsData[i]
 	end
 	
 	sdl.text(math.floor(1/(fpsAverage/fpsSmooth)*1000).."FPS", font.normal, 12, 12)
