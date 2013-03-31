@@ -180,6 +180,9 @@ RGB.wide 		= {0.735, 0.265, 0, 0.115, 0.826, 0.059, 0.157, 0.018, 0.825, wp=WP.D
 RGB.prophoto 	= {0.7347, 0.2653, 0, 0.1596, 0.8404, 0, 0.0366, 0.0001, 0.9633, wp=WP.D50}
 
 --inverse transform
+local mat = {}	-- matrix operations
+local C			-- convert xyz to rgb
+local CI		-- convert rgb to xyz
 do
 	local function det2(a, b, c, d) return a*d-b*c end
 	local function det3(a1,a2,a3,b1,b2,b3,c1,c2,c3)
@@ -271,7 +274,6 @@ do
 	C = diagMult(P,D)
 	CI = inv(C)
 
-	mat = {}
 	mat.mult = mult
 	mat.matMult = matMult
 	mat.diagMult = diagMult
@@ -297,11 +299,14 @@ do
 	end
 end
 
+
+
 -- dcraw RAWtoXYZ using D65 illuminant --in 16bit int?
-RAW = {}
+local RAW = {}
 RAW["OLYMPUS E-620"] = 
 	{ 8453,-2198,-1092,-7609,15681,2008,-1725,2337,7824, b=0, w=0xfaf}
 
+local CCT
 do
 	local xe =	0.3366
 	local ye =	0.1735
@@ -320,6 +325,13 @@ do
 	-- use sampling at 1K to find matching temperature and green-balance
 end
 
+--local TtoXY
+--local tanTtoXY
+--local norTtoXY
+local TtoM
+local MtoT
+local dMatT
+--local dTdMatT
 do
 	local a, b, c, d, e, f, g, h
 	a = {-0.2661239e9,-3.0258469e9}
@@ -360,6 +372,7 @@ do
 	function dTdMatT(T) return (MtoT(TtoM(T)+0.5)-MtoT(TtoM(T)-0.5)) end --get offset in K for 1 mired at T 
 end
 
+local TtoXY_D
 do
 	local a, b, c, d, e, f, g
 	a = { 0.145986 , 0.244063, 0.237040}
@@ -378,7 +391,7 @@ do
 	end
 end
 
-function XYtoT(x,y)
+local function XYtoT(x,y)
 	local xe = 0.3320
 	local ye = 0.1858
 	local n = (x - xe)/(y - ye)
@@ -394,7 +407,7 @@ function XYtoXYZ(x,y)
 	Z = (1-x-y) * (1/y)
 	return X, 1, Z
 end
-function XYZtoXY(X,Y,Z)
+local function XYZtoXY(X,Y,Z)
 	local x, y
 	x = X/(X+Y+Z)
 	y = Y/(X+Y+Z)
@@ -518,6 +531,49 @@ local function LCHtoLXX(l, c, h)
 	x = c*math.cos(h)
 	y = c*math.sin(h)
 	return l, x, y
+end
+
+if __global.setup.optCompile.ispc then
+	function cs.gamma()
+		local pow = __global.ISPC.ispc_pow
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			pow(b[1].data + x*s.ymax*s.zmax, p[1], b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+else
+	function cs.gamma()
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			for y = 0, s.ymax-1 do
+				s:up(x, y)
+				
+				local c1, c2, c3 = b[1]:get3()
+				b[2]:set3(c1^p[1], c2^p[1], c3^p[1])
+				
+			end
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
 end
 
 --general CS convert in place constructor
@@ -715,5 +771,137 @@ for _, t in ipairs(tt) do
 end
 
 --]]
+
+if __global.setup.optCompile.ispc then
+	function cs.LRGB.SRGB()
+		local LtoG = __global.ISPC.ispc_LtoG
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			LtoG(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+	function cs.SRGB.LRGB()
+		local GtoL = __global.ISPC.ispc_GtoL
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			GtoL(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
+
+
+if __global.setup.optCompile.ispc then
+	ffi.cdef[[
+	void ispc_mat3mul(float* src, float* dst, float* mat, int size);
+	void ispc_mat3mulLtoG(float* src, float* dst, float* mat, int size);
+	void ispc_GtoLmat3mul(float* src, float* dst, float* mat, int size);
+	]]
+	function cs.LRGB.XYZ()
+		local mul = __global.ISPC.ispc_mat3mul
+		local mat = ffi.new("float[9]", C)
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+	function cs.XYZ.LRGB()
+		local mul = __global.ISPC.ispc_mat3mul
+		local mat = ffi.new("float[9]", CI)
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+	function cs.SRGB.XYZ()
+		local mul = __global.ISPC.ispc_GtoLmat3mul
+		local mat = ffi.new("float[9]", C)
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+	function cs.XYZ.SRGB()
+		local mul = __global.ISPC.ispc_mat3mulLtoG
+		local mat = ffi.new("float[9]", CI)
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+			
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
 
 return cs

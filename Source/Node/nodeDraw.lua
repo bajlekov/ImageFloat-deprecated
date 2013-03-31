@@ -87,21 +87,16 @@ do
 	local function icon(file, x, y)
 		local oi = sdl.loadImage(file)
 		sdl.blit( oi, nil, __surf, sdl.rectangle(x, y, 0, 0))
-		sdl.destroySurface(li)
-		sdl.destroySurface(oi)
 	end
 
 	local function text(text, font, x, y, r, g, b, a)
 		local textObj = sdl.textCreate(text, font, r, g, b, a)
 		sdl.blit(textObj, nil, __surf, sdl.rectangle(x, y, 0, 0))
-		local x, y = textObj.w, textObj.h
-		sdl.destroySurface(textObj)
-		return x, y
+		return textObj.w, textObj.h
 	end
 
 	local function textPut(textObj, x, y)
 		sdl.blit(textObj, nil, __surf, sdl.rectangle(x, y, 0, 0))
-		sdl.destroySurface(textObj)
 	end
 
 
@@ -142,7 +137,7 @@ do
 		if self.ui.buffer==nil then
 			local surf_temp = sdl.createSurface(176, 26+12*n, 0)
 			surf = _SDL.SDL_DisplayFormatAlpha(surf_temp)
-			sdl.destroySurface(surf_temp)
+			--sdl.destroySurface(surf_temp)
 			setSurface(surf)
 			setAlpha(0,0,0)
 			setAlpha(175,0,0)
@@ -226,11 +221,9 @@ do
 
 		x = self.ui.x-13
 		y = self.ui.y-2
-
 		
 		self.ui.buffer = surf
-		sdl.screenPut(surf, x, y)
-		--__sdl.destroySurface(surf)	
+		sdl.screenPut(surf, x, y)	
 	end
 end
 
