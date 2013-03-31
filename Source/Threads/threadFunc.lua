@@ -35,6 +35,9 @@ __global = {}
 __global.setup = require("IFsetup")
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
+-- replace the complete sdl lib with just the mutex functions and possibly tick/wait!
+local sdl = require("sdltools")
+
 if __global.setup.optCompile.ispc then
 	__global.ISPC = ffi.load("./Ops/ISPC/ops.so")
 	ffi.cdef[[
@@ -55,7 +58,10 @@ function __init() -- initialisation function, runs once when instance is started
 	__instance = nil
 	__tmax = nil
 	-- FIXME figure out where gc causes trouble!!
-	--collectgarbage("stop")
+	
+	-- set GC parameters for collector to keep up with allocated data
+	collectgarbage("setpause", 120)
+	--collectgarbage("setstepmul")
 end
 
 function __setup() -- set up instance for processing after node parameters are passed

@@ -344,8 +344,7 @@ function node:focus(n)
 end
 
 function node:cleanup()
-	sdl.destroySurface(self.backgrounds.window)
-	sdl.destroySurface(self.backgrounds.node)
+	-- currently empty, everything is GC'd
 end
 
 do
