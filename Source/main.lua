@@ -15,48 +15,24 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
--- setup paths if not loading bytecode
-package.path = 	"./?.lua;"..
-"./Setup/?.lua;"..
-"./Build/?.lua;"..
-"./Draw/?.lua;"..
-"./Include/?.lua;"..
-"./Interop/?.lua;"..
-"./Math/?.lua;"..
-"./Node/?.lua;"..
-"./Ops/?.lua;"..
-"./Threads/?.lua;"..
-"./Tools/?.lua;"..package.path
-
-local ffi = require("ffi")
-
--- set GC parameters for collector to keep up with allocated data
-collectgarbage("setpause", 120)
---collectgarbage("setstepmul")
-
--- TODO internal console for debugging etc.
--- TODO	currently not working with luaJIt 2.1 alpha
-
--- FIXME memory consumption rises above 300MB, leads to unpredicted behaviour and crashes
-
 print([[
 ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
 This program comes WITHOUT ANY WARRANTY.
 This is free software, and you are welcome to redistribute it under the conditions of the GNU General Public License version 3.
 ]])
 
---load required libraries
-__global = {preview = true, error=false, info=true}
-local __global = __global
-__global.setup = require("IFsetup")
-__global.setup.bufferPrecision = __global.setup.bufferPrecision or {"float", 4}
-
--- setup paths for libraries and resources (do that for threads too!!)
-__global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
-__global.imgPath = __global.setup.imgPath or "../Resources/Images/"
-__global.ttfPath = __global.setup.ttfPath or "../Resources/Fonts/"
-
+-- setup paths if not loading bytecode
+require("path")
+local ffi = require("ffi")
+__global = require("global")
+local __global = __global -- local reference to global table
+__global.loadFile = arg and arg[1] or __global.loadFile
+collectgarbage("setpause", 120)
 math.randomseed(os.time())
+
+-- TODO internal console for debugging etc.
+-- TODO	currently not working with luaJIt 2.1 alpha
+-- FIXME memory consumption rises above 300MB, leads to unpredicted behaviour and crashes
 
 local sdl = require("sdltools")
 local lua = require("luatools")
@@ -79,14 +55,11 @@ __img = img
 
 lua.threadInit(arg and arg[2] or __global.setup.numThreads, __global.setup.threadPath)
 sdl.init()
---initialise threads, display, input, fonts
-
 sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
 sdl.caption("ImageFloat...loading", "ImageFloat");
-require("draw")
 
-__global.loadFile = arg and arg[1] or __global.setup.imageLoadPath..__global.setup.imageLoadName
-__global.saveFile = __global.setup.imageSavePath..__global.setup.imageSaveName
+-- TODO refactor draw
+require("draw")
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
