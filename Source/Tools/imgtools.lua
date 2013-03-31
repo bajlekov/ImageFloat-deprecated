@@ -292,24 +292,19 @@ end
 function buffer:get(x,y,z)
 	return self.data[x*self.y*self.z + y*self.z + z]
 end
-
 function buffer:set(x,y,z, v)
 	self.data[x*self.y*self.z + y*self.z + z] = v
 end
-
 function buffer:get3(x,y)
 	local c = x*self.y*self.z + y*self.z
 	return self.data[c], self.data[c+1], self.data[c+2] 
 end
-
 function buffer:set3(x,y, v1,v2,v3)
 	local c = x*self.y*self.z + y*self.z
 	self.data[c] = v1
 	self.data[c+1] = v2
 	self.data[c+2] = v3
 end
-
-
 function buffer:newI(x, y, c1, c2, c3)
 	x = x or self.x or 1
 	y = y or self.y or 1
@@ -326,6 +321,8 @@ function buffer:newI(x, y, c1, c2, c3)
 	return o
 end
 
+function buffer:getM(x,y) return self.data[x*self.y*self.z + y*self.z] end
+function buffer:setM(x,y, v) self.data[x*self.y*self.z + y*self.z] = v end
 function buffer:newM(x, y, v1)
 	x = x or self.x or 1
 	y = y or self.y or 1
@@ -339,9 +336,15 @@ function buffer:newM(x, y, v1)
 	end
 	return o
 end
-function buffer:getM(x,y) return self.data[x*self.y*self.z + y*self.z] end
-function buffer:setM(x,y, v) self.data[x*self.y*self.z + y*self.z] = v end
 
+function buffer:getC(i) return self.data[i-1] end
+function buffer:setC(i, v) self.data[i-1] = v end
+function buffer:getC3() return self.data[0], self.data[1], self.data[2] end
+function buffer:setC3(c1, c2, c3)
+	self.data[0] = c1
+	self.data[1] = c2
+	self.data[2] = c3
+end
 function buffer:newC(c1, c2, c3)
 	local o = self:new(1, 1, 3)
 	if c1 then
@@ -351,23 +354,17 @@ function buffer:newC(c1, c2, c3)
 	end
 	return o
 end
-function buffer:getC(i) return self.data[i-1] end
-function buffer:setC(i, v) self.data[i-1] = v end
-function buffer:getC3() return self.data[0], self.data[1], self.data[2] end
-function buffer:setC3(c1, c2, c3)
-	self.data[0] = c1
-	self.data[1] = c2
-	self.data[2] = c3
-end
 
+function buffer:getV() return self.data[0] end
+function buffer:setV(v) self.data[0] = v end
 function buffer:newV(v1)
 	local o = self:new(1, 1, 1)
 	if v1 then o:set(0,0,0, v1) end
 	return o
 end
-function buffer:getV() return self.data[0] end
-function buffer:setV(v) self.data[0] = v end
 
+function buffer:getA(i) return self.data[i] end
+function buffer:setA(i, v) self.data[i] = v end
 function buffer:newA(a)
 	local l = #a
 	local o = self:new(l, 1, 1)
@@ -376,8 +373,6 @@ function buffer:newA(a)
 	end
 	return o
 end
-function buffer:getA(i) return self.data[i] end
-function buffer:setA(i, v) self.data[i] = v end
 
 function buffer:type()
 	-- TODO: debug/warning/developer mode
@@ -407,6 +402,28 @@ function buffer:new(x, y, z)
 		xlen = x, ylen = y,
 	}
 	setmetatable(o, buffer.meta)	
+	
+	if z==1 then
+		if x==1 and y==1 then
+			o.i = o.getV
+			o.a = o.setV
+		elseif y==1 then
+			o.i = o.getA
+			o.a = o.setA
+		else
+			o.i = o.getM
+			o.a = o.setM
+		end
+	elseif z==3 then
+		if x==1 and y==1 then
+			o.i = o.getC
+			o.a = o.setC
+		else
+			o.i = o.get
+			o.a = o.set
+		end
+	end
+	
 	return o
 end
 
