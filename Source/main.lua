@@ -225,8 +225,8 @@ function funProcess()
 	local t = sdl.ticks()
 	local tt = sdl.ticks()
 	for k, v in ipairs(node.execOrder) do
-		node[v]:processRun(k)
 		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name.." ("..tonumber(sdl.ticks()-t).."ms)") end
+		node[v]:processRun(k)
 		t = sdl.ticks()
 	end
 	if not __global.preview then print("Process in: "..tonumber(sdl.ticks()-tt).."ms") end
@@ -290,7 +290,7 @@ local function imageProcess(flag)
 		print("*** slow screen refresh ***")
 	end
 	
-	sdl.text(math.floor(1/(fpsAverage/fpsSmooth)*1000).."FPS", font.normal, 12, 12)
+	sdl.text(math.floor(fpsSmooth/fpsAverage*1000).."FPS", font.normal, 12, 12)
 
 	-- put histogram buffer
 	for i=1, 255 do
