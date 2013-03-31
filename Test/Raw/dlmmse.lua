@@ -13,32 +13,49 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--]]
 
 
+-- setup paths if not loading bytecode
+require("path")
+local ffi = require("ffi")
+__global = require("global")
+local __global = __global -- local reference to global table
+__global.loadFile = arg and arg[1] or __global.loadFile
+collectgarbage("setpause", 120)
+math.randomseed(os.time())
 
+-- TODO internal console for debugging etc.
+-- TODO	currently not working with luaJIt 2.1 alpha
+-- FIXME memory consumption rises above 300MB, leads to unpredicted behaviour and crashes
+
+local sdl = require("sdltools")
+local lua = require("luatools")
+local dbg = require("dbgtools")
+local ppm = require("ppmtools")
+local img = require("imgtools")
+
+--put often-used libs in a global namespace and index from there, not as independent globals
+__dbg = dbg
+__img = img
+
+
+--[[
     Adapted from: L. Zhang and X. Wu, Color demosaicking via directional linear minimum mean square-error estimation,
     IEEE Trans. on Image Processing, vol. 14, pp. 2167-2178, Dec. 2005.
-
 --]]
 
 --demosaic using adapted ppg method
 math.randomseed(os.time())
 
-local ffi = require("ffi")
-local sdl = require("sdltools")
-local dbg = require("dbgtools")
-
-local ppm = require("ppmtools")
-local img = require("imgtools")
-
-local d = ppm.readIM("test.png")
+local d = ppm.readIM(__global.loadFile)
 local bufi = ppm.toBuffer(d)
 d = nil
 
 local xmax = bufi.x
 local ymax = bufi.y
 
-local bufg = img.newGS(bufi)
+local bufg = bufi:newM()
 
 local function getCh(x, y)
   return (x%2==1 and y%2==1 and "G") or
@@ -48,14 +65,15 @@ local function getCh(x, y)
 end
 
 do
-  local i = bufi.data
-  local g = bufg.data
+  --local i = bufi
+  --local g = bufg
   for x = 0, xmax-1 do
     for y = 0, ymax-1 do
       local ch = getCh(x, y)
-      g[x][y][0] = (ch=="R" and i[x][y][0]) or
-	  (ch=="G" and i[x][y][1]) or
-	  (ch=="B" and i[x][y][2])
+      bufg:a(x,y,
+      	(ch=="R" and bufi:i(x,y,0)) or
+	  	(ch=="G" and bufi:i(x,y,1)) or
+	  	(ch=="B" and bufi:i(x,y,2)))
     end
   end
 end
@@ -66,7 +84,7 @@ local s = "float["..xmax.."]["..ymax.."]"
 local A = ffi.new(s)
 for x = 0, xmax-1 do
   for y = 0, ymax-1 do
-    A[x][y]=bufg.data[x][y][0]
+    A[x][y]=bufg:i(x,y,0)
   end
 end
 
@@ -74,7 +92,7 @@ local function convH5(bi, bo, k) -- input, output, kernel
   for x = 2, xmax-3 do
     for y = 2, ymax-3 do
       for i = 0, 4 do
-	bo[x][y] = bo[x][y] + bi[x+i-2][y]*k[i]
+		bo[x][y] = bo[x][y] + bi[x+i-2][y]*k[i]
       end
     end
   end
@@ -84,13 +102,13 @@ local function convV5(bi, bo, k) -- input, output, kernel
   for x = 2, xmax-3 do
     for y = 2, ymax-3 do
       for i = 0, 4 do
-	bo[x][y] = bo[x][y] + bi[x][y+i-2]*k[i]
+		bo[x][y] = bo[x][y] + bi[x][y+i-2]*k[i]
       end
     end
   end
 end
 
-local f = ffi.new("double[5]", -1/4, 1/2, 1/2, 1/2, -1/4)
+local f = ffi.new("float[5]", -1/4, 1/2, 1/2, 1/2, -1/4)
 -- calculate dh, dv (full GS images)
 local Ah = ffi.new(s)
 local Av = ffi.new(s)
@@ -181,11 +199,11 @@ local function calcR9(at, t)
 end
 
 -- fill in rAg, rAr, rAb (single color image (output))
-local bufo = img.newColor(bufg)
-local o = bufo.data
+local bufo = bufg:newI()
+local o = bufo
 
-local t = ffi.new("double[9]")
-local at = ffi.new("double[9]")
+local t = ffi.new("float[9]")
+local at = ffi.new("float[9]")
 
 jit.flush() -- needed to consistently perform well
 
@@ -213,9 +231,9 @@ for x = 4, xmax-5 do
       local v = m + p*(t[4]-m)/(p+R)
       local V = p - p^2/(p+R)
       
-      o[x][y][1] = A[x][y] + (V*h + H*v)/(H + V) -- set green channel
+      bufo:a(x,y,1, A[x][y] + (V*h + H*v)/(H + V)) -- set green channel
     else
-      o[x][y][1] = A[x][y]
+      bufo:a(x,y,1, A[x][y])
     end
   end
 end
@@ -223,23 +241,31 @@ toc()
 
 --simple RB interpolation, mix 'n' match?
 
+print(xmax, ymax)
+
 for x = 4, xmax-5 do
   for y = 4, ymax-5 do
     local c = getCh(x, y)
     if c=="R" then -- fill in blue channel
-      o[x][y][2] = o[x][y][1] + (
-	A[x-1][y-1] - o[x-1][y-1][1] +
-	A[x-1][y+1] - o[x-1][y+1][1] +
-	A[x+1][y-1] - o[x+1][y-1][1] +
-	A[x+1][y+1] - o[x+1][y+1][1])/4
-      o[x][y][0] = A[x][y]
+      	local oB = o:i(x,y,1) + (
+			A[x-1][y-1] - o:i(x-1,y-1,1) +
+			A[x-1][y+1] - o:i(x-1,y+1,1) +
+			A[x+1][y-1] - o:i(x+1,y-1,1) +
+			A[x+1][y+1] - o:i(x+1,y+1,1)
+			)/4
+		
+		o:a(x,y,2, oB)
+    	o:a(x,y,0, A[x][y])
     elseif c=="B" then --fill in red channel
-      o[x][y][0] = o[x][y][1] + (
-	A[x-1][y-1] - o[x-1][y-1][1] +
-	A[x-1][y+1] - o[x-1][y+1][1] +
-	A[x+1][y-1] - o[x+1][y-1][1] +
-	A[x+1][y+1] - o[x+1][y+1][1])/4
-      o[x][y][2] = A[x][y]
+    	local oR = o:i(x,y,1) + (
+			A[x-1][y-1] - o:i(x-1,y-1,1) +
+			A[x-1][y+1] - o:i(x-1,y+1,1) +
+			A[x+1][y-1] - o:i(x+1,y-1,1) +
+			A[x+1][y+1] - o:i(x+1,y+1,1)
+			)/4
+		
+		o:a(x,y,0, oR)
+    	o:a(x,y,2, A[x][y])
     end
   end
 end
@@ -249,27 +275,35 @@ for x = 4, xmax-5 do
     if getCh(x, y)=="G" then
       local rr = getCh(x+1,y)=="R" -- red row
       if rr then
-	o[x][y][0] = A[x][y] + (
-	  A[x+1][y] - o[x+1][y][1] +
-	  o[x][y+1][0] - o[x][y+1][1] +
-	  A[x-1][y] - o[x-1][y][1] +
-	  o[x][y-1][0] - o[x][y-1][1])/4
-	o[x][y][2] = A[x][y] + (
-	  o[x+1][y][2] - o[x+1][y][1] +
-	  A[x][y+1] - o[x][y+1][1] +
-	  o[x-1][y][2] - o[x-1][y][1] +
-	  A[x][y-1] - o[x][y-1][1])/4
-      else
-	o[x][y][2] = A[x][y] + (
-	  A[x+1][y] - o[x+1][y][1] +
-	  o[x][y+1][2] - o[x][y+1][1] +
-	  A[x-1][y] - o[x-1][y][1] +
-	  o[x][y-1][2] - o[x][y-1][1])/4
-	o[x][y][0] = A[x][y] + (
-	  o[x+1][y][0] - o[x+1][y][1] +
-	  A[x][y+1] - o[x][y+1][1] +
-	  o[x-1][y][0] - o[x-1][y][1] +
-	  A[x][y-1] - o[x][y-1][1])/4
+		local oR = A[x][y] + (
+		  A[x+1][y] - o:i(x+1,y,1) +
+		  o:i(x,y+1,0) - o:i(x,y+1,1) +
+		  A[x-1][y] - o:i(x-1,y,1) +
+		  o:i(x,y-1,0) - o:i(x,y-1,1)
+		  )/4
+		local oB = A[x][y] + (
+		  o:i(x+1,y,2) - o:i(x+1,y,1) +
+		  A[x][y+1] - o:i(x,y+1,1) +
+		  o:i(x-1,y,2) - o:i(x-1,y,1) +
+		  A[x][y-1] - o:i(x,y-1,1)
+		  )/4
+		  o:set(x,y,0, oR)
+		  o:set(x,y,2, oB)
+	else
+		local oB = A[x][y] + (
+		  A[x+1][y] - o:i(x+1,y,1) +
+		  o:i(x,y+1,2) - o:i(x,y+1,1) +
+		  A[x-1][y] - o:i(x-1,y,1) +
+		  o:i(x,y-1,2) - o:i(x,y-1,1)
+		  )/4
+		local oR = A[x][y] + (
+		  o:i(x+1,y,0) - o:i(x+1,y,1) +
+		  A[x][y+1] - o:i(x,y+1,1) +
+		  o:i(x-1,y,0) - o:i(x-1,y,1) +
+		  A[x][y-1] - o:i(x,y-1,1)
+		  )/4
+		  o:set(x,y,0, oR)
+		  o:set(x,y,2, oB)
       end
     end
   end
