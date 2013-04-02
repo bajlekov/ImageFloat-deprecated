@@ -45,9 +45,6 @@ __img = img
     IEEE Trans. on Image Processing, vol. 14, pp. 2167-2178, Dec. 2005.
 --]]
 
---demosaic using adapted ppg method
-math.randomseed(os.time())
-
 local d = ppm.readIM(__global.loadFile)
 local bufi = ppm.toBuffer(d)
 d = nil
