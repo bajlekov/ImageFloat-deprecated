@@ -35,28 +35,18 @@ __global = {}
 __global.setup = require("IFsetup")
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
---[[
-function loadlib(lib)
-	local path = __global.libPath
-	local libname
-	if ffi.os=="Linux" then libname = "lib"..lib..".so" end
-	if ffi.os=="Windows" then libname = lib..".dll" end
-	local t
-	local p
-	p, t = pcall(ffi.load, lib)
-	if not p then
-		print("no user library found, trying supplied library "..lib)
-		p, t = pcall(ffi.load, path..libname)
-	end
+-- replace the complete sdl lib with just the mutex functions and possibly tick/wait!
+local sdl = require("sdltools")
+
+if __global.setup.optCompile.ispc then
+	__global.ISPC = ffi.load("./Ops/ISPC/ops.so")
+	ffi.cdef[[
+	void ispc_pow(float* a, float b, float* o, int size);
 	
-	if p then
-		return t
-	else
-		print("failed loading "..lib)
-		return false
-	end
+	void ispc_LtoG(float* src, float* dst, int size);
+	void ispc_GtoL(float* src, float* dst, int size);
+	]]
 end
---]]
  
 ops = require("ops") -- global ops are required to ease calling
 
@@ -68,7 +58,10 @@ function __init() -- initialisation function, runs once when instance is started
 	__instance = nil
 	__tmax = nil
 	-- FIXME figure out where gc causes trouble!!
-	--collectgarbage("stop")
+	
+	-- set GC parameters for collector to keep up with allocated data
+	collectgarbage("setpause", 120)
+	--collectgarbage("setstepmul")
 end
 
 function __setup() -- set up instance for processing after node parameters are passed
@@ -158,129 +151,3 @@ function __setup() -- set up instance for processing after node parameters are p
 	__bufs = nil
 	__dims = nil
 end
-
-	--[[
-	--print("Thread Setup:", b,xmax,ymax,zmax,ibuf,obuf)
-	--print("*", unpack(buftype))
-
-	--functions for accessing buffers
-	__pp = 0 --__pp indicates pixel position
-	get = {} -- get/set functions dependent on buffer type
-	set = {}
-	get3 = {} -- get/set function for triplets, wrapping above
-	set3 = {}
-	getxy = {} -- same as above with additional coordinate parameters for non-local changes
-	setxy = {}
-	get3xy = {}
-	set3xy = {}
-
-	local bufdata={}
-	__global.bufdata = bufdata -- for acces to raw buffer data!
-	local b = ffi.cast("void**", b)
-	for i = 1, ibuf+obuf do
-		bufdata[i] = ffi.cast(__global.setup.bufferPrecision[1].."*", b[i])
-		--print("*", i, bufdata[i])
-	end
-	b = nil -- leave only bufdata, actual data is kept referenced in original thread
-	
-	-- !! GC problem
-	-- collectgarbage("collect") -- too slow/ no negative effects observed otherwise
-	-- probably lowering mem consumption so no gc is triggered at other position, thus preventing crash
-	-- due to low memory consumption of threads, have interval gc instead of automatic??
-	-- ability to see what is cleaned by gc??
-
-	for i = 1, ibuf do
-		if buftype[i]==1 then get[i] = function() return bufdata[i][0] end
-		elseif buftype[i]==2 then get[i] = function(c) return bufdata[i][c] end
-		elseif buftype[i]==3 then get[i] = function() return bufdata[i][__pp] end
-		elseif buftype[i]==4 then get[i] = function(c) return bufdata[i][__pp*3+c] end
-		end
-		if buftype[i]==2 or buftype[i]==4 then
-			get3[i] = function() return get[i](0), get[i](1), get[i](2) end
-		else
-			get3xy[i] = function() local v = get[i]() return v,v,v end
-		end
-	end
-
-	for i = 1, ibuf do
-		if buftype[i]==1 then getxy[i] = function(x,y) return bufdata[i][0] end
-		elseif buftype[i]==2 then getxy[i] = function(x,y,c) return bufdata[i][c] end
-		elseif buftype[i]==3 then getxy[i] = function(x,y) return bufdata[i][(x*ymax+y)] end
-		elseif buftype[i]==4 then getxy[i] = function(x,y,c) return bufdata[i][(x*ymax+y)*3+c] end
-		end
-		if buftype[i]==2 or buftype[i]==4 then
-			get3xy[i] = function(x,y) return get[i](x,y,0), get[i](x,y,1), get[i](x,y,2) end
-		else
-			get3xy[i] = function(x,y) local v = get[i](x,y) return v,v,v end
-		end
-	end
-
-	for i = 1, obuf do
-		local ii = i + ibuf
-		if buftype[ii]==1 then set[i] = function(v) bufdata[ii][0] = v end
-		elseif buftype[ii]==2 then set[i] = function(v, c) bufdata[ii][c] = v end
-		elseif buftype[ii]==3 then set[i] = function(v) bufdata[ii][__pp] = v end
-		elseif buftype[ii]==4 then set[i] = function(v, c) bufdata[ii][__pp*3+c] = v end
-		end
-		if buftype[ii]==2 or buftype[ii]==4 then
-			set3[i] = function(c0, c1, c2) set[i](c0, 0) set[i](c1, 1) set[i](c2, 2) end
-		else
-			set3[i] = function(c0, c1, c2) set[i]((c0+c1+c2)/3) end
-		end
-	end
-
-	for i = 1, obuf do
-		local ii = i + ibuf
-		if buftype[ii]==1 then setxy[i] = function(v,x,y) bufdata[ii][0] = v end
-		elseif buftype[ii]==2 then setxy[i] = function(v,x,y,c) bufdata[ii][c] = v end
-		elseif buftype[ii]==3 then setxy[i] = function(v,x,y) bufdata[ii][(x*ymax+y)] = v end
-		elseif buftype[ii]==4 then setxy[i] = function(v,x,y,c) bufdata[ii][(x*ymax+y)*3+c] = v end
-		end
-		if buftype[ii]==2 or buftype[ii]==4 then
-			set3xy[i] = function(c0,c1,c2,x,y) setxy[i](c0,x,y,0) setxy[i](c1,x,y,1) setxy[i](c2,x,y,2) end		
-		else
-			set3xy[i] = function(c0,c1,c2,x,y) setxy[i]((c0+c1+c2)/3,x,y) end
-		end
-	end
-end
-
---]]
-
--- must be global to be reachable trough the api
---dbg = require("dbgtools")
-
-
-
-
---[[
-	-- sample buffer from HD to conserve memory...sloooow
-	do
-		f[1] = io.open("1.dat", "r")
-		local curpos = -1
-		local datachunk = ffi.new("double[4]")
-		local datachar = ffi.cast("uint8_t*", datachunk)
-		get[1] = function(i)
-			if __pp*8==curpos then --and __pp*8<curpos+chunk-3 then
-				return datachunk[i]
-			else
-				curpos = __pp*8
-				f[1]:seek("set", __pp*8)
-				ffi.copy(datachar, f[1]:read(3*8))
-				return datachunk[i]
-			end
-		end
-	end
-	
-	function closeFiles()
-		for k, v in pairs(f) do
-			v:close()
-		end
-	end
---]]
-
-
-
-
-
-
-

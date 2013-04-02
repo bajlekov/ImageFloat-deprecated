@@ -64,7 +64,9 @@ if ffi.os=="Windows" then --maybe fix this?
 	loadlib('libpng15-15')
 	loadlib('libtiff-5')
 end
+
 _SDL = loadlib('SDL')
+local _SDL = _SDL
 local _TTF = loadlib("SDL_ttf")
 local _IMG = loadlib("SDL_image")
 
@@ -86,8 +88,11 @@ local screen
 
 SDL.colour = ffi.metatype("SDL_Color", {}) -- r, g, b, a
 SDL.rectangle = ffi.metatype("SDL_Rect", {}) -- x, y, w, h
-function SDL.font(name, size) return _TTF.TTF_OpenFont(name, size) end
-function SDL.destroyFont(f) _TTF.TTF_CloseFont(f) end
+
+function SDL.font(name, size)
+	local t = _TTF.TTF_OpenFont(name, size)
+	return ffi.gc(t, _TTF.TTF_CloseFont) -- regiter for GC
+end
 
 function SDL.init()
 	_SDL.SDL_Init(20)
@@ -110,13 +115,18 @@ function SDL.pixbuf() return ffi.cast("uint8_t*", SDL.screen.pixels) end
 
 function SDL.flip() _SDL.SDL_Flip(SDL.screen) end
 function SDL.flipRect(x, y, w, h) _SDL.SDL_UpdateRect(SDL.screen, x, y, w, h) end
+function SDL.destroySurface(surf) _SDL.SDL_FreeSurface(ffi.gc(surf, nil)) end
 function SDL.createSurface(width, height, flags)
 	local fmt = SDL.screen.format
-	return _SDL.SDL_CreateRGBSurface(flags, width, height,
+	local t =_SDL.SDL_CreateRGBSurface(flags, width, height,
 	fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask)
+	return ffi.gc(t, _SDL.SDL_FreeSurface) -- register for GC
 end
-function SDL.destroySurface(surf) _SDL.SDL_FreeSurface(surf) end
-function SDL.screenSurface() return SDL.createSurface(SDL.screen.w, SDL.screen.h, 0) end
+
+function SDL.screenSurface()
+	local t = SDL.createSurface(SDL.screen.w, SDL.screen.h, 0)
+	return ffi.gc(t, _SDL.SDL_FreeSurface)
+end
 function SDL.blit(buf1, rect1, buf2, rect2) _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) end
 function SDL.screenCopy(buffer) SDL.blit(SDL.screen, nil, buffer, nil) end
 function SDL.screenPaste(buffer) SDL.blit(buffer, nil, SDL.screen, nil) end
@@ -127,39 +137,50 @@ function SDL.screenGet(buffer, x, y, w, h)
 	SDL.blit(SDL.screen, SLD.rectangle(x, y, w or buffer.w, h or buffer.h), buffer, nil)
 end
 
-function SDL.createMutex() return _SDL.SDL_CreateMutex() end
 function SDL.destroyMutex(m) _SDL.SDL_DestroyMutex(m) end
-function SDL.createThread(fun, ptr) return _SDL.SDL_CreateThread(fun, ptr) end
-function SDL.waitThread(t) _SDL.SDL_WaitThread(t, NULL) end
+function SDL.createMutex()
+	-- handle mutexes manually!!
+	return _SDL.SDL_CreateMutex()
+	--return ffi.gc(t, _SDL.SDL_DestroyMutex) 
+end
+
+function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
+function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
+function SDL.createThread(fun, ptr) 
+	local t = _SDL.SDL_CreateThread(fun, ptr) 
+	return ffi.gc(t, _SDL.SDL_KillThread)
+end
+function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), NULL) end
 
 function SDL.input() return require("input")(_SDL) end
 -- same for draw library to acces sdl!
 function SDL.ticks() return _SDL.SDL_GetTicks() end
 function SDL.wait(x) _SDL.SDL_Delay(x) end
 
+-- FIXME: text allocation memory not cleaned! use automatic c cleaning!
 
 function SDL.text(text, font, x, y, r, g, b, a)
 	local ttf_text = _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
 	SDL.screenPut(ttf_text, x, y)
 	local x, y = ttf_text.w, ttf_text.h
-	SDL.destroySurface(ttf_text)
+	_SDL.SDL_FreeSurface(ttf_text)
 	return x, y
 end
 
 function SDL.textCreate(text, font, r, g, b, a)
-	return _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
+	local t = _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
+	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
 
 function SDL.textPut(textObj, x, y)
 	SDL.screenPut(textObj, x, y)
-	SDL.destroySurface(textObj)
 end
 
 function SDL.loadImage(file)
 	local li = _IMG.IMG_Load(file)
 	local oi = _SDL.SDL_DisplayFormatAlpha(li)
-	SDL.destroySurface(li)
-	return oi
+	_SDL.SDL_FreeSurface(li)
+	return ffi.gc(oi, _SDL.SDL_FreeSurface)
 end
 
 --buffer to new surface
@@ -169,8 +190,8 @@ function SDL.icon(file, x, y)
 	local li = _IMG.IMG_Load(file)
 	local oi = _SDL.SDL_DisplayFormatAlpha( li )
 	SDL.blit( oi, nil, SDL.screen, SDL.rectangle(x, y, 0, 0))
-	SDL.destroySurface(li)
-	SDL.destroySurface(oi)
+	_SDL.SDL_FreeSurface(li)
+	_SDL.SDL_FreeSurface(oi)
 end
 
 function SDL.fillRect(buf, rect, col) _SDL.SDL_FillRect(buf, rect, col) end

@@ -25,7 +25,42 @@ ops.filter = require("opsFilter")
 ops.layer = require("opsLayer")
 
 require("mathtools")
+local ffi = require("ffi")
 
+-- function to synchronise between a multi-pass operation
+local function syncThreads()
+	print("WARNING: the syncThreads function is not stable!")
+	local progress	= __global.progress
+	local inst		= __global.instance
+	local instmax	= __global.instmax
+	local old = progress[inst]
+	
+	progress[inst] = -2 -- set thread to waiting
+	local hold = true
+	
+	while hold do
+		hold = false
+		for i = 0, instmax-1 do
+			if progress[i]~=-2 then
+				hold = true
+				break
+			end
+		end
+		
+		__sdl.lockMutex(__mut)
+		if progress[inst]==-3 then
+			hold = false
+		elseif hold==false then
+			for i = 0, instmax-1 do
+				progress[i] = -3
+			end
+			hold = false
+		end
+		__sdl.unlockMutex(__mut)
+	end
+	
+	progress[inst] = old --return to old state
+end
 
 -- refactor to avoid small loops along Z-dim
 -- and to avoid compiling of text functions
@@ -89,7 +124,7 @@ local function wrapLoop(fun, preFun)
 end
 
 -- make wrapper functions available through __global.tools
-__global.tools = {wrapChan=wrapChan, wrapLoop=wrapLoop}
+__global.tools = {wrapChan=wrapChan, wrapLoop=wrapLoop, syncThreads=syncThreads}
 
 local function invert(b, p, c) -- 2, 1
 	b[3]:set( (1-b[1]:get(c))*b[2]:get(c) + b[1]:get(c)*(1-b[2]:get(c)), c)
@@ -113,6 +148,31 @@ local function cstransform(b, p) -- 1, 1, 9
 	b[2]:set3(p1, p2, p3)
 end 
 ops.cstransform = wrapLoop(cstransform)
+
+if __global.setup.optCompile.ispc then
+	function ops.cstransform()		
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		local mul = __global.ISPC.ispc_mat3mul
+		local mat = ffi.new("float[9]", p)
+		
+		if s.zmax~=3 then print("ERROR: wrong dimensions!") end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			
+			mul(b[1].data + x*s.ymax*s.zmax, b[2].data + x*s.ymax*s.zmax, mat, s.ymax*s.zmax)
+			
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
 
 local function copy(b, p, z) -- 1, 1
 	b[2]:set(b[1]:get(z), z)
@@ -207,123 +267,70 @@ local function invertR_GB(b, p) -- 1,1
 end
 ops.invertR_GB = wrapLoop(invertR_GB)
 
+
+
+local function wrapLoop(fun, preFun)
+	return function()	
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		-- preprocessing function, if needed
+		if preFun then preFun(b, p, s) end
+		
+		for x = inst, s.xmax-1, instmax do
+			if progress[instmax]==-1 then break end
+			for y = 0, s.ymax-1 do
+				s:up(x, y)
+				
+				-- possibly pass through (x, y) 
+				fun(b, p, s.zmax)
+				
+			end
+			progress[inst] = x - inst
+		end
+		progress[inst] = -1
+	end
+end
+
 --[[
 do
 	local function filter(func, flag)
-		for x = __instance, xmax/2, __tmax do
-			if progress[0]==-1 then break end
-			for y = 0, ymax/2 do
+		return function()	
+		local s = __global.state
+		local b = __global.buf
+		local p = __global.params
+		local progress	= __global.progress
+		local inst	= __global.instance
+		local instmax	= __global.instmax
+		
+		for x = inst, s.xmax/2, instmax do
+			if progress[instmax]==-1 then break end
+			for y = 0, s.ymax/2 do
 				local gauss
 				local size = 128 --math.sqrt(xmax^2+ymax^2)
-				gauss = func(math.sqrt(x^2+y^2), get[1](0)*size)
-				gauss = gauss + (flag and func(math.sqrt((xmax-x+1)^2+y^2), get[1](0)*size) or 0)
-				gauss = gauss + (flag and func(math.sqrt(x^2+(ymax-y+1)^2), get[1](0)*size) or 0)
-				gauss = gauss + (flag and func(math.sqrt((xmax-x+1)^2+(ymax-y+1)^2), get[1](0)*size) or 0)
-				gauss = gauss * get[2]() + 1 - get[2]()
-				set3xy[1](gauss, gauss, gauss,x,y)
-				if x~=0 then set3xy[1](gauss, gauss, gauss, xmax-x,y) end
-				if y~=0 then set3xy[1](gauss, gauss, gauss, x, ymax-y) end
-				if x~=0 and y~=0 then set3xy[1](gauss, gauss, gauss, xmax-x, ymax-y) end
+				gauss = func(math.sqrt(x^2+y^2), b[1]:get(0)*size)
+				gauss = gauss + (flag and func(math.sqrt((s.xmax-x+1)^2+y^2), b[1]:get(0)*size) or 0)
+				gauss = gauss + (flag and func(math.sqrt(x^2+(s.ymax-y+1)^2), b[1]:get(0)*size) or 0)
+				gauss = gauss + (flag and func(math.sqrt((s.xmax-x+1)^2+(s.ymax-y+1)^2), b[1]:get(0)*size) or 0)
+				--gauss = gauss * b[2]:get() + 1 - b[2]:get()
+				b[3]:set3xy(gauss, gauss, gauss,x,y)
+				if x~=0 then b[3]:set3xy(gauss, gauss, gauss, s.xmax-x, y) end
+				if y~=0 then b[3]:set3xy(gauss, gauss, gauss, x, s.ymax-y) end
+				if x~=0 and y~=0 then b[3]:set3xy[1](gauss, gauss, gauss, s.xmax-x, s.ymax-y) end
 			end
-			progress[__instance+1] = x - __instance
+			progress[inst] = x - inst
 		end
-		progress[__instance+1] = -1
+		progress[inst] = -1
 	end
 
 	function ops.gauss() return filter(math.func.gauss) end
 	function ops.lorenz() return filter(math.func.lorenz) end
 	function ops.gauss_wrap() return filter(math.func.gauss, true) end
 	function ops.lorenz_wrap() return filter(math.func.lorenz, true) end
-end
---]]
-
---[[
-ops.norm = function()	-- 1,1
-	local sum = {[0]=0, [1]=0, [2]=0}
-
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		for y = 0, ymax-1 do
-			__pp = (x * ymax + y)
-			for c = 0, 2 do
-				sum[c] = sum[c] + get[1](c)
-			end
-		end
-		progress[__instance+1] = (x - __instance)/2
-	end
-
-	sum[0] = sum[0]==0 and 1 or sum[0]
-	sum[1] = sum[1]==0 and 1 or sum[1]
-	sum[2] = sum[2]==0 and 1 or sum[2]
-
-	for x = __instance, xmax-1, __tmax do
-		if progress[0]==-1 then break end
-		for y = 0, ymax-1 do
-			__pp = (x * ymax + y)
-			for c = 0, 2 do
-				set[1](get[1](c)/sum[c], c)
-			end
-		end
-		progress[__instance+1] = (x - __instance)/2 + (xmax-1)/2
-	end
-
-	progress[__instance+1] = -1
-end
---]]
-
-
--- Example functions
---[[
---bufs:[in, out]
-ops.copy = function()	
-	local s = __global.state
-	local b = __global.buf
-	local p = __global.params
-	local progress	= __global.progress
-	local inst	= __global.instance
-	local instmax	= __global.instmax
-	
-	for x = inst, s.xmax-1, instmax do
-		if progress[instmax]==-1 then break end
-		for y = 0, s.ymax-1 do
-			s:up(x, y)
-			
-			-- main program
-			local c1, c2, c3 = b[1]:get3()
-			b[2]:set3(c1, c2, c3)
-			
-		end
-		progress[inst] = x - inst
-	end
-	progress[inst] = -1
-end
-
-ops.merge = function()
-	local s = __global.state
-	local b = __global.buf
-	local p = __global.params
-	local progress	= __global.progress
-	local inst	= __global.instance
-	local instmax	= __global.instmax
-	
-	for x = inst, s.xmax-1, instmax do
-		if progress[instmax]==-1 then break end
-		for y = 0, s.ymax-1 do
-			s:up(x, y)
-			
-			-- main program
-			local a1, a2, a3 = b[1]:get3()
-			local b1, b2, b3 = b[2]:get3()
-			local f1, f2, f3 = b[3]:get3()
-			local c1, c2, c3 = 	a1*f1+b1*(1-f1),
-								a2*f2+b2*(1-f2),
-								a3*f3+b3*(1-f3)
-			b[4]:set3(c1, c2, c3)
-			
-		end
-		progress[inst] = x - inst
-	end
-	progress[inst] = -1	
 end
 --]]
 

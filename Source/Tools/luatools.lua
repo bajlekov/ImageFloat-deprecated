@@ -52,6 +52,11 @@ ffi.cdef([[
 	int luaopen_bit(lua_State *L);
 	int luaopen_jit(lua_State *L);
 	int luaopen_ffi(lua_State *L);
+	
+	// get stack size
+	int lua_gettop (lua_State *L);
+	// set stack position (0 = clean)
+	void lua_settop (lua_State *L, int index);
 ]])
 
 local l = {}
@@ -164,7 +169,7 @@ if type(__sdl)=="table" then
 		function l.threadInit(n, file)	--number of threads, file to load in new instances
 			l.numCores = n
 			print("using "..l.numCores.." threads...")
-			l.threadProgress = ffi.new("int[?]", l.numCores+4) -- TH states... , abort, max, ?, ?
+			l.threadProgress = ffi.new("int[?]", l.numCores+4) -- TH states... , abort, sync, ?, ?
 			l.threadProgress[l.numCores+1]=1 
 			th.mut = __sdl.createMutex()
 			for i=0, l.numCores-1 do
@@ -181,7 +186,7 @@ if type(__sdl)=="table" then
 			for i=0, l.numCores-1 do
 				l.closeState(l.threadInstance[i])
 			end
-			__sdl.destroyMutex(th.mut)
+			--__sdl.destroyMutex(th.mut)
 		end
 
 		function l.threadPushMultiple(t)
@@ -248,16 +253,19 @@ if type(__sdl)=="table" then
 		end
 
 		do
+			local sdl = __sdl
 			local thread = {}
 			local procTime
+			local loopTime = sdl.ticks()
 			local procName
 			function l.threadRun(...)
-				procTime = __sdl.ticks()
+				procTime = sdl.ticks()
 				l.threadCounter[0] = 0
 				for i = 0, l.numCores-1 do
 					l.threadProgress[i]=0
+					lua.lua_settop(l.threadInstance[i], 0) -- restore stack
 					l.loadVariable(l.threadInstance[i], ...) -- loads processing function
-					thread[i+1] = __sdl.createThread(l.threadFunction, l.threadCounter) -- runs preset function in each instance!!!
+					thread[i+1] = sdl.createThread(l.threadFunction, l.threadCounter) -- runs preset function in each instance!!!
 				end
 				l.threadRunning = true
 				procName = table.concat({...},".")
@@ -265,9 +273,12 @@ if type(__sdl)=="table" then
 			function l.threadWait()
 				if l.threadRunning==true then
 					for i = 0, l.numCores-1 do
-						__sdl.waitThread(thread[i+1], NULL)
+						sdl.waitThread(thread[i+1], NULL)
 					end
-					if not __global.preview then print("("..procName.."): "..tonumber(__sdl.ticks()-procTime).."ms") end
+					if not __global.preview then
+						print("("..procName.."): "..tonumber(sdl.ticks()-procTime).."ms ("..tonumber(sdl.ticks()-loopTime).."ms)")
+					end
+					loopTime = sdl.ticks()
 				end
 				l.threadRunning = false
 				for i=0,l.numCores do

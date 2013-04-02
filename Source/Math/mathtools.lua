@@ -33,10 +33,24 @@ math.func = {}
 math.window = {}
 
 
-function math.func.erf(i) return ffi.C.erf(i) end
+do
+	local p = 0.3275911
+	local a1 = 0.254829592
+	local a2 = -0.284496736
+	local a3 = 1.421413741
+	local a4 = -1.453152027
+	local a5 = 1.061405429
+	function math.func.erf(x)
+		local t = 1/(1+p*x)
+		return 1 - (a1*t+a2*t^2+a3*t^3+a4*t^4+a5*t^5)*exp(-x^2)
+	end
+end
+--function math.func.erf(i) return ffi.C.erf(i) end
+local erf = math.func.erf
+
 function math.func.gauss(x, s) return exp(-(x)^2/2/s^2) end
 function math.func.lorenz(x, s) return s^2/(x^2+s^2) end 
-function math.func.gausscum(x, s) return 0.5 + ffi.C.erf((x)/sqrt(2)/s)/2 end
+function math.func.gausscum(x, s) return 0.5 + erf((x)/sqrt(2)/s)/2 end
 function math.func.lorenzcum(x, s) return math.atan2(x,s)*M_1_PI+0.5 end
 function math.func.sinc(x) return x==0 and 1 or sin(pi*x)/(pi*x) end
 function math.func.exp(x, t) return exp(-x/t) end
