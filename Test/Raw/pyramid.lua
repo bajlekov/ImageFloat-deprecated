@@ -49,14 +49,11 @@ __img = img
 		- pyrUp(G1, L0) -> G0
 		- pyrConstruct(G0, n) -> P
 		- pyrCollapse(P) -> G0
-		- pyrGet(P, n) -> Ln
-		- pyrSet(P, Ln, n)
 		- gDown(G0) -> G1
 		- gUp(G1) -> G0
 		
 		struct P {
-			P1 = img()
-			L0 = img()
+			L = [img]
 			ofx = []
 			ofy = []
 			n = maxLevels
@@ -305,49 +302,35 @@ local function pyrUp(G1, L0)
 	return G0
 end
 
--- layout:
---[[
-		- pyrDown(G0) -> G1, L0
-		- pyrUp(G1, L0) -> G0
-		- pyrConstruct(G0, n) -> P
-		- pyrCollapse(P) -> G0
-		- pyrGetL(P, n) -> Ln
-		- pyrGetG(P, n) -> Gn
-		- pyrSetL(P, Ln, n)
-		
-		basic:
-		- gDown(G0, n) -> G1
-		- gUp(G1, n) -> G0
-		
-		struct P {
-			G = []
-			L = []
-			ofx = []
-			ofy = []
-			n = maxLevels
-		}
---]]
-
 -- TODO: keep track of buffer sizes
 
 -- full: keep gaussian components
-local function pyrConstruct(G0, n, full)
+local function pyrConstruct(G0, n)
 	local P = {L={}, x={}, y={}, n=0}
 	P.n = n or 5
-	local G = {}
-	G[0] = G0
 	
+	local G1, G2
+	G1 = G0
 	for i = 1, P.n do
-		G[i], P.L[i-1] = pyrDown(G[i-1])
-		if not full then G[i-1] = nil end
+		G2, P.L[i-1] = pyrDown(G1)
+		G1 = G2
 	end
-	P.L[P.n] = G[P.n]
-	return P, G
+	P.L[P.n] = G2
+	return P
 end
 
--- remove gaussian components
-local function pyrCompact(P)
-	P.G = nil
+local function pyrConstructG(G0, n)
+	local P = {L={}, x={}, y={}, n=0}
+	P.n = n or 5
+	
+	local G = {}
+	G[0] = G0
+	for i = 1, P.n do
+		G[i], P.L[i-1] = pyrDown(G[i-1])
+	end
+	P.L[P.n] = G[P.n]
+	P.G = G
+	return P
 end
 
 local function pyrCollapse(P)
@@ -362,19 +345,48 @@ local function pyrCollapse(P)
 end
 
 --test
-local d = ppm.readIM("../Resources/Photos/img16.ppm")
-local buf = ppm.toBuffer(d)
-d = nil
+local B = {}
+B[1] = ppm.toBuffer(ppm.readIM("./focus/1.jpg"))
+B[2] = ppm.toBuffer(ppm.readIM("./focus/2.jpg"))
+B[3] = ppm.toBuffer(ppm.readIM("./focus/3.jpg"))
+B[4] = ppm.toBuffer(ppm.readIM("./focus/4.jpg"))
+B[5] = ppm.toBuffer(ppm.readIM("./focus/5.jpg"))
+B[6] = ppm.toBuffer(ppm.readIM("./focus/6.jpg"))
+B[7] = ppm.toBuffer(ppm.readIM("./focus/7.jpg"))
+B[8] = ppm.toBuffer(ppm.readIM("./focus/8.jpg"))
+B[9] = ppm.toBuffer(ppm.readIM("./focus/9.jpg"))
+B[10] = ppm.toBuffer(ppm.readIM("./focus/10.jpg"))
+B[11] = ppm.toBuffer(ppm.readIM("./focus/11.jpg"))
+B[12] = ppm.toBuffer(ppm.readIM("./focus/12.jpg"))
+B[13] = ppm.toBuffer(ppm.readIM("./focus/13.jpg"))
+
+local P = {}
 
 tic()
-local P = pyrConstruct(buf)
+for i = 1, 13 do
+	P[i] = pyrConstruct(B[i], 7)
+end
 toc("Construct")
 
 tic()
-local G0 = pyrCollapse(P)
+for i = 0, 7 do
+	P[1].L[i] = P[1].L[i]/13
+	for j = 2, 13 do
+		P[1].L[i] = P[1].L[i] + P[j].L[i]/13
+		collectgarbage("collect")
+	end
+end
+toc()
+
+
+
+
+
+tic()
+local G0 = pyrCollapse(P[1])
 toc("Construct")
 
-d = ppm.fromBuffer(G0)
+local d = ppm.fromBuffer(G0)
 d.name = "pyramid_out.png"
 ppm.writeIM(d)
 d = nil
