@@ -150,14 +150,20 @@ return function(SDL)
 
 		--timer delay for 60fps
 		if __sdl.ticks()-startTime < 1.25*refreshDelay then 
-			while not input.interrupt() do
-				if __sdl.ticks()-startTime > refreshDelay  then break end
-				SDL.SDL_Delay(1)
-			end 
-			startTime = startTime + refreshDelay
+			while true do
+				if __sdl.ticks()-startTime > refreshDelay then
+					startTime = startTime + refreshDelay
+					break
+				end
+				if input.interrupt() then
+					startTime = __sdl.ticks()
+					break
+				end
+				SDL.SDL_Delay(0.1)
+			end
 		else
 			startTime = __sdl.ticks()
-		end		
+		end
 
 		--help in detecting unreferenced cdata
 		--collectgarbage("collect")
