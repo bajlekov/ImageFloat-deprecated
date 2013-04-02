@@ -27,7 +27,7 @@ local ffi = require("ffi")
 __global = require("global")
 local __global = __global -- local reference to global table
 __global.loadFile = arg and arg[1] or __global.loadFile
-collectgarbage("setpause", 120) -- force quicker garbage collection to prevent heaping up
+collectgarbage("setpause", 100) -- force quicker garbage collection to prevent heaping up
 math.randomseed(os.time())
 
 -- TODO internal console for debugging etc.
@@ -205,7 +205,7 @@ function funProcess()
 	end
 	
 	-- calculate histograms
-	--hist.calculate(bufout)
+	hist.calculate(bufout)
 	
 	toc("Loop total")
 	tic()

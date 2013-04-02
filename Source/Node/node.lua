@@ -389,7 +389,7 @@ do
 			current = list(c)
 			level = level + 1
 	
-			if level>#self+1 then error("Loop detected! Wrong node connections. FIXME") end
+			if level>#self+1 then __dbg.error("Loop detected! Wrong node connections. FIXME") end
 			if #current==0 then break end
 		end
 	
