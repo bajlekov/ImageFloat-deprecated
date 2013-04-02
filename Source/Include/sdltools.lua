@@ -146,8 +146,11 @@ end
 
 function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
 function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
-function SDL.createThread(fun, ptr) return _SDL.SDL_CreateThread(fun, ptr) end
-function SDL.waitThread(t) _SDL.SDL_WaitThread(t, NULL) end
+function SDL.createThread(fun, ptr) 
+	local t = _SDL.SDL_CreateThread(fun, ptr) 
+	return ffi.gc(t, _SDL.SDL_KillThread)
+end
+function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), NULL) end
 
 function SDL.input() return require("input")(_SDL) end
 -- same for draw library to acces sdl!
