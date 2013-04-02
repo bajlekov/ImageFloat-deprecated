@@ -27,7 +27,7 @@ local ffi = require("ffi")
 __global = require("global")
 local __global = __global -- local reference to global table
 __global.loadFile = arg and arg[1] or __global.loadFile
-collectgarbage("setpause", 120)
+collectgarbage("setpause", 120) -- force quicker garbage collection to prevent heaping up
 math.randomseed(os.time())
 
 -- TODO internal console for debugging etc.
@@ -74,6 +74,7 @@ local node = require("node")
 
 --move to node?
 require("nodeCreate")(node, img)
+
 node:add("Input")
 node:add("Rotate")
 node:add("Mixer")
@@ -180,51 +181,32 @@ local calcUpdate
 
 local hist = require("histogram")
 
-function funProcess()
-	if not __global.preview then print("=========================================") end
-	
-	local t = sdl.ticks()
+function funProcess()	
 	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 			-- initialise input node, move to other location!
 
 	-- find output node, make selector for this.../one fixed output node
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
-
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
-
 	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
-	if not __global.preview then print("Setup in: "..tonumber(sdl.ticks()-t).."ms") end
 	
-	local t = sdl.ticks()
-	local tt = sdl.ticks()
 	for k, v in ipairs(node.execOrder) do
-		if not __global.preview then print("Op "..k..", Node "..v.." - "..node[v].ui.name.." ("..tonumber(sdl.ticks()-t).."ms)") end
-		node[v]:processRun(k)
-		t = sdl.ticks()
+		node[v]:processRun(k)	-- run processes
 	end
-	if not __global.preview then print("Process in: "..tonumber(sdl.ticks()-tt).."ms") end
 	
-	local t = sdl.ticks()
+	-- put output buffer to screen buffer
 	bufout = node[outNode].bufOut
 	if __global.preview then
 		img.toSurfaceQuad(bufout, surf)
 	else
 		img.toSurface(bufout, surf)
-		bufoutS = img.scaleDownHQ(bufout,4) --if full process then also update preview buffer
+		bufoutS = img.scaleDownHQ(bufout, 4) --if full process then also update preview buffer
 		img.toSurfaceQuad(bufoutS, surfS)
-		-- why is bufoutL not used??
 	end
-	if not __global.preview then print("Preview in: "..tonumber(sdl.ticks()-t).."ms") end
-
-	local t = sdl.ticks()
-	hist.calculate(bufout)
-	if not __global.preview then print("Histogram in: "..tonumber(sdl.ticks()-t).."ms") end
 	
+	-- calculate histograms
+	--hist.calculate(bufout)
 	
-	if not __global.preview then
-		print(string.format("C-buffers: %.1fMB (", __getAllocSize())..__getAllocCount()..")")
-		dbg.mem("Lua state")
-	end
 	toc("Loop total")
 	tic()
 	
