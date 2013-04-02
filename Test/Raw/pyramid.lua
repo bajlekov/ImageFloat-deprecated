@@ -13,29 +13,374 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
 --]]
-
-
 
 
 --pyramid decomposition and composition
 
 -- method works for decimating image using gaussian filtering
--- due to downsampling, reconstruction is correct but deltas are not circularly symmetric
+--	- kernel width = 5: [1 4 6 4 1]/16 -> separable
+--	- 
+-- uses:
+--	- fast frequency filtering
+--	- merging
+--		- using map (custom blending) or function (ex: focus/exposure stacking)
 
--- todo:
---	adjusting kernel size and function width!!
---	increasing kernel width prevents the downscaling to affect output, but kernel gets clipped!!!
---	small width has artistic use, mostly binning
+require("path")
+local ffi = require("ffi")
+__global = require("global")
+local __global = __global -- local reference to global table
+__global.loadFile = arg and arg[1] or __global.loadFile
+collectgarbage("setpause", 120)
+math.randomseed(os.time())
 
--- better binning function/binning reconstruction function?
+local sdl = require("sdltools")
+local lua = require("luatools")
+local dbg = require("dbgtools")
+local ppm = require("ppmtools")
+local img = require("imgtools")
 
--- simple box resampling??
+__dbg = dbg
+__img = img
 
+-- layout:
+--[[
+		- pyrDown(G0) -> G1, L0
+		- pyrUp(G1, L0) -> G0
+		- pyrConstruct(G0, n) -> P
+		- pyrCollapse(P) -> G0
+		- pyrGet(P, n) -> Ln
+		- pyrSet(P, Ln, n)
+		- gDown(G0) -> G1
+		- gUp(G1) -> G0
+		
+		struct P {
+			P1 = img()
+			L0 = img()
+			ofx = []
+			ofy = []
+			n = maxLevels
+		}
+--]]
 
+-- TODO: always use values from kernel!
+local kernel = ffi.new("double[5]", 1/16, 4/16, 6/16, 4/16, 1/16)
 
+local function filter(G0)
+	local F0 = G0:new()
+	local k = kernel
+	
+	-- horizontal:
+	for x = 2, G0.x-3 do
+		for y = 0, G0.y-1 do
+			for z = 0, G0.z do
+				local s =	G0:i(x-2,y,z)*k[0]+
+							G0:i(x-1,y,z)*k[1]+
+							G0:i(x+0,y,z)*k[2]+
+							G0:i(x+1,y,z)*k[3]+
+							G0:i(x+2,y,z)*k[4]
+				F0:a(x,y,z,s)
+			end
+		end
+	end
+	-- horizontal edges
+	for y = 0, G0.y-1 do
+		for z = 0, G0.z do
+			local x = 0
+			local s =	G0:i(x+0,y,z)*k[2]+
+						G0:i(x+1,y,z)*k[3]+
+						G0:i(x+2,y,z)*k[4]
+			F0:a(x,y,z,s*16/11)
+			
+			local x = 1
+			local s =	G0:i(x-1,y,z)*k[1]+
+						G0:i(x+0,y,z)*k[2]+
+						G0:i(x+1,y,z)*k[3]+
+						G0:i(x+2,y,z)*k[4]
+			F0:a(x,y,z,s*16/15)
+			
+			local x = G0.x-2
+			local s =	G0:i(x-2,y,z)*k[0]+
+						G0:i(x-1,y,z)*k[1]+
+						G0:i(x+0,y,z)*k[2]+
+						G0:i(x+1,y,z)*k[3]
+			F0:a(x,y,z,s*16/15)
+			
+			local x = G0.x-1
+			local s =	G0:i(x-2,y,z)*k[0]+
+						G0:i(x-1,y,z)*k[1]+
+						G0:i(x+0,y,z)*k[2]
+			F0:a(x,y,z,s*16/11)
+		end
+	end
+	
+	-- vertical:
+	for x = 0, G0.x-1 do
+		for y = 2, G0.y-3 do
+			for z = 0, G0.z do
+				local s =	G0:i(x,y-2,z)*k[0]+
+							G0:i(x,y-1,z)*k[1]+
+							G0:i(x,y+0,z)*k[2]+
+							G0:i(x,y+1,z)*k[3]+
+							G0:i(x,y+2,z)*k[4]
+				F0:a(x,y,z,s)
+			end
+		end
+	end
+	-- vertical edges
+	for x = 0, G0.x-1 do
+		for z = 0, G0.z do
+			local y = 0
+			local s =	G0:i(x,y+0,z)*k[2]+
+						G0:i(x,y+1,z)*k[3]+
+						G0:i(x,y+2,z)*k[4]
+			F0:a(x,y,z,s*16/11)
+			
+			local y = 1
+			local s =	G0:i(x,y-1,z)*k[1]+
+						G0:i(x,y+0,z)*k[2]+
+						G0:i(x,y+1,z)*k[3]+
+						G0:i(x,y+2,z)*k[4]
+			F0:a(x,y,z,s*16/15)
+			
+			local y = G0.y-2
+			local s =	G0:i(x,y-2,z)*k[0]+
+						G0:i(x,y-1,z)*k[1]+
+						G0:i(x,y+0,z)*k[2]+
+						G0:i(x,y+1,z)*k[3]
+			F0:a(x,y,z,s*16/15)
+			
+			local y = G0.y-1
+			local s =	G0:i(x,y-2,z)*k[0]+
+						G0:i(x,y-1,z)*k[1]+
+						G0:i(x,y+0,z)*k[2]
+			F0:a(x,y,z,s*16/11)
+		end
+	end
+	
+	return F0
+end
+
+-- check implementation, differs from filter + subsample!!
+local function gDown(G0)
+	local k = kernel
+	local F0 = img:new(G0.x/2, G0.y, G0.z)
+	
+	-- horizontal:
+	for x = 2, G0.x-3, 2 do
+		for y = 0, G0.y-1 do
+			for z = 0, G0.z do
+				local s =	G0:i(x-2,y,z)*k[0]+
+							G0:i(x-1,y,z)*k[1]+
+							G0:i(x+0,y,z)*k[2]+
+							G0:i(x+1,y,z)*k[3]+
+							G0:i(x+2,y,z)*k[4]
+				F0:a(x/2,y,z,s)
+			end
+		end
+	end
+	-- horizontal edges
+	for y = 0, G0.y-1 do
+		for z = 0, G0.z do
+			local x = 0
+			local s =	G0:i(x+0,y,z)*k[2]+
+						G0:i(x+1,y,z)*k[3]+
+						G0:i(x+2,y,z)*k[4]
+			F0:a(0,y,z,s*16/11)
+			
+			local x = G0.x-2 -- FIXME boundary should be -1 if size is uneven!
+			local s =	G0:i(x-2,y,z)*k[0]+
+						G0:i(x-1,y,z)*k[1]+
+						G0:i(x+0,y,z)*k[2]
+			F0:a(x/2,y,z,s*16/11)
+		end
+	end	
+	
+	local F1 = img:new(G0.x/2, G0.y/2, G0.z)
+	
+	-- vertical:
+	for x = 0, F0.x-1 do
+		for y = 2, F0.y-3, 2 do
+			for z = 0, F0.z do
+				local s =	F0:i(x,y-2,z)*k[0]+
+							F0:i(x,y-1,z)*k[1]+
+							F0:i(x,y+0,z)*k[2]+
+							F0:i(x,y+1,z)*k[3]+
+							F0:i(x,y+2,z)*k[4]
+				F1:a(x,y/2,z,s)
+			end
+		end
+	end
+	-- vertical edges
+	for x = 0, F0.x-1 do
+		for z = 0, F0.z do
+			local y = 0
+			local s =	F0:i(x,y+0,z)*k[2]+
+						F0:i(x,y+1,z)*k[3]+
+						F0:i(x,y+2,z)*k[4]
+			F1:a(x,y/2,z,s*16/11)
+			
+			local y = F0.y-2 -- FIXME boundary should be -1 if size is uneven!
+			local s =	F0:i(x,y-2,z)*k[0]+
+						F0:i(x,y-1,z)*k[1]+
+						F0:i(x,y+0,z)*k[2]
+			F1:a(x,y/2,z,s*16/11)
+		end
+	end
+	
+	return F1
+end
+
+local function gUp(F1)
+	local F0 = F1:new(F1.x*2, F1.y, F1.z)
+	
+	for x = 1, F1.x-2 do
+		for y = 0, F1.y-1 do
+			for z = 0, F1.z-1 do
+				local s1 = (F1:i(x-1,y,z)+6*F1:i(x,y,z)+F1:i(x+1,y,z))/8
+				local s2 = (F1:i(x,y,z)+F1:i(x+1,y,z))/2
+				F0:a(x*2,y,z, s1)
+				F0:a(x*2+1,y,z, s2)
+			end
+		end
+	end
+	
+	for y = 0, F1.y-1 do
+		for z = 0, F1.z-1 do
+			local x = 0
+			local s1 = (6*F1:i(x,y,z)+F1:i(x+1,y,z))/7
+			local s2 = (F1:i(x,y,z)+F1:i(x+1,y,z))/2
+			F0:a(x*2,y,z, s1)
+			F0:a(x*2+1,y,z, s2)
+			
+			local x = F1.x-1
+			local s1 = (6*F1:i(x,y,z)+F1:i(x-1,y,z))/7
+			local s2 = F1:i(x,y,z)
+			F0:a(x*2,y,z, s1)
+			F0:a(x*2+1,y,z, s2)
+		end
+	end
+	
+	local G0 = F1:new(F1.x*2, F1.y*2, F1.z)
+	
+	for x = 0, F0.x-1 do
+		for y = 1, F0.y-2 do
+			for z = 0, F0.z-1 do
+				local s1 = (F0:i(x,y-1,z)+6*F0:i(x,y,z)+F0:i(x,y+1,z))/8
+				local s2 = (F0:i(x,y,z)+F0:i(x,y+1,z))/2
+				G0:a(x,y*2,z, s1)
+				G0:a(x,y*2+1,z, s2)
+			end
+		end
+	end
+	
+	for x = 0, F0.x-1 do
+		for z = 0, F0.z-1 do
+			local y = 0
+			local s1 = (6*F0:i(x,y,z)+F0:i(x,y+1,z))/7
+			local s2 = (F0:i(x,y,z)+F0:i(x,y+1,z))/2
+			G0:a(x,y*2,z, s1)
+			G0:a(x,y*2+1,z, s2)
+			
+			local y = F0.y-1
+			local s1 = (F0:i(x,y-1,z)+6*F0:i(x,y,z))/7
+			local s2 = (F0:i(x,y,z))
+			G0:a(x,y*2,z, s1)
+			G0:a(x,y*2+1,z, s2)
+		end
+	end
+	
+	return G0	
+end
+
+local function pyrDown(G0)
+	local G1 = gDown(G0)
+	local L0 = G0 - gUp(G1)
+	return G1, L0
+end
+
+local function pyrUp(G1, L0)
+	L0 = L0 or 0
+	local G0 = gUp(G1)+L0
+	return G0
+end
+
+-- layout:
+--[[
+		- pyrDown(G0) -> G1, L0
+		- pyrUp(G1, L0) -> G0
+		- pyrConstruct(G0, n) -> P
+		- pyrCollapse(P) -> G0
+		- pyrGetL(P, n) -> Ln
+		- pyrGetG(P, n) -> Gn
+		- pyrSetL(P, Ln, n)
+		
+		basic:
+		- gDown(G0, n) -> G1
+		- gUp(G1, n) -> G0
+		
+		struct P {
+			G = []
+			L = []
+			ofx = []
+			ofy = []
+			n = maxLevels
+		}
+--]]
+
+-- TODO: keep track of buffer sizes
+
+-- full: keep gaussian components
+local function pyrConstruct(G0, n, full)
+	local P = {L={}, x={}, y={}, n=0}
+	P.n = n or 5
+	local G = {}
+	G[0] = G0
+	
+	for i = 1, P.n do
+		G[i], P.L[i-1] = pyrDown(G[i-1])
+		if not full then G[i-1] = nil end
+	end
+	P.L[P.n] = G[P.n]
+	return P, G
+end
+
+-- remove gaussian components
+local function pyrCompact(P)
+	P.G = nil
+end
+
+local function pyrCollapse(P)
+	local G = {}
+	G[P.n] = P.L[P.n]
+	for i = P.n-1, 0, -1 do
+		G[i] = pyrUp(G[i+1], P.L[i])
+		G[i+1] = nil
+	end
+	local G0 = G[0]
+	return G0
+end
+
+--test
+local d = ppm.readIM("../Resources/Photos/img16.ppm")
+local buf = ppm.toBuffer(d)
+d = nil
+
+tic()
+local P = pyrConstruct(buf)
+toc("Construct")
+
+tic()
+local G0 = pyrCollapse(P)
+toc("Construct")
+
+d = ppm.fromBuffer(G0)
+d.name = "pyramid_out.png"
+ppm.writeIM(d)
+d = nil
+print("Done!")
+
+--[[
 math.randomseed(os.time())
 
 local ffi = require("ffi")
