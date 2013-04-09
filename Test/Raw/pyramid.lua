@@ -25,6 +25,8 @@
 --	- fast frequency filtering
 --	- merging
 --		- using map (custom blending) or function (ex: focus/exposure stacking)
+--		- functions include: contrast, brightness, saturation
+--	- integrate align_image_stack for image aligning before merging (works quite well)
 
 require("path")
 local ffi = require("ffi")
@@ -346,45 +348,105 @@ end
 
 --test
 local B = {}
-B[1] = ppm.toBuffer(ppm.readIM("./focus/1.jpg"))
-B[2] = ppm.toBuffer(ppm.readIM("./focus/2.jpg"))
-B[3] = ppm.toBuffer(ppm.readIM("./focus/3.jpg"))
-B[4] = ppm.toBuffer(ppm.readIM("./focus/4.jpg"))
-B[5] = ppm.toBuffer(ppm.readIM("./focus/5.jpg"))
-B[6] = ppm.toBuffer(ppm.readIM("./focus/6.jpg"))
-B[7] = ppm.toBuffer(ppm.readIM("./focus/7.jpg"))
-B[8] = ppm.toBuffer(ppm.readIM("./focus/8.jpg"))
-B[9] = ppm.toBuffer(ppm.readIM("./focus/9.jpg"))
-B[10] = ppm.toBuffer(ppm.readIM("./focus/10.jpg"))
-B[11] = ppm.toBuffer(ppm.readIM("./focus/11.jpg"))
-B[12] = ppm.toBuffer(ppm.readIM("./focus/12.jpg"))
-B[13] = ppm.toBuffer(ppm.readIM("./focus/13.jpg"))
-
+B[1] = ppm.toBuffer(ppm.readIM("./focus/AIS_0001.tif"))
+B[2] = ppm.toBuffer(ppm.readIM("./focus/AIS_0002.tif"))
+B[3] = ppm.toBuffer(ppm.readIM("./focus/AIS_0003.tif"))
+--B[4] = ppm.toBuffer(ppm.readIM("./focus/AIS_0004.tif"))
+--B[5] = ppm.toBuffer(ppm.readIM("./focus/AIS_0005.tif"))
+--B[6] = ppm.toBuffer(ppm.readIM("./focus/AIS_0006.tif"))
+--B[7] = ppm.toBuffer(ppm.readIM("./focus/AIS_0007.tif"))
+--B[8] = ppm.toBuffer(ppm.readIM("./focus/AIS_0008.tif"))
+--B[9] = ppm.toBuffer(ppm.readIM("./focus/AIS_0009.tif"))
+--B[10] = ppm.toBuffer(ppm.readIM("./focus/AIS_0010.tif"))
+--B[11] = ppm.toBuffer(ppm.readIM("./focus/AIS_0011.tif"))
+--B[12] = ppm.toBuffer(ppm.readIM("./focus/AIS_0012.tif"))
+B[4] = ppm.toBuffer(ppm.readIM("./focus/AIS_0000.tif"))
 local P = {}
 
 tic()
-for i = 1, 13 do
-	P[i] = pyrConstruct(B[i], 7)
+for i = 1, 4 do
+	P[i] = pyrConstruct(B[i], 3)
 end
 toc("Construct")
 
+
+-- absmax function
+function img.absmax(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					local a = a:get(i,j,k)
+					o:set(i,j,k, math.abs(a)>=math.abs(b) and a or b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						local a = a:get(i,j,k)
+						local b = b:get(i,j,k)
+						o:set(i,j,k, math.abs(a)>=math.abs(b) and a or b )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
+function img.mmin(a)
+	local m = math.huge
+	for i = 0, a.x-1 do
+		for j = 0, a.y-1 do
+			for k = 0, a.z-1 do
+				local a = a:get(i,j,k)
+				m = a<=m and a or m				
+			end
+		end
+	end
+	return m
+end
+
+function img.mmax(a)
+	local m = -math.huge
+	for i = 0, a.x-1 do
+		for j = 0, a.y-1 do
+			for k = 0, a.z-1 do
+				local a = a:get(i,j,k)
+				m = a>=m and a or m				
+			end
+		end
+	end
+	return m
+end
+
 tic()
-for i = 0, 7 do
-	P[1].L[i] = P[1].L[i]/13
-	for j = 2, 13 do
-		P[1].L[i] = P[1].L[i] + P[j].L[i]/13
+for i = 0, 3 do
+	for j = 2, 4 do
+		P[1].L[i] = img.absmax(P[1].L[i], P[j].L[i])
 		collectgarbage("collect")
 	end
 end
 toc()
 
-
-
-
-
 tic()
 local G0 = pyrCollapse(P[1])
 toc("Construct")
+
+G0 = G0-img.mmin(G0)
+G0 = G0/img.mmax(G0)
 
 local d = ppm.fromBuffer(G0)
 d.name = "pyramid_out.png"
