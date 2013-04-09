@@ -286,12 +286,14 @@ node.background = sdl.loadImage(__global.imgPath.."node_t.png")
 
 function node:draw(flag)
 	self.imageProcess(flag) -- puts image on screen
+	if flag=="nonode" then return end
 	
 	drawNoodles(self) -- draws noodles
 	
 	for n = #self,1,-1 do
 		self[self.drawOrder[n]]:draw()
 	end
+	
 	if flag~="noflip" then sdl.flip() end
 end
 

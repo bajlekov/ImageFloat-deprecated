@@ -68,10 +68,12 @@ mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
 -- TODO: move to fonttools, local font reference
 font = {}
 font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
+font.mono = sdl.font(__global.ttfPath.."dejavuM.ttf", 10)
 font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 local font = font
 
 local node = require("node")
+__node = node
 
 --move to node?
 require("nodeCreate")(node, img)
@@ -184,6 +186,7 @@ local calcUpdate
 
 local hist = require("histogram")
 interface.setHistogram(hist)
+interface.setBuffer(bufout)
 local currentNode = 0
 
 function funProcess()	
@@ -213,6 +216,7 @@ function funProcess()
 	
 	-- calculate histograms
 	hist.calculate(bufout)
+	interface.setBuffer(bufout) -- from globals??
 	
 	toc("Loop total") tic()
 	

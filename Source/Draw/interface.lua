@@ -166,6 +166,10 @@ local input
 function interface.setInput(i)
 	input = i
 end
+local buffer
+function interface.setBuffer(b)
+	buffer = b
+end
 
 local menuList = {"File", "Edit", "Process", "Settings", "Help", "Close"}
 local menuDx = {}
@@ -187,13 +191,56 @@ function interface.drawMenu()
 	end
 	vLineAdd(340, 0, __global.setup.windowSize[2], 128, 128, 128)
 end
+local max = math.max
+local min = math.min
+local function luma(r, g, b) return 0.2126 * r + 0.7152 * g + 0.0722 * b end --Rec709
+local function chroma(r, g, b) return max(r, g, b)-min(r, g, b) end
+local function hue(r, g, b)
+	local c = chroma(r, g, b)
+	if c==0 then return 0 end
+	local hue
+	local m = max(r, g, b)
+	if m==r then hue = ((g - b) / c) end
+	if m==g then hue = (2 + (b - r) / c) end
+	if m==b then hue = (4 + (r - g) / c) end
+	return hue<0 and hue/6+1 or hue/6
+end
 function interface.click()
-	print("*** menu clicked!!!!!")
+	if input.y<20 then
+		print("menu clicked")
+	end
+	local x, y = input.x-350, input.y-20
+	if x>=0 and x<buffer.x and y>=0 and y<buffer.y then
+		print("image clicked")
+		-- loop
+		while input.button[1] do
+			input:update()
+			local x, y = input.x-350, input.y-20
+			if x>=0 and x<buffer.x and y>=0 and y<buffer.y then
+				__node:draw("nonode") -- FIXME: fix this!!! fix all drawing code in node!
+				-- get pixel values
+				local r, g, b = buffer:get3(x,y)
+				local textRGB = string.format("| R:%.2f | G:%.2f | B:%.2f |", r, g, b)
+				local textHSV = string.format("| L:%.2f | C:%.2f | H:%.2f |", luma(r,g,b), chroma(r,g,b), hue(r,g,b))
+				boxFill(x+365,y+15,x+365+179,y+53,r*256, g*256, b*256)
+				local d = ((r+g+b)/3+0.5)*256
+				sdl.text(textRGB, font.mono, x+370,y+20, d, d, d)
+				sdl.text(textHSV, font.mono, x+370,y+35, d, d, d)
+				sdl.flip()
+			else
+				__node:draw("nonode")
+				sdl.flip()
+			end
+		end
+		__node:draw()
+	end
 end
 
 
 -- keyboard callbacks
 local keyPressFun = {}
+function interface.getKeyFunTable() return keyPressFun end -- easy replacing of callback table
+function interface.setKeyFunTable(kf) keyPressFun = kf end
 function interface.keyRegister(k, f)
 	keyPressFun[k] = f
 end
