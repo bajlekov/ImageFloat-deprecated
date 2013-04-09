@@ -80,9 +80,11 @@ node:add("Rotate")
 node:add("Mixer")
 node:add("Add")
 node:add("Split")
-node:add("Decompose")
+node:add("DecomposeLCH")
+node:add("DecomposeRGB")
 node:add("WhiteBalance")
-node:add("Compose")
+node:add("ComposeLCH")
+node:add("ComposeRGB")
 node:add("ColorSpace")
 node:add("Output")
 node:add("Color RGB")
@@ -327,7 +329,8 @@ function node:click()
 					self:draw()
 				end
 			elseif t=="title" then
-				if self.mouse.x>=self[n].ui.x+130 and --delete node
+				if (not self[n].ui.noClose) and -- prevent closing of non-closable items
+				self.mouse.x>=self[n].ui.x+130 and --delete node
 				self.mouse.x<=self[n].ui.x+146 and
 				self.mouse.y>=self[n].ui.y+2 and
 				self.mouse.y<=self[n].ui.y+18 then
@@ -458,3 +461,4 @@ while true do
 		os.exit()
 	end
 end
+
