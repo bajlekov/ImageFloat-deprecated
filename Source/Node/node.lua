@@ -282,47 +282,12 @@ function node:remove(n)
 	self[nmax]=nil	
 end
 
--- put in resources table
-node.backgrounds = {}
-node.backgrounds.window = sdl.loadImage(__global.imgPath.."background.png")
-node.backgrounds.node = sdl.loadImage(__global.imgPath.."node_t.png")
-
---destroy backgrounds at end?
-
-local helpText = {
-	"ImageFloat",
-	"Copyright (C) 2011-2012 G.Bajlekov",
-	"This program comes WITHOUT",
-	"ANY WARRANTY. This is free",
-	"software, and you are welcome to",
-	"redistribute it under the conditions",
-	"of the GNU General Public License",
-	"version 3 or later.",
-	" ",
-	"Instructions:",
-	"I - toggle this message",
-	"Z - toggle crop view",
-	"S - save preview",
-	"Q - quit",
-	" ",
-	"Mouse:",
-	"Ctrl - step adjust",
-	"Shift - precise adjust",
-	"Alt - reset to default",
-}
+node.background = sdl.loadImage(__global.imgPath.."node_t.png")
 
 function node:draw(flag)
-	-- see if drawing can be reduced when no update is available!!
-	sdl.blit(node.backgrounds.window, nil, sdl.screen, nil) --draws background
 	self.imageProcess(flag) -- puts image on screen
+	
 	drawNoodles(self) -- draws noodles
-
-	--help text
-	if __global.info then
-		for k, v in ipairs(helpText) do
-			sdl.text(v, font.normal, __global.setup.windowSize[1] - 220, 10 + k*10, 128, 64, 64)
-		end
-	end
 	
 	for n = #self,1,-1 do
 		self[self.drawOrder[n]]:draw()

@@ -60,6 +60,7 @@ sdl.caption("ImageFloat...loading", "ImageFloat");
 
 -- TODO refactor draw
 require("draw")
+local interface = require("interface")
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
@@ -182,6 +183,7 @@ local funProcess
 local calcUpdate
 
 local hist = require("histogram")
+interface.setHistogram(hist)
 
 function funProcess()	
 	cp=1							-- reset processing coroutine
@@ -215,15 +217,6 @@ function funProcess()
 	coroutine.yield(-1)
 end
 
---function updating the image and checking when processing should be advanced
-local t = sdl.ticks()
-local vLineAdd = vLineAdd
-local hLineAdd = hLineAdd
-local fpsSmooth = 128 -- smoothing parameter
-local fpsData = ffi.new("double[?]", fpsSmooth)
-local fpsCounter = 0
-local fpsAverage = 0
-
 local function imageProcess(flag)
 	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
 		if cp==-1 then
@@ -232,62 +225,7 @@ local function imageProcess(flag)
 		cp = coProcess() -- go to next step
 	end
 	
-	sdl.screenPut(surf, 350, 20)
-	
-	-- fps averaging
-	local tt = sdl.ticks()-t
-	t = sdl.ticks()
-	
-	if tt<250 then -- filter outliers!
-		fpsAverage = fpsAverage + tt - fpsData[fpsCounter]
-		fpsData[fpsCounter] = tt 
-		fpsCounter = fpsCounter + 1
-		fpsCounter = fpsCounter==fpsSmooth and 0 or fpsCounter
-	else
-		print("*** slow screen refresh ***")
-	end
-	
-	sdl.text(math.floor(fpsSmooth/fpsAverage*1000).."FPS", font.normal, 12, 12)
-
-	-- put histogram buffer
-	for i=1, 255 do
-		--wrap graphics
-		--dbg.warn("HISTOGRAM DRAWING")
-		-- hist to buffer after calc, only put to screen here!!
-		-- why isn't background always drawn below histogram??
-		vLineAdd(i+10, __global.setup.windowSize[2]-10 - math.floor(hist.r[i]), math.floor(hist.r[i]), 128, 32, 32)
-		vLineAdd(i+10, __global.setup.windowSize[2]-10 - math.floor(hist.g[i]), math.floor(hist.g[i]), 32, 128, 32)
-		vLineAdd(i+10, __global.setup.windowSize[2]-10 - math.floor(hist.b[i]), math.floor(hist.b[i]), 32, 32, 128)
-
-		vLineAdd(i+10, __global.setup.windowSize[2]-110 - math.floor(hist.l[i]), math.floor(hist.l[i]), 128, 128, i/2)
-		vLineAdd(i+10, __global.setup.windowSize[2]-210 - math.floor(hist.c[i]), math.floor(hist.c[i]), 128, i/2, 128)
-		local r, g, b = HtoRGB(i/255)
-		vLineAdd(i+10, __global.setup.windowSize[2]-310 - math.floor(hist.h[i]), math.floor(hist.h[i]), r*128, g*128, b*128)
-	end
-
-	vLineAdd(266, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
-	vLineAdd(10, __global.setup.windowSize[2]-410, 400, 64, 64, 64)
-
-	vLineAdd(197, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-	vLineAdd(147, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-	vLineAdd(110, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-	vLineAdd(83, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-	vLineAdd(64, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-	vLineAdd(49, __global.setup.windowSize[2]-310, 300, 16, 16, 16)
-
-	vLineAdd(53, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-	vLineAdd(95, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-	vLineAdd(138, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-	vLineAdd(180, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-	vLineAdd(223, __global.setup.windowSize[2]-410, 100, 16, 16, 16)
-
-	hLineAdd(10, __global.setup.windowSize[2]-411, 257, 64, 64, 64)
-	hLineAdd(10, __global.setup.windowSize[2]-10, 257, 64, 64, 64)
-
-	sdl.text("Hue", font.normal, 12, __global.setup.windowSize[2]-405)
-	sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
-	sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
-	sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
+	interface.draw(surf)
 end
 
 --register imageProcess
@@ -411,6 +349,7 @@ while true do
 		node:draw()
 	end
 	if mouse.key.num==113 then--"Q"
+		-- move to cleanup
 		lua.threadStop()
 		node:cleanup()
 		lua.threadQuit()
@@ -438,15 +377,7 @@ while true do
 			if cp==-1 then
 				lua.threadStop()
 				calcUpdate = false
-				--Histogram
-				--slow hist calc...multithreaded and in separate instance + interruptable!
-				--effect of partly slow cpu speedup and inefficient compilation. flushing compiled code avoids 1000ms+ times
-				--still, perform non-blocking and possibly threaded!
-				--improve interface for non-blocking ops with extra data passing!
-				--additional non-MT thread for non-blocking ops?
-				--img.toSurface(bufout, surf)
-				node:draw() -- does not redraw automatically
-				--node:draw()
+				node:draw()
 			else
 				if cp~="pass" then lua.threadWait() end
 				cp = coProcess()

@@ -154,7 +154,7 @@ do
 
 		if self.ui.draw==true then
 			setSurface(surf)
-			sdl.blit(self.node.backgrounds.node, sdl.rectangle(0, 0, 174, 24+12*n), surf, sdl.rectangle(1, 1, 0, 0))
+			sdl.blit(self.node.background, sdl.rectangle(0, 0, 174, 24+12*n), surf, sdl.rectangle(1, 1, 0, 0))
 			--__sdl.fillRect(surf, NULL, __sdl.mapRGBA(surf,0, 0, 0, 128)); 
 			--_SDL.SDL_SetAlpha(surf, 0x00010000, 0)
 
