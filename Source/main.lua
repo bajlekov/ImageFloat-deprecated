@@ -27,7 +27,7 @@ local ffi = require("ffi")
 __global = require("global")
 local __global = __global -- local reference to global table
 __global.loadFile = arg and arg[1] or __global.loadFile
-collectgarbage("setpause", 120) -- force quicker garbage collection to prevent heaping up
+collectgarbage("setpause", 100) -- force quicker garbage collection to prevent heaping up
 math.randomseed(os.time())
 
 -- TODO internal console for debugging etc.
@@ -80,9 +80,11 @@ node:add("Rotate")
 node:add("Mixer")
 node:add("Add")
 node:add("Split")
-node:add("Decompose")
+node:add("DecomposeLCH")
+node:add("DecomposeRGB")
 node:add("WhiteBalance")
-node:add("Compose")
+node:add("ComposeLCH")
+node:add("ComposeRGB")
 node:add("ColorSpace")
 node:add("Output")
 node:add("Color RGB")
@@ -205,7 +207,7 @@ function funProcess()
 	end
 	
 	-- calculate histograms
-	--hist.calculate(bufout)
+	hist.calculate(bufout)
 	
 	toc("Loop total")
 	tic()
@@ -458,3 +460,4 @@ while true do
 		os.exit()
 	end
 end
+

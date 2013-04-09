@@ -157,8 +157,6 @@ function SDL.input() return require("input")(_SDL) end
 function SDL.ticks() return _SDL.SDL_GetTicks() end
 function SDL.wait(x) _SDL.SDL_Delay(x) end
 
--- FIXME: text allocation memory not cleaned! use automatic c cleaning!
-
 function SDL.text(text, font, x, y, r, g, b, a)
 	local ttf_text = _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
 	SDL.screenPut(ttf_text, x, y)

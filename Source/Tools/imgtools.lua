@@ -271,6 +271,76 @@ function buffer.meta.__unm(a)
 	return o
 end
 
+function buffer.min(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					local a = a:get(i,j,k)
+					o:set(i,j,k, a<=b and a or b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						local a = a:get(i,j,k)
+						local b = b:get(i,j,k)
+						o:set(i,j,k, a<=b and a or b )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
+function buffer.max(a, b)
+	if type(b)=="number" then
+		local o = a:new()
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				for k = 0, a.z-1 do
+					local a = a:get(i,j,k)
+					o:set(i,j,k, a>=b and a or b)				
+				end
+			end
+		end
+		return o
+	elseif type(b)=="table" and b.__type=="buffer" then
+		if a.x~=b.x or a.y~=b.y or a.z~=b.z then
+			print(debug.traceback("ERROR: Incompatible array sizes: ["..a.x..", "..a.y..", "..a.z.."], ["..b.x..", "..b.y..", "..b.z.."]."))
+			return nil
+		else
+			local o = a:new()
+			for i = 0, a.x-1 do
+				for j = 0, a.y-1 do
+					for k = 0, a.z-1 do
+						local a = a:get(i,j,k)
+						local b = b:get(i,j,k)
+						o:set(i,j,k, a>=b and a or b )				
+					end
+				end
+			end
+			return o
+		end
+	else
+		print(debug.traceback("ERROR: Invalid type."))
+		return nil
+	end
+end
+
 function buffer:getABC(x,y,z)
 	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
 		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
