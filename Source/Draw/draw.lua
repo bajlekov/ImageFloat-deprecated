@@ -42,6 +42,9 @@ function pixelAdd(x,y,r,g,b)
   	if pixbuf[(x + __dimX*y)*4+0] + b>255 then pixbuf[(x + __dimX*y)*4+0] = 255 elseif pixbuf[(x + __dimX*y)*4+0] + r<0 then pixbuf[(x + __dimX*y)*4+0] = 0 else pixbuf[(x + __dimX*y)*4+0] = pixbuf[(x + __dimX*y)*4+0] + b end
   end
 end
+local pixelAdd = pixelAdd
+local setPixel = setPixel
+local setPixeladd = setPixeladd
 
 function hLine(x,y,l,r,g,b)
 	for x = x, x+l-1 do
