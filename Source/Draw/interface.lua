@@ -39,6 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 local sdl = __sdl
+local __global = __global
 local ffi = require("ffi")
 local interface = {}
 
@@ -54,6 +55,7 @@ function interface.draw(surf)
 	interface.drawFPS()				-- frame counter
 	interface.drawHist()			-- histogram
 	interface.drawHelp()			-- info/help
+	interface.drawMenu()			-- draw menu skeleton
 end
 
 
@@ -78,7 +80,7 @@ function interface.drawFPS()
 	else
 		print("*** slow screen refresh ***")
 	end
-	sdl.text(math.floor(fpsSmooth/fpsAverage*1000).."FPS", font.normal, 12, 12)
+	sdl.text(math.floor(fpsSmooth/fpsAverage*1000).."FPS", font.normal, 10, 20)
 end
 
 
@@ -160,6 +162,48 @@ function interface.drawHist()
 end
 
 
+local input
+function interface.setInput(i)
+	input = i
+end
+
+local menuList = {"File", "Edit", "Process", "Settings", "Help", "Close"}
+local menuDx = {}
+local nodeList = {"Input", "Generate", "Color", "Effect", "Geometry", "Mask", " ", " ", " ", " ", " "}
+function interface.drawMenu()
+	boxFill(1,1,__global.setup.windowSize[1]-2,18,64,64,64)
+	local x = 10
+	for k, v in ipairs(menuList) do
+		local dx = sdl.text(v, font.normal, x, 3)
+		menuDx[k] = dx -- keep track of widths! 
+		boxLine(x-4,2,x+dx+4,17,32,32,32)
+		x = x + dx + 10
+		
+	end
+	for k, v in ipairs(nodeList) do
+		boxFill(350+(k-1)*80,2,350+(k-1)*80+78,17,128, 128, 128)
+		sdl.text(v, font.normal, 350+(k-1)*80+4, 3)
+		boxLine(350+(k-1)*80,2,350+(k-1)*80+78,17,32,32,32)
+	end
+	vLineAdd(340, 0, __global.setup.windowSize[2], 128, 128, 128)
+end
+function interface.click()
+	print("*** menu clicked!!!!!")
+end
+
+
+-- keyboard callbacks
+local keyPressFun = {}
+function interface.keyRegister(k, f)
+	keyPressFun[k] = f
+end
+function interface.keyPress()
+	local k = input.key.num
+	if not k then return end
+	local s = string.char(tonumber(k))
+	local f = keyPressFun[s] or keyPressFun[k] or nil
+	if type(f)=="function" then return f() end
+end
 
 return interface
 

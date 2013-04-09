@@ -60,9 +60,9 @@ sdl.caption("ImageFloat...loading", "ImageFloat");
 
 -- TODO refactor draw
 require("draw")
-local interface = require("interface")
-
 local mouse = sdl.input()
+local interface = require("interface")
+interface.setInput(mouse)
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
 
 -- TODO: move to fonttools, local font reference
@@ -184,6 +184,7 @@ local calcUpdate
 
 local hist = require("histogram")
 interface.setHistogram(hist)
+local currentNode = 0
 
 function funProcess()	
 	cp=1							-- reset processing coroutine
@@ -196,7 +197,9 @@ function funProcess()
 	
 	for k, v in ipairs(node.execOrder) do
 		node[v]:processRun(k)	-- run processes
+		currentNode = k
 	end
+	currentNode = 0
 	
 	-- put output buffer to screen buffer
 	bufout = node[outNode].bufOut
@@ -211,11 +214,11 @@ function funProcess()
 	-- calculate histograms
 	hist.calculate(bufout)
 	
-	toc("Loop total")
-	tic()
+	toc("Loop total") tic()
 	
 	coroutine.yield(-1)
 end
+
 
 local function imageProcess(flag)
 	if (flag=="process" and (lua.threadDone() or cp==-1)) or cp=="pass" then
@@ -227,12 +230,13 @@ local function imageProcess(flag)
 	
 	interface.draw(surf)
 end
-
 --register imageProcess
 node:setImageProcess(imageProcess)
 
+
 --eventually move to node lib with callbacks for some functions
 function node:click()
+	local nodeClicked = false
 	for i, n in ipairs(self.drawOrder) do --for each node on the list
 		if self[n].ui:click("node") then --if node is clicked
 			if i~=1 then self:focus(n) end --if node is not first then focus
@@ -297,45 +301,39 @@ function node:click()
 					coProcess=coroutine.wrap(funProcess) -- reset coroutine
 					coProcess()
 				elseif type=="int" then
-
+					-- missing
 				elseif type=="enum" then
-
+					-- missing
 				elseif type=="bool" then
-
+					-- missing
 				elseif type=="text" then
 					self:draw()
 				end
 			end
+			nodeClicked = true
 			break
 		end
 	end
+	if not nodeClicked then
+		interface.click() 
+	end
 end
 
---main loop
-
-calcUpdate = true
-node:calcLevels() --!! setup working levels in node setup allready!!
-node:draw()
-sdl.flip()
-while true do
-	mouse:update()
-
-	-- some simple interface handling, move to separate function!
-	if mouse.key.num==115 then--"S"
-		print("Saving image: "..__global.saveFile)
-		-- why is bufoutL never filled? use bufout as it's always set to bufoutL?
-		local writeFunTable = {
+-- register key actions
+do
+	local writeFunTable = {
 			PPM = ppm.writeFile,
 			IM = ppm.writeIM,
 		}
-		local writeFun = writeFunTable[__global.setup.imageSaveType]
-
+	local writeFun = writeFunTable[__global.setup.imageSaveType]
+	
+	interface.keyRegister("s", function()
+		print("Saving image: "..__global.saveFile)
 		local d = ppm.fromBuffer(bufout)
 		d.name = __global.saveFile
 		writeFun(d, __global.setup.imageSaveParams)
-		d = nil
-	end
-	if mouse.key.num==122 then--"Z"
+	end)
+	interface.keyRegister("z", function()
 		bufZoom()
 		lua.threadStop() -- stop processing		
 		calcUpdate = true
@@ -343,31 +341,46 @@ while true do
 		coProcess=coroutine.wrap(funProcess) -- reset coroutine
 		coProcess()
 		node:draw()
-	end
-	if mouse.key.num==105 then--"I"
+	end)
+	interface.keyRegister("i", function()
 		__global.info = not __global.info
 		node:draw()
-	end
-	if mouse.key.num==113 then--"Q"
-		-- move to cleanup
+	end)
+	interface.keyRegister("q", function()
 		lua.threadStop()
 		node:cleanup()
 		lua.threadQuit()
 		sdl.quit()
 		os.exit()
-	end
+	end)
+	interface.keyRegister(" ", function()
+		print("whee, space!")
+	end)
+end
 
-
-
+--main loop
+calcUpdate = true
+node:calcLevels() --!! setup working levels in node setup allready!!
+node:draw()
+sdl.flip()
+while true do
+	mouse:update()
+	interface.keyPress()
+	
 	if mouse.click[1] then
 		node:click() --run mouse updating loop till mouse released
 	else
 		--draw progress bar
 		if calcUpdate then
 			local size = buf.x
-			local progress = math.floor(size*lua.threadGetProgress())
-			boxFill(350,8,350+progress,12,128,128,128)
-			boxFill(350+progress,8,350+size,12,32,32,32)
+			local nodeProgress = lua.threadGetProgress()
+			local maxNodes = #node.execOrder - 1
+			local fullProgress = math.floor((currentNode+nodeProgress-1)/maxNodes*size-1)
+			fullProgress = fullProgress>size and size or fullProgress 
+			if fullProgress>1 then
+				boxFill(350,20,350+fullProgress,27,192,192,192)
+			end
+			--boxFill(350+progress,8,350+size,12,32,32,32)
 			sdl.flip()
 		end
 
