@@ -292,8 +292,8 @@ nodeTable["Split"] = function(self)
 	return n
 end
 
-nodeTable["Decompose"] = function(self)
-	local n=self:new("Decompose")
+nodeTable["DecomposeRGB"] = function(self)
+	local n=self:new("Decompose RGB")
 	n.param:add("Input", "R", "text")
 	n.param:add("", "G", "text")
 	n.param:add("", "B", "text")
@@ -328,6 +328,47 @@ nodeTable["Decompose"] = function(self)
 	end
 	return n
 end
+
+nodeTable["DecomposeLCH"] = function(self)
+	local n=self:new("Decompose LCH")
+	n.param:add("Input", "L", "text")
+	n.param:add("", "C", "text")
+	n.param:add("", "H", "text")
+	n.conn_i:add(1)
+	n.conn_o:add(1)
+	n.conn_o:add(2)
+	n.conn_o:add(3)
+	local bufsIn = {}
+	function n:processRun(num)
+		-- start timer
+		local bi = self.conn_i
+		local bo = self.conn_o
+
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
+		end
+
+		if bi[1].node then
+			bufsIn[1] = getBufIn(1)			-- input
+		else
+			bufsIn[1] = img:newV()		-- input
+		end
+
+		bo[1].buf = bufsIn[1]:newM()
+		bo[2].buf = bufsIn[1]:newM()
+		bo[3].buf = bufsIn[1]:newM()
+		
+		lua.threadSetup({bufsIn[1], bufsIn[1]})
+		lua.threadRun("ops", "cs", "SRGB", "LCHAB")
+		coroutine.yield(num)
+		lua.threadSetup({bufsIn[1], bo[1].buf, bo[2].buf, bo[3].buf})
+		lua.threadRun("ops", "decompose")
+		coroutine.yield(num)
+		bufsIn = {}
+	end
+	return n
+end
+
 
 nodeTable["WhiteBalance"] = function(self)
 	local n=self:new("White Balance")
@@ -427,8 +468,8 @@ end
 -- simple multiply node for altering channel levels
 -- enhance compose and decompose with intrinsic levels?
 
-nodeTable["Compose"] = function(self)
-local n=self:new("Compose")
+nodeTable["ComposeRGB"] = function(self)
+local n=self:new("Compose RGB")
 	n.param:add("R", "Output", "text")
 	n.param:add("G", "", "text")
 	n.param:add("B", "", "text")
@@ -468,6 +509,56 @@ local n=self:new("Compose")
 
 		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bo[1].buf})
 		lua.threadRun("ops", "compose")
+		coroutine.yield(num)
+		bufsIn = {}
+	end
+	return n
+end
+
+nodeTable["ComposeLCH"] = function(self)
+local n=self:new("Compose LCH")
+	n.param:add("L", "Output", "text")
+	n.param:add("C", "", "text")
+	n.param:add("H", "", "text")
+	n.conn_o:add(1)
+	n.conn_i:add(1)
+	n.conn_i:add(2)
+	n.conn_i:add(3)
+	local bufsIn = {}
+	function n:processRun(num)
+		-- start timer
+		local bi = self.conn_i
+		local bo = self.conn_o
+
+		local function getBufIn(p)
+			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
+		end
+
+		if bi[1].node then
+			bufsIn[1] = getBufIn(1)			-- input
+		else
+			bufsIn[1] = img:newV()	-- input
+		end
+		if bi[2].node then
+			bufsIn[2] = getBufIn(2)			-- input
+		else
+			bufsIn[2] = img:newV()	-- input
+		end
+		if bi[3].node then
+			bufsIn[3] = getBufIn(3)			-- input
+		else
+			bufsIn[3] = img:newV()	-- input
+		end
+		local x, y
+		x = math.max(bufsIn[1].x, bufsIn[2].x, bufsIn[3].x)
+		y = math.max(bufsIn[1].y, bufsIn[2].y, bufsIn[3].y)
+		bo[1].buf = img:new(x,y,3)
+		
+		lua.threadSetup({bufsIn[1], bufsIn[2], bufsIn[3], bo[1].buf})
+		lua.threadRun("ops", "compose")
+		coroutine.yield(num)
+		lua.threadSetup({bo[1].buf, bo[1].buf})
+		lua.threadRun("ops", "cs", "LCHAB", "SRGB")
 		coroutine.yield(num)
 		bufsIn = {}
 	end

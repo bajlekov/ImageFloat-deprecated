@@ -80,9 +80,11 @@ node:add("Rotate")
 node:add("Mixer")
 node:add("Add")
 node:add("Split")
-node:add("Decompose")
+node:add("DecomposeLCH")
+node:add("DecomposeRGB")
 node:add("WhiteBalance")
-node:add("Compose")
+node:add("ComposeLCH")
+node:add("ComposeRGB")
 node:add("ColorSpace")
 node:add("Output")
 node:add("Color RGB")
@@ -458,3 +460,4 @@ while true do
 		os.exit()
 	end
 end
+
