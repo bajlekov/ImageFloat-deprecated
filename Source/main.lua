@@ -329,7 +329,8 @@ function node:click()
 					self:draw()
 				end
 			elseif t=="title" then
-				if self.mouse.x>=self[n].ui.x+130 and --delete node
+				if (not self[n].ui.noClose) and -- prevent closing of non-closable items
+				self.mouse.x>=self[n].ui.x+130 and --delete node
 				self.mouse.x<=self[n].ui.x+146 and
 				self.mouse.y>=self[n].ui.y+2 and
 				self.mouse.y<=self[n].ui.y+18 then
