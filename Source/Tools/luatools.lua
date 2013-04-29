@@ -126,6 +126,7 @@ end
 
 function l.newState()
 	local state = lua.luaL_newstate()
+	--FIXME: error with luajit 2.1
 	lua.luaL_openlibs(state)
 	return state
 end
