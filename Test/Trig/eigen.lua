@@ -16,10 +16,46 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
 -- functions to obtain eigen vectors for PCA
+require("path")
+local ffi = require("ffi")
+__global = require("global")
+local __global = __global -- local reference to global table
+__global.loadFile = arg and arg[1] or __global.loadFile
+collectgarbage("setpause", 100) -- force quicker garbage collection to prevent heaping up
+math.randomseed(os.time())
+
+local sdl = require("sdltools")
+local dbg = require("dbgtools")
+
+local ppm = require("ppmtools")
+local img = require("imgtools")
+
+require("mathtools")
+
+local d = ppm.readIM(__global.loadFile)
+local bufi = ppm.toBuffer(d)
+d = nil
 
 -- function computing the covariance matrix of an image
-
--- missing
+local function cov(im)
+	local rr, rg, rb, gg, gb, bb -- same as input to eig
+	= 0,0,0,0,0,0
+	
+	for x = 0, im.x-1 do
+		for y = 0, im.y-1 do
+			local r, g, b = im:get3(x, y)
+			rr = rr+r*r
+			rg = rg+r*g
+			rb = rb+r*b
+			gg = gg+g*g
+			gb = gb+g*b
+			bb = bb+b*b
+		end
+	end
+	
+	local s = im.x*im.y
+	return rr/s,rg/s,rb/s,gg/s,gb/s,bb/s
+end
 
 -- complex class [extract to module]
 local complex = {}
@@ -176,5 +212,5 @@ local a,b,c = 2366.6, 2802.5, 2995.9
 local _,d,f = 2802.5, 3873.7, 4474.9
 local _,_,g = 2995.9, 4474.9, 5473.6
 
-eig(1,3,3,4,5,6)
+eig(cov(bufi))
 
