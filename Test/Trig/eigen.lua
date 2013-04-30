@@ -32,18 +32,42 @@ local img = require("imgtools")
 
 require("mathtools")
 
-local d = ppm.readIM(__global.loadFile)
-local bufi = ppm.toBuffer(d)
+local d = ppm.readIM("../Resources/Photos/img.ppm")
+print(__global.loadFile)
+local buf1 = ppm.toBuffer(d)
+d = nil
+
+local d = ppm.readIM("../Resources/Photos/Veerle.jpg")
+print(__global.loadFile)
+local buf2 = ppm.toBuffer(d)
 d = nil
 
 -- function computing the covariance matrix of an image
 local function cov(im)
 	local rr, rg, rb, gg, gb, bb -- same as input to eig
 	= 0,0,0,0,0,0
+	local rm, gm, bm = 0, 0, 0
+	local s = im.x*im.y
 	
 	for x = 0, im.x-1 do
 		for y = 0, im.y-1 do
 			local r, g, b = im:get3(x, y)
+			rm = rm + r
+			gm = gm + g
+			bm = bm + b
+		end
+	end
+	
+	rm = rm/s
+	gm = gm/s
+	bm = bm/s
+	
+	for x = 0, im.x-1 do
+		for y = 0, im.y-1 do
+			local r, g, b = im:get3(x, y)
+			r = r-rm
+			g = g-gm
+			b = b-bm
 			rr = rr+r*r
 			rg = rg+r*g
 			rb = rb+r*b
@@ -53,8 +77,8 @@ local function cov(im)
 		end
 	end
 	
-	local s = im.x*im.y
-	return rr/s,rg/s,rb/s,gg/s,gb/s,bb/s
+	
+	return {rr/s,rg/s,rb/s,gg/s,gb/s,bb/s}, {rm, gm, bm}
 end
 
 -- complex class [extract to module]
@@ -142,8 +166,8 @@ function complex:im() return self.i end
 function complex:re() return self.r end
 
 -- analytical solution to eigenvector decomposition for symmetrical 3x3 matrices
-local function eig(a,b,c,d,f,g) --[a,b,c];[~,d,f];[~,~,g]
-	jit.off()
+local function eig(M) --[a,b,c];[~,d,f];[~,~,g]
+	local a, b, c, d, f, g = unpack(M)
 	local sqrt = math.sqrt
 	local zz = -a^2-3*b^2-3*c^2+a*d-d^2-3*f^2+a*g+d*g-g^2
 	local yy = 2*a^3+9*a*b^2+9*a*c^2-3*a^2*d+9*b^2*d-18*c^2*d-3*a*d^2+2*d^3+54*b*c*f-18*a*f^2+9*d*f^2-3*a^2*g-18*b^2*g+9*c^2*g+12*a*d*g-3*d^2*g+9*f^2*g-3*a*g^2-3*d*g^2+2*g^3
@@ -158,43 +182,50 @@ local function eig(a,b,c,d,f,g) --[a,b,c];[~,d,f];[~,~,g]
 	local i = complex:new(0,1)
 	
 	local x1 = 1/3*(a+d+g)-(2^(1/3)*zz)/(3*xx^(1/3))+xx^(1/3)/(3*2^(1/3))
-	local x2 = 1/3*(a+d+g)+((1+i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))-((1-i*sqrt(3))*xx^(1/3))/(6*2^(1/3))
-	local x3 = 1/3*(a+d+g)+((1-i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))-((1+i*sqrt(3))*xx^(1/3))/(6*2^(1/3))
+	local x2 = 1/3*(a+d+g)+((1-i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))-((1+i*sqrt(3))*xx^(1/3))/(6*2^(1/3))
+	local x3 = 1/3*(a+d+g)+((1+i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))-((1-i*sqrt(3))*xx^(1/3))/(6*2^(1/3))
 	
-	local e11 = -(1/3*(-a-d-g)+g+(2^(1/3)*zz)/(3*xx^(1/3))-xx^(1/3)/(3*2^(1/3)))/c+(f*(-c*f+b*g-b*x1))/(c*(-c*d+b*f+c*x1))
-	local e12 = -(-c*f+b*g-b*x1)/(-c*d+b*f+c*x1)
-	local e13 = 1
+	local e = {}
 	
-	local e21 = -(1/3*(-a-d-g)+g-((1+i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))+((1-i*sqrt(3))*xx^(1/3))/(6*2^(1/3)))/c+(f*(-c*f+b*g-b*x2))/(c*(-c*d+b*f+c*x2))
-	local e22 = -(-c*f+b*g-b*x2)/(-c*d+b*f+c*x2)
-	local e23 = 1
+	e[1] = -(1/3*(-a-d-g)+g+(2^(1/3)*zz)/(3*xx^(1/3))-xx^(1/3)/(3*2^(1/3)))/c+(f*(-c*f+b*g-b*x1))/(c*(-c*d+b*f+c*x1))
+	e[2] = -(-c*f+b*g-b*x1)/(-c*d+b*f+c*x1)
+	e[3] = 1
+	
+	e[4] = -(1/3*(-a-d-g)+g-((1-i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))+((1+i*sqrt(3))*xx^(1/3))/(6*2^(1/3)))/c+(f*(-c*f+b*g-b*x2))/(c*(-c*d+b*f+c*x2))
+	e[5] = -(-c*f+b*g-b*x2)/(-c*d+b*f+c*x2)
+	e[6] = 1
+	
+	e[7] = -(1/3*(-a-d-g)+g-((1+i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))+((1-i*sqrt(3))*xx^(1/3))/(6*2^(1/3)))/c+(f*(-c*f+b*g-b*x3))/(c*(-c*d+b*f+c*x3))
+	e[8] = -(-c*f+b*g-b*x3)/(-c*d+b*f+c*x3)
+	e[9] = 1
 
-	local e31 = -(1/3*(-a-d-g)+g-((1-i*sqrt(3))*zz)/(3*2^(2/3)*xx^(1/3))+((1+i*sqrt(3))*xx^(1/3))/(6*2^(1/3)))/c+(f*(-c*f+b*g-b*x3))/(c*(-c*d+b*f+c*x3))
-	local e32 = -(-c*f+b*g-b*x3)/(-c*d+b*f+c*x3)
-	local e33 = 1
 	
 	-- calculate normalization factors
-	local n1 = (e11^2+e12^2+1)^(1/2)
-	local n2 = (e21^2+e22^2+1)^(1/2)
-	local n3 = (e31^2+e32^2+1)^(1/2)
+	local n1 = (e[1]^2+e[2]^2+1)^(1/2)
+	local n2 = (e[4]^2+e[5]^2+1)^(1/2)
+	local n3 = (e[7]^2+e[8]^2+1)^(1/2)
 	
-	e11, e12, e13 = e11/n1,e12/n1,e13/n1
-	e21, e22, e23 = e21/n2,e22/n2,e23/n2
-	e31, e32, e33 = e31/n3,e32/n3,e33/n3
+	e[1], e[2], e[3] = e[1]/n1,e[2]/n1,e[3]/n1
+	e[4], e[5], e[6] = e[4]/n2,e[5]/n2,e[6]/n2
+	e[7], e[8], e[9] = e[7]/n3,e[8]/n3,e[9]/n3
 	
 	-- optional output
-	print("["..e11.r..", ".. e12.r..", ".. e13.r.."]")
-	print("["..e21.r..", ".. e22.r..", ".. e23.r.."]")
-	print("["..e31.r..", ".. e32.r..", ".. e33.r.."]")
+	print("["..e[1].r..", ".. e[2].r..", ".. e[3].r.."]")
+	print("["..e[4].r..", ".. e[5].r..", ".. e[6].r.."]")
+	print("["..e[7].r..", ".. e[8].r..", ".. e[9].r.."]")
 	
-	print("eigenvalues:")
+	--print("eigenvalues:")
 	print(x1.r)
 	print(x2.r)
 	print(x3.r)
 	
-	return {e11.r,e12.r,e13.r,
-			e21.r,e22.r,e23.r,
-			e31.r,e32.r,e33.r},
+	-- sorting
+	
+	--if 
+	
+	return {e[1].r,e[4].r,e[7].r,
+			e[2].r,e[5].r,e[8].r,
+			e[3].r,e[6].r,e[9].r},
 			-- eigenvalues
 			{x1.r, x2.r, x3.r}
 end
@@ -212,5 +243,130 @@ local a,b,c = 2366.6, 2802.5, 2995.9
 local _,d,f = 2802.5, 3873.7, 4474.9
 local _,_,g = 2995.9, 4474.9, 5473.6
 
-eig(cov(bufi))
+--eig(cov(buf1))
+--eig(cov(buf2))
 
+local function det2(a, b, c, d) return a*d-b*c end
+local function det3(a1,a2,a3,b1,b2,b3,c1,c2,c3)
+	return a1*b2*c3-a1*b3*c2-a2*b1*c3+a2*b3*c1+a3*b1*c2-a3*b2*c1
+end
+
+local function adj(a1,a2,a3,b1,b2,b3,c1,c2,c3)
+	local o = {0, 0, 0, 0, 0, 0, 0, 0, 0}
+	o[1]=det2(b2, b3, c2, c3)
+	o[2]=det2(a3, a2, c3, c2)
+	o[3]=det2(a2, a3, b2, b3)
+
+	o[4]=det2(b3, b1, c3, c1)
+	o[5]=det2(a1, a3, c1, c3)
+	o[6]=det2(a3, a1, b3, b1)
+	
+	o[7]=det2(b1, b2, c1, c2)
+	o[8]=det2(a2, a1, c2, c1)
+	o[9]=det2(a1, a2, b1, b2)
+	return o
+end
+
+local function inv(M)
+	local o = adj(unpack(M))
+	local f = 1/det3(unpack(M))
+
+	for i=1,9 do
+		o[i]=o[i]*f
+	end
+	return o
+end
+
+local function T(M)
+	return {M[1], M[4], M[7],
+			M[2], M[5], M[8],
+			M[3], M[6], M[9],
+		}
+end
+
+local function mult(V, M)
+	return {
+		M[1]*V[1] + M[4]*V[2] + M[7]*V[3],
+		M[2]*V[1] + M[5]*V[2] + M[8]*V[3],
+		M[3]*V[1] + M[6]*V[2] + M[9]*V[3],
+	}
+end
+
+local function matMult(M, N)
+	return {
+		M[1]*N[1] + M[2]*N[4] + M[3]*N[7],
+		M[1]*N[2] + M[2]*N[5] + M[3]*N[8],
+		M[1]*N[3] + M[2]*N[6] + M[3]*N[9],
+
+		M[4]*N[1] + M[5]*N[4] + M[6]*N[7],
+		M[4]*N[2] + M[5]*N[5] + M[6]*N[8],
+		M[4]*N[3] + M[5]*N[6] + M[6]*N[9],
+
+		M[7]*N[1] + M[8]*N[4] + M[9]*N[7],
+		M[7]*N[2] + M[8]*N[5] + M[9]*N[8],
+		M[7]*N[3] + M[8]*N[6] + M[9]*N[9],
+	}
+end
+
+-- not needed
+local function aaT(m)
+	return {m[1]^2+m[2]^2+m[3]^2,
+			m[1]*m[2]+m[2]*m[4]+m[3]*m[5],
+			m[1]*m[3]+m[2]*m[5]+m[3]*m[6],
+			m[2]^2+m[4]^2+m[5]^2,
+			m[2]*m[3]+m[4]*m[5]+m[5]*m[6],
+			m[3]^2+m[5]^2+m[6]^2}
+end
+
+--local M = eig(cov(buf1))
+--print(unpack(M))
+--print(unpack(inv(M)))
+
+--print(unpack(mult(M, {0,1,0})))
+
+local function applyConversion(im1, im2)
+	local M1, m1 = cov(im1)
+	local M2, m2 = cov(im2)
+	M1 = eig(M1) -- implement diagonal matMult
+	M2 = eig(M2)
+	local iM1, iM2 = inv(M1), inv(M2)
+	-- local iM1 = inv(M1)
+	-- inverse equals transpose for orthogonal matrix
+	
+	--print(unpack(ev))
+	
+	--for i = 1, 9, 3 do
+	--	M1[i] = 0
+	--end
+	--m2[1]=0
+	
+	--for i = 2, 9, 3 do
+	--	M1[i] = 0
+	--end
+	--m2[2]=0
+	
+	--for i = 3, 9, 3 do
+	--	M1[i] = 0
+	--end
+	--m2[3]=0
+	
+	-- remove least significant component
+	
+	for x = 0, im1.x-1 do
+		for y = 0, im1.y-1 do
+			local r, g, b = im1:get3(x, y)
+			r,g,b = unpack(mult({r-m1[1], g-m1[2], b-m1[3]}, M1))
+			g = 0
+			r,g,b = unpack(mult({r, g, b}, iM2))
+			im1:set3(x,y,r+m2[1],g+m2[2],b+m2[3])
+		end
+	end
+end
+
+applyConversion(buf2, buf2)
+print("done")
+
+d = ppm.fromBuffer(buf2)
+d.name = "eigen_out.png"
+ppm.writeIM(d)
+d = nil
