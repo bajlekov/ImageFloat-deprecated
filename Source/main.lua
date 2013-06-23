@@ -1,5 +1,5 @@
 --[[
-Copyright (C) 2011-2012 G. Bajlekov
+Copyright (C) 2011-2013 G. Bajlekov
 
 ImageFloat is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@ math.randomseed(os.time())
 
 -- TODO internal console for debugging etc.
 -- TODO	currently not working with luaJIt 2.1 alpha
--- FIXME memory consumption rises above 300MB, leads to unpredicted behaviour and crashes
 
 local sdl = require("sdltools")
 local lua = require("luatools")
