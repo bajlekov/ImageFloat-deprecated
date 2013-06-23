@@ -32,12 +32,9 @@ check ISPC SIMD-ability for short arrays (16 x float)
 -- write ispc file
 print(os.execute("pwd"))
 local ffi = require("ffi")
+local compile = require("Tools.compile")
 
--- compile ispc
-local file = "test"
-os.execute ("ispc --opt=fast-math --pic -o "..file..".o "..file..".ispc") print("compiling... (ispc)")
-os.execute ("clang -shared -O4 -o "..file..".so "..file..".o") print("linking... (clang)")
-local ISPC = ffi.load("./"..file..".so")
+local ISPC = compile.ispc("test")
 ffi.cdef[[
 	void ispc_pack(float* src, float* dst, int size);
 	void ispc_unpack(float* src, float* dst, int size);
