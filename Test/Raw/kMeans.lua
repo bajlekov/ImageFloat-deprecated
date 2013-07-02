@@ -30,8 +30,8 @@ local k = 12
 local iter = 512
 local threshold = 1
 
-local clust = ffi.new("double[?][3]", k)
-local newClust = ffi.new("double[?][3]", k)
+local clust = ffi.new("float[?][3]", k)
+local newClust = ffi.new("float[?][3]", k)
 
 local function clustInit(im)
 	clust[0][0] = 0
@@ -68,6 +68,38 @@ local function argmin(t, n)
 	return argmin
 end
 
+local function dist(x1,y1,z1,x2,y2,z2)
+	return (x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2
+end
+
+local ispc = [[
+	export uniform float dist(uniform float x1, uniform float y1, uniform float z1, uniform float x2, uniform float y2, uniform float z2) {
+		return pow(x1-x2,2) + pow(y1-y2,2) + pow(z1-z2,2);
+	}
+
+	export uniform int argmin(uniform float t[], uniform int n) {
+		uniform float min = t[0];
+		uniform int amin = 0;
+		uniform int i;
+		for (i=1; i<n; i++) {
+			if (t[i]<min) {
+				min = t[i];
+				amin = i;
+			}
+		}
+		return amin;
+	}
+]]
+
+ffi.cdef [[
+	int argmin(float* t, int n);
+	float dist(float x1, float y1, float z1, float x2, float y2, float z2);
+]]
+
+local compile = require("Tools.compile")
+
+local cc = compile.ispc("test", ispc)
+
 --partitioning argmin, worse performance:
 local function argmin2(t,n)
 	if n==1 then
@@ -84,26 +116,23 @@ local function argmin2(t,n)
 	end
 end
 
-local distTable = ffi.new("double[?]", k)
-local meanCount = ffi.new("double[?]", k)
+local distTable = ffi.new("float[?]", k)
+local meanCount = ffi.new("float[?]", k)
 
 local random = math.random
 
 local function clustIter(im)
-	local xmax = im.x
-	local ymax = im.y
-	
 	for i = 0, k-1 do
 		meanCount[i] = 0
 	end
 	
-	for x = 0, xmax-1 do
-		for y = 0, ymax-1 do
+	for x = 0, im.x-1 do
+		for y = 0, im.y-1 do
 			local r, g, b = im:i(x,y,0), im:i(x,y,1), im:i(x,y,2)
 			for i = 0, k-1 do
 				distTable[i] = dist(clust[i][0], clust[i][1], clust[i][2], r,g,b)
 			end
-			local c = argmin(distTable, k)
+			local c = cc.argmin(distTable, k)
 			if meanCount[c]==0 then
 				newClust[c][0] = r
 				newClust[c][1] = g
@@ -211,7 +240,7 @@ tic()
 clustInit()
 for i = 1, iter do
 	local r = clustIter(d)
-	--print("iteration:",i, "residue:", r)
+	print("iteration:",i, "residue:", r)
 	if r==0 then break end
 end
 clustApply(d)
@@ -224,16 +253,16 @@ ppm.writeIM(d)
 
 tic()
 local a = 0
-for i=1,800000000 do
+for i=1,768*512*60*12 do
 	a = a + dist(1,2,3,2,3,4)
 end
 toc()
 
-local b = ffi.new("double[8]", 1,2,3,4,-1,6,7,8)
+local b = ffi.new("float[12]", 1,2,3,4,-1,6,7,8,9,10,11,12)
 tic()
 local a = 0
-for i=1,100000000 do
-	a = a + argmin(b, 8)
+for i=1,768*512*60 do
+	a = a + cc.argmin(b, 12)
 end
 toc()
 
