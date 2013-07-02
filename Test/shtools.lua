@@ -33,13 +33,15 @@ local function ls_FB(dir)
 			fl[s] = "file"
 		end
 	end
-  f:close()
+  	f:close()
 	return {fl=fl, dl=dl}
 end
 
 local function cwd_FB()
   local f = io.popen("pwd")
-  return f:read("*l")
+  local o = f:read("*l")
+  f:close()
+  return o
 end
 
 ffi.cdef([[
