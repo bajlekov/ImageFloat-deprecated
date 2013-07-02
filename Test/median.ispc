@@ -28,8 +28,7 @@ inline void sort(uniform int a, uniform int b) {
 }
 
 export void medianD(uniform float i[], uniform float o[], uniform int xmax, uniform int ymax) {
-	for (uniform int y = 1; y<ymax-1; y++) {
-	foreach (x = 1 ... xmax-1) {
+	foreach (y=1...ymax-1, x = 1...xmax-1) {
 		pix[0] = i[(y-1)*xmax+x-1];
 		pix[1] = i[y*xmax+x-1];
 		pix[2] = i[(y+1)*xmax+x-1];
@@ -40,11 +39,31 @@ export void medianD(uniform float i[], uniform float o[], uniform int xmax, unif
 		pix[7] = i[y*xmax+x+1];
 		pix[8] = i[(y+1)*xmax+x+1];
 		
-		uniform int j;
-		for (j = 0; j<19; j++) {
-			sort(A[j], B[j]);
-		}
+		//uniform int j;
+		//for (j = 0; j<19; j++) {
+		//	sort(A[j], B[j]);
+		//}
+		
+		sort(A[1], B[2]);
+		sort(A[4], B[5]);
+		sort(A[7], B[8]);
+		sort(A[0], B[1]);
+		sort(A[3], B[4]);
+		sort(A[6], B[7]);
+		sort(A[1], B[2]);
+		sort(A[4], B[5]);
+		sort(A[7], B[8]);
+		sort(A[0], B[3]);
+		sort(A[5], B[8]);
+		sort(A[4], B[7]);
+		sort(A[3], B[6]);
+		sort(A[1], B[4]);
+		sort(A[2], B[5]);
+		sort(A[3], B[7]);
+		sort(A[4], B[2]);
+		sort(A[6], B[4]);
+		sort(A[4], B[2]);
+				
 		o[y*xmax+x] = pix[4];
-	}
 	}
 }

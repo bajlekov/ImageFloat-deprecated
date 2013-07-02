@@ -20,7 +20,7 @@ const int A[19] = {1,4,7,0,3,6,1,4,7,0,5,4,3,1,2,4,4,6,4};
 const int B[19] = {2,5,8,1,4,7,2,5,8,3,8,7,6,4,5,7,2,4,2};
 float pix[9];
 
-void sort(int a, int b) {	
+inline void sort(int a, int b) {	
 	if (pix[a]>pix[b]) {
 		float t = pix[b];
 		pix[b] = pix[a];
@@ -42,9 +42,29 @@ void medianD(float* in, float* out, int xmax, int ymax) {
 			pix[7] = in[y*xmax+x+1];
 			pix[8] = in[(y+1)*xmax+x+1];
 			
-			for (i = 0; i<19; i++) {
-				sort(A[i], B[i]);
-			}
+			//for (i = 0; i<19; i++) {
+			//	sort(A[i], B[i]);
+			//}
+			
+			sort(A[1], B[2]);
+			sort(A[4], B[5]);
+			sort(A[7], B[8]);
+			sort(A[0], B[1]);
+			sort(A[3], B[4]);
+			sort(A[6], B[7]);
+			sort(A[1], B[2]);
+			sort(A[4], B[5]);
+			sort(A[7], B[8]);
+			sort(A[0], B[3]);
+			sort(A[5], B[8]);
+			sort(A[4], B[7]);
+			sort(A[3], B[6]);
+			sort(A[1], B[4]);
+			sort(A[2], B[5]);
+			sort(A[3], B[7]);
+			sort(A[4], B[2]);
+			sort(A[6], B[4]);
+			sort(A[4], B[2]);
 			
 			out[y*xmax+x] = pix[4];
 		}
