@@ -17,6 +17,8 @@
 
 local ffi = require("ffi")
 
+-- TODO: move lib loading to separate package!!!
+
 if not __global then
 	__global = {}
 	__global.libPath = "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
@@ -86,8 +88,8 @@ ffi.cdef([[
 local SDL = {}
 local screen
 
-SDL.colour = ffi.metatype("SDL_Color", {}) -- r, g, b, a
-SDL.rectangle = ffi.metatype("SDL_Rect", {}) -- x, y, w, h
+SDL.colour = ffi.typeof("SDL_Color") -- r, g, b, a
+SDL.rectangle = ffi.typeof("SDL_Rect") -- x, y, w, h
 
 function SDL.font(name, size)
 	local t = _TTF.TTF_OpenFont(name, size)
@@ -99,8 +101,16 @@ function SDL.init()
 	_TTF.TTF_Init()
 	_IMG.IMG_Init(7)
 end
+
+local SDL_SWSURFACE = 0x00000000
+local SDL_HWSURFACE = 0x00000001
+local SDL_ASYNCBLIT = 0x00000004
+local SDL_DOUBLEBUF = 0x40000000
+local SDL_RESIZABLE = 0x00000010
+local SDL_NOFRAME	= 0x00000020
+
 function SDL.setScreen(x, y, b)
-	SDL.screen = _SDL.SDL_SetVideoMode(x, y, b or 32, 40000000 + 1 + 4)
+	SDL.screen = _SDL.SDL_SetVideoMode(x, y, b or 32, SDL_DOUBLEBUF + SDL_HWSURFACE)
 	SDL.screenWidth = x
 	SDL.screenHeight = y
 	return SDL.screen
@@ -185,16 +195,20 @@ end
 --surface to new buffer
 
 function SDL.icon(file, x, y)
-	local li = _IMG.IMG_Load(file)
+	local li = _IMG.IMG_Load(file) -- replace with BMP load, not requiring SDL_image
 	local oi = _SDL.SDL_DisplayFormatAlpha( li )
 	SDL.blit( oi, nil, SDL.screen, SDL.rectangle(x, y, 0, 0))
 	_SDL.SDL_FreeSurface(li)
 	_SDL.SDL_FreeSurface(oi)
 end
 
-function SDL.fillRect(buf, rect, col) _SDL.SDL_FillRect(buf, rect, col) end
+function SDL.fillRect(buf, rect, col) _SDL.SDL_FillRect(buf, rect, col) end -- better interface with actual coordinates
 function SDL.blankScreen() _SDL.SDL_FillRect(SDL.screen, nil, 0) end
-function SDL.mapRGBA(surf, r, g, b, a)
+
+--FIXME: deprecated
+function SDL.mapRGBA(surf, r, g, b, a) -- create color in surface format
+	debug.traceback()
+	error("DEPRECATED FUNCTION SDL.mapRGBA")
 	return _SDL.SDL_MapRGBA(surf.format, r, g, b, a)
 end
 
