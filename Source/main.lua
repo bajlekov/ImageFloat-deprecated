@@ -54,8 +54,9 @@ __img = img
 
 lua.threadInit(arg and arg[2] or __global.setup.numThreads, __global.setup.threadPath)
 sdl.init()
-sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2], 32)
-sdl.caption("ImageFloat...loading", "ImageFloat");
+sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2])
+sdl.setCaption("ImageFloat...loading", "ImageFloat");
+sdl.setIcon("icon.bmp")
 
 -- TODO refactor draw
 require("draw")
@@ -113,7 +114,7 @@ local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[
 math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
 local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
-sdl.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
+sdl.setCaption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
 imageTemp = nil
 
 print(bufO.x, bufO.y)

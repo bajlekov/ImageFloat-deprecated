@@ -96,10 +96,16 @@ function SDL.font(name, size)
 	return ffi.gc(t, _TTF.TTF_CloseFont) -- regiter for GC
 end
 
+-- initialise SDL, check parameters
 function SDL.init()
 	_SDL.SDL_Init(20)
 	_TTF.TTF_Init()
-	_IMG.IMG_Init(7)
+	_IMG.IMG_Init(7) -- load JPG, PNG and TIFF support
+end
+function SDL.quit()
+	_SDL.SDL_Quit()
+	_TTF.TTF_Quit()
+	_IMG.IMG_Quit()
 end
 
 local SDL_SWSURFACE = 0x00000000
@@ -109,53 +115,80 @@ local SDL_DOUBLEBUF = 0x40000000
 local SDL_RESIZABLE = 0x00000010
 local SDL_NOFRAME	= 0x00000020
 
+-- create new screen of x, y dimensions
 function SDL.setScreen(x, y, b)
-	SDL.screen = _SDL.SDL_SetVideoMode(x, y, b or 32, SDL_DOUBLEBUF + SDL_HWSURFACE)
+	if b then
+		-- FIXME
+		debug.traceback()
+		error("DEPRECATED PARAMETER B IN SDL.setScreen")
+	end
+	SDL.screen = _SDL.SDL_SetVideoMode(x, y, 32, SDL_DOUBLEBUF + SDL_HWSURFACE)
 	SDL.screenWidth = x
 	SDL.screenHeight = y
 	return SDL.screen
 end
-function SDL.quit()
-	_SDL.SDL_Quit()
-	_TTF.TTF_Quit()
-	_IMG.IMG_Quit()
-end
-function SDL.caption(t1, t2) _SDL.SDL_WM_SetCaption(t1, t2) end
+
+-- set window caption and toolbar caption
+function SDL.setCaption(title, toolbar) _SDL.SDL_WM_SetCaption(title, toolbar) end
+-- set window icon
+function SDL.setIcon(file) _SDL.SDL_WM_SetIcon(_IMG.IMG_Load(file), null) end
+-- get pixel buffer location -> move to property of SDL?
 function SDL.pixbuf() return ffi.cast("uint8_t*", SDL.screen.pixels) end
 
+-- refresh full screen
 function SDL.flip() _SDL.SDL_Flip(SDL.screen) end
+-- refresh rectangle
 function SDL.flipRect(x, y, w, h) _SDL.SDL_UpdateRect(SDL.screen, x, y, w, h) end
+-- destroy surface
 function SDL.destroySurface(surf) _SDL.SDL_FreeSurface(ffi.gc(surf, nil)) end
+
+-- create surface
 function SDL.createSurface(width, height, flags)
+	if flags then
+		-- FIXME
+		debug.traceback()
+		error("DEPRECATED PARAMETER FLAGS IN SDL.createSurface")
+	end
 	local fmt = SDL.screen.format
-	local t =_SDL.SDL_CreateRGBSurface(flags, width, height,
+	local t =_SDL.SDL_CreateRGBSurface(SDL_SWSURFACE, width, height,
 	fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask)
 	return ffi.gc(t, _SDL.SDL_FreeSurface) -- register for GC
 end
 
+-- create new surface matching screen size
 function SDL.screenSurface()
-	local t = SDL.createSurface(SDL.screen.w, SDL.screen.h, 0)
+	local t = SDL.createSurface(SDL.screen.w, SDL.screen.h)
 	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
-function SDL.blit(buf1, rect1, buf2, rect2) _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) end
+
+-- copy portion of buffer to portion of second buffer (check sizes, simplify interface)
+function SDL.blit(buf1, rect1, buf2, rect2) _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) debug.traceback() end
+
+-- copy screen to buffer (whole)
 function SDL.screenCopy(buffer) SDL.blit(SDL.screen, nil, buffer, nil) end
+-- paste screen from buffer (whole)
 function SDL.screenPaste(buffer) SDL.blit(buffer, nil, SDL.screen, nil) end
+-- put buffer on screen at x,y
 function SDL.screenPut(buffer, x, y)
 	SDL.blit(buffer, nil, SDL.screen, SDL.rectangle(x, y, 0, 0))
 end
+-- get buffer from screen at x,y
 function SDL.screenGet(buffer, x, y, w, h)
-	SDL.blit(SDL.screen, SLD.rectangle(x, y, w or buffer.w, h or buffer.h), buffer, nil)
+	SDL.blit(SDL.screen, _SDL.rectangle(x, y, w or buffer.w, h or buffer.h), buffer, nil)
 end
 
-function SDL.destroyMutex(m) _SDL.SDL_DestroyMutex(m) end
+-- garbage-collected mutexes
+function SDL.destroyMutex(m) _SDL.SDL_DestroyMutex(ffi.gc(m, nil)) end
 function SDL.createMutex()
-	-- handle mutexes manually!!
-	return _SDL.SDL_CreateMutex()
-	--return ffi.gc(t, _SDL.SDL_DestroyMutex) 
+	local t = _SDL.SDL_CreateMutex()
+	return ffi.gc(t, _SDL.SDL_DestroyMutex) 
 end
 
+-- lock and unlock mutex
 function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
 function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
+
+-- garbage-collected thread creation
 function SDL.createThread(fun, ptr) 
 	local t = _SDL.SDL_CreateThread(fun, ptr) 
 	return ffi.gc(t, _SDL.SDL_KillThread)
@@ -163,10 +196,17 @@ end
 function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), NULL) end
 
 function SDL.input() return require("input")(_SDL) end
--- same for draw library to acces sdl!
+-- same for draw library to access sdl!
+
+-- time functions
 function SDL.ticks() return _SDL.SDL_GetTicks() end
 function SDL.wait(x) _SDL.SDL_Delay(x) end
 
+-- _TTF.TTF_RenderText_Solid
+-- _TTF.TTF_RenderText_Shaded
+-- _TTF.TTF_RenderText_Blended
+
+-- render text and put on screen
 function SDL.text(text, font, x, y, r, g, b, a)
 	local ttf_text = _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
 	SDL.screenPut(ttf_text, x, y)
@@ -175,12 +215,15 @@ function SDL.text(text, font, x, y, r, g, b, a)
 	return x, y
 end
 
+-- render text and save to buffer
 function SDL.textCreate(text, font, r, g, b, a)
 	local t = _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
 	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
-
+-- paste rendered text, use screenput directly instead
 function SDL.textPut(textObj, x, y)
+	debug.traceback()
+	error("DEPRECATED FUNCTION SDL.textPut")
 	SDL.screenPut(textObj, x, y)
 end
 
@@ -195,7 +238,7 @@ end
 --surface to new buffer
 
 function SDL.icon(file, x, y)
-	local li = _IMG.IMG_Load(file) -- replace with BMP load, not requiring SDL_image
+	local li = _IMG.IMG_Load(file) -- replace with BMP load, not requiring SDL_image??
 	local oi = _SDL.SDL_DisplayFormatAlpha( li )
 	SDL.blit( oi, nil, SDL.screen, SDL.rectangle(x, y, 0, 0))
 	_SDL.SDL_FreeSurface(li)
@@ -212,6 +255,6 @@ function SDL.mapRGBA(surf, r, g, b, a) -- create color in surface format
 	return _SDL.SDL_MapRGBA(surf.format, r, g, b, a)
 end
 
-__sdl = SDL --create global sdl table 
+__sdl = SDL --create global sdl table
 print("SDL loaded")
 return SDL

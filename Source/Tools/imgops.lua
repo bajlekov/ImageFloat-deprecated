@@ -166,7 +166,7 @@ return function(img)
 	--]]
 
 	function img.toSurface(buffer, surface)
-		surface = surface or __sdl.createSurface(buffer.x, buffer.y, 0)
+		surface = surface or __sdl.createSurface(buffer.x, buffer.y)
 		local surf = ffi.cast("uint32_t*", surface.pixels)
 		--local surf = ffi.cast("uint8_t*", surface.pixels)
 		

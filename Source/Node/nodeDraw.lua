@@ -135,7 +135,7 @@ do
 		--buffer surface
 		local surf
 		if self.ui.buffer==nil then
-			local surf_temp = sdl.createSurface(176, 26+12*n, 0)
+			local surf_temp = sdl.createSurface(176, 26+12*n)
 			surf = _SDL.SDL_DisplayFormatAlpha(surf_temp)
 			--sdl.destroySurface(surf_temp)
 			setSurface(surf)

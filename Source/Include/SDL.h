@@ -465,6 +465,7 @@ extern __attribute__ ((visibility("default"))) int TTF_Init(void);
 extern __attribute__ ((visibility("default"))) int IMG_Init(int flags);
 extern __attribute__ ((visibility("default"))) SDL_Surface * SDL_SetVideoMode(int width, int height, int bpp, Uint32 flags);
 extern __attribute__ ((visibility("default"))) void SDL_WM_SetCaption(const char *title, const char *icon);
+extern __attribute__ ((visibility("default"))) void SDL_WM_SetIcon(SDL_Surface *icon, Uint8 *mask);
 extern __attribute__ ((visibility("default"))) int SDL_EnableUNICODE(int enable);
 extern __attribute__ ((visibility("default"))) TTF_Font * TTF_OpenFont(const char *file, int ptsize);
 extern __attribute__ ((visibility("default"))) SDL_Surface * IMG_Load(const char *file);
@@ -472,6 +473,8 @@ extern __attribute__ ((visibility("default"))) SDL_Surface * SDL_DisplayFormatAl
 extern __attribute__ ((visibility("default"))) void SDL_FreeSurface(SDL_Surface *surface);
 extern __attribute__ ((visibility("default"))) int SDL_UpperBlit(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect);
 extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Blended(TTF_Font *font, const char *text, SDL_Color fg);
+extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Shaded(TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg);
+extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Solid(TTF_Font *font, const char *text, SDL_Color fg);
 extern __attribute__ ((visibility("default"))) SDL_Surface * SDL_CreateRGBSurface(Uint32 flags, int width, int height, int depth, Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask);
 extern __attribute__ ((visibility("default"))) int SDL_Flip(SDL_Surface *screen);
 extern __attribute__ ((visibility("default"))) int SDL_PollEvent(SDL_Event *event);
