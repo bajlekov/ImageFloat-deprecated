@@ -26,8 +26,18 @@ local function add(self, typeName)
 	-- assign random location to nodes, will eventually be removed:
 	n.ui.x=100 + math.random(__global.setup.windowSize[1]-400)
 	n.ui.y=100 + math.random(__global.setup.windowSize[2]-200)
-	if typeName=="Input" then n.ui.x=100 n.ui.y=__global.setup.windowSize[2]/2 end
-	if typeName=="Output" then n.ui.x=__global.setup.windowSize[1]-400 n.ui.y=__global.setup.windowSize[2]/2 end
+	if typeName=="Input" then
+		n.ui.x=100
+		n.ui.y=__global.setup.windowSize[2]/2
+		-- remove close button
+		n.ui.noClose = true
+	end
+	if typeName=="Output" then
+		n.ui.x=__global.setup.windowSize[1]-400
+		n.ui.y=__global.setup.windowSize[2]/2
+		-- remove close button
+		n.ui.noClose = true
+	end
 end
 
 local function setup(n, i)

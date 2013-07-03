@@ -18,6 +18,7 @@ local ffi = require("ffi")
 
 -- TODO: Extract base draw functions!!! to sdlDraw or similar!!!
 local sdl = __sdl
+local font = font
 
 -- interface draw
 do
@@ -190,7 +191,9 @@ do
 			end	
 			text(self.n..". "..self.ui.name, font.big, x+4, y+1, 192,192,192)
 			--buttons
-			icon(cross, x+130, y+2)
+			if not self.ui.noClose then
+				icon(cross, x+130, y+2)
+			end
 
 			--conns
 			if #self.conn_i.list>0 then
