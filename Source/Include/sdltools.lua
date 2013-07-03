@@ -24,6 +24,7 @@ if not __global then
 	__global.libPath = "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
 	__global.setup = {}
 	__global.setup.incPath = "./Source/Include/"
+	__global.setup.fastDraw = false
 end
 
 --check native libs
@@ -202,13 +203,19 @@ function SDL.input() return require("input")(_SDL) end
 function SDL.ticks() return _SDL.SDL_GetTicks() end
 function SDL.wait(x) _SDL.SDL_Delay(x) end
 
+local ttfRenderText
+if __global.setup.fastDraw then
+	ttfRenderText = _TTF.TTF_RenderText_Solid
+else
+	ttfRenderText = _TTF.TTF_RenderText_Blended
+end
 -- _TTF.TTF_RenderText_Solid
 -- _TTF.TTF_RenderText_Shaded
 -- _TTF.TTF_RenderText_Blended
 
 -- render text and put on screen
 function SDL.text(text, font, x, y, r, g, b, a)
-	local ttf_text = _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
+	local ttf_text = ttfRenderText(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
 	SDL.screenPut(ttf_text, x, y)
 	local x, y = ttf_text.w, ttf_text.h
 	_SDL.SDL_FreeSurface(ttf_text)
@@ -217,7 +224,7 @@ end
 
 -- render text and save to buffer
 function SDL.textCreate(text, font, r, g, b, a)
-	local t = _TTF.TTF_RenderText_Blended(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
+	local t = ttfRenderText(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
 	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
 -- paste rendered text, use screenput directly instead

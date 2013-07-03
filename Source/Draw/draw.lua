@@ -191,7 +191,9 @@ do
 end
 
 -- use fast line drawing (about 2x faster, another 3x faster due to pixelset instead of pixeladd)
--- drawLine = drawLine_fast
+if __global.setup.fastDraw then
+	drawLine = drawLine_fast
+end
 
 --colour definitions
 

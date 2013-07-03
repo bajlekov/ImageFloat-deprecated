@@ -30,7 +30,7 @@ return {
 	optCompile	= {
 			c	= false,
 			sse	= false,
-			ispc	= true,
+			ispc	= false,
 			glsl	= false,
 	},
 	optNode		= {
@@ -45,6 +45,8 @@ return {
 			pack	= false,	-- "float16"/"int16"/"int8"
 			compr	= false,	-- enable buffer compression
 	},
+	
+	fastDraw = true, -- use faster line and text drawing
 	
 	--library names
 }
