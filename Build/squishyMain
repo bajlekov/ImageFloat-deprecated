@@ -1,10 +1,15 @@
 Main "../Source/main.lua"
 
+Module "path" "../Source/path.lua"
+Module "global" "../Source/global.lua"
 Module "sdltools" "../Source/Include/sdltools.lua"
 Module "luatools" "../Source/Tools/luatools.lua"
 Module "dbgtools" "../Source/Tools/dbgtools.lua"
 Module "ppmtools" "../Source/Tools/ppmtools.lua"
-Module "imgtools" "../Source/Tools/imgtools.lua"
+Module "imgtools" "../Source/Tools/imgtools.lua" --FIXME!!!
+Module "Tools.imgtools" "../Source/Tools/imgtools.lua"
+Module "Tools.imgops" "../Source/Tools/imgops.lua"
+Module "Tools.optimtools" "../Source/Tools/optimtools.lua"
 Module "draw" "../Source/Draw/draw.lua"
 Module "node" "../Source/Node/node.lua"
 Module "nodeCreate" "../Source/Node/nodeCreate.lua"
