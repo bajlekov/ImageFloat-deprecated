@@ -46,7 +46,7 @@ return {
 			compr	= false,	-- enable buffer compression
 	},
 	
-	fastDraw = true, -- use faster line and text drawing
+	fastDraw = false, -- use faster line and text drawing
 	
 	--library names
 }
