@@ -140,10 +140,14 @@ os.execute("gcc -O3 -shared -fomit-frame-pointer -fPIC -o lib/Linux_x64/libthrea
 os.execute("gcc -m32 -O3 -shared -fomit-frame-pointer -o lib/Linux_x32/libthread.so thread.c -L. -lSDL")
 os.execute("i586-mingw32msvc-gcc -O3 -shared -fomit-frame-pointer -o lib/Windows_x32/thread.dll thread.c -L. -llua51 -lsdl")
 --]]
+os.execute("gcc -O3 -shared -fomit-frame-pointer -fPIC -o ../Libraries/Linux_x64/libthread.so ./Threads/thread.c -L. -lSDL")
+print("!!!!!!!!! COMPILE THREAD CALLER FOR ALL PLATFORMS !!!!!!!!")
+-- in a pinch, create independently running threads, and use flags to signal start/end of processing
 
 if type(__sdl)=="table" then
 	local p, th
 	if ffi.os == "Linux" then p, th = pcall(ffi.load, __global.libPath.."libthread.so") end
+	print(p, th)
 	if ffi.os == "Windows" then p, th = pcall(ffi.load, __global.libPath.."thread.dll") end
 
 	if p then
@@ -151,7 +155,6 @@ if type(__sdl)=="table" then
 		-- lua thread table
 		ffi.cdef([[
 			lua_State* L[65]; //lua states
-			SDL_mutex* mut; //global mutex
 			
 			int lua_thread_call(void* in); //lua threaded function
 
@@ -161,7 +164,6 @@ if type(__sdl)=="table" then
 
 		--multithreading helper functions:
 		l.threadRunning = false
-		l.threadCounter = ffi.new("int[1]", 0)
 		l.threadFunction = th.lua_thread_call
 		l.threadInstance = th.L
 		function l.threadArgIn(n) th.arg_in = n end		-- not used
@@ -169,17 +171,19 @@ if type(__sdl)=="table" then
 		
 		function l.threadInit(n, file)	--number of threads, file to load in new instances
 			l.numCores = n
+			l.threadCounter = ffi.new("int[?]", n)
+			for i = 0, n-1 do l.threadCounter[i]=i end
 			print("using "..l.numCores.." threads...")
 			l.threadProgress = ffi.new("int[?]", l.numCores+4) -- TH states... , abort, sync, ?, ?
 			l.threadProgress[l.numCores+1]=1 
-			th.mut = __sdl.createMutex()
+			l.mutex = __sdl.createMutex()
 			for i=0, l.numCores-1 do
 				l.threadInstance[i]=l.newState()						--create new state
 				l.doFile(l.threadInstance[i], file)						--load functions
 				l.pushNumber(l.threadInstance[i], i, "__instance")		-- assign instance number to state
 				l.pushNumber(l.threadInstance[i], l.numCores, "__tmax")	-- max number of cores
 				l.pushUserData(l.threadInstance[i], l.threadProgress, "__progress")		--progress state
-				l.pushUserData(l.threadInstance[i], th.mut, "__mut")
+				l.pushUserData(l.threadInstance[i], l.mutex, "__mut")
 				l.doFunction(l.threadInstance[i], "__init")				--set up general comm structures
 			end
 		end
@@ -218,68 +222,67 @@ if type(__sdl)=="table" then
 			end
 		end
 
-
-		function l.threadSetup(buflist, params)
-			local bufs = {}
-			local dims = {} -- x1, y1, z1, x2, y2, z2, x3, y3, z3 ...
-			local n
-			
-			if type(bufs)=="table" and buflist.__type==nil then -- table of bufs
-				for k, v in ipairs(buflist) do
-					bufs[k] = v
-					table.insert(dims, v.x)
-					table.insert(dims, v.y)
-					table.insert(dims, v.z)
-				end
-				n = #bufs
-			elseif type(bufs)=="table" and buflist.__type=="buffer" then
-				bufs[1] = buflist
-				table.insert(dims, buflist.x)
-				table.insert(dims, buflist.y)
-				table.insert(dims, buflist.z)
-				n = 1
-			end
-			
-			if type(params)~="table" then
-				if type(params)=="number" then params = {params} else params = {} end
-			end
-			
-			l.threadPushBuffers(bufs)
-			l.threadPushTable(dims, "__dims")
-			l.threadPushTable(params, "__params")
-
-			for i = 0, l.numCores-1 do
-				l.doFunction(l.threadInstance[i], "__setup") --run setup function
-			end
-		end
-
 		do
 			local sdl = __sdl
 			local thread = {}
-			local procTime
+			local procTime = sdl.ticks()
 			local loopTime = sdl.ticks()
 			local procName
+			function l.threadSetup(buflist, params)
+				local bufs = {}
+				local dims = {} -- x1, y1, z1, x2, y2, z2, x3, y3, z3 ...
+				local n
+				
+				if type(bufs)=="table" and buflist.__type==nil then -- table of bufs
+					for k, v in ipairs(buflist) do
+						bufs[k] = v
+						table.insert(dims, v.x)
+						table.insert(dims, v.y)
+						table.insert(dims, v.z)
+					end
+					n = #bufs
+				elseif type(bufs)=="table" and buflist.__type=="buffer" then
+					bufs[1] = buflist
+					table.insert(dims, buflist.x)
+					table.insert(dims, buflist.y)
+					table.insert(dims, buflist.z)
+					n = 1
+				end
+				
+				if type(params)~="table" then
+					if type(params)=="number" then params = {params} else params = {} end
+				end
+				
+				l.threadPushBuffers(bufs)
+				l.threadPushTable(dims, "__dims")
+				l.threadPushTable(params, "__params")
+	
+				for i = 0, l.numCores-1 do
+					l.doFunction(l.threadInstance[i], "__setup") --run setup function
+				end
+			end
 			function l.threadRun(...)
 				procTime = sdl.ticks()
-				l.threadCounter[0] = 0
 				for i = 0, l.numCores-1 do
 					l.threadProgress[i]=0
 					lua.lua_settop(l.threadInstance[i], 0) -- restore stack
 					l.loadVariable(l.threadInstance[i], ...) -- loads processing function
-					thread[i+1] = sdl.createThread(l.threadFunction, l.threadCounter) -- runs preset function in each instance!!!
+					thread[i+1] = sdl.createThread(l.threadFunction, l.threadCounter+i) -- runs preset function in each instance!!!
 				end
 				l.threadRunning = true
 				procName = table.concat({...},".")
 			end
 			function l.threadWait()
-				if l.threadRunning==true then
+				if l.threadRunning then
 					for i = 0, l.numCores-1 do
 						sdl.waitThread(thread[i+1], NULL)
 					end
 					if not __global.preview then
-						print("("..procName.."): "..tonumber(sdl.ticks()-procTime).."ms ("..tonumber(sdl.ticks()-loopTime).."ms)")
+						print("("..procName.."): "..(sdl.ticks()-procTime).."ms ("..(sdl.ticks()-loopTime).."ms)")
 					end
 					loopTime = sdl.ticks()
+				else
+					print("Thread not running! Skipping threadWait()")
 				end
 				l.threadRunning = false
 				for i=0,l.numCores do
