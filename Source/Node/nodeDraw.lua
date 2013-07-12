@@ -86,17 +86,17 @@ do
 
 	local function icon(file, x, y)
 		local oi = sdl.loadImage(file)
-		sdl.blit( oi, nil, __surf, sdl.rectangle(x, y, 0, 0))
+		sdl.blit( oi, nil, __surf, sdl.rect(x, y, 0, 0))
 	end
 
 	local function text(text, font, x, y, r, g, b, a)
 		local textObj = sdl.textCreate(text, font, r, g, b, a)
-		sdl.blit(textObj, nil, __surf, sdl.rectangle(x, y, 0, 0))
+		sdl.blit(textObj, nil, __surf, sdl.rect(x, y, 0, 0))
 		return textObj.w, textObj.h
 	end
 
 	local function textPut(textObj, x, y)
-		sdl.blit(textObj, nil, __surf, sdl.rectangle(x, y, 0, 0))
+		sdl.blit(textObj, nil, __surf, sdl.rect(x, y, 0, 0))
 	end
 
 
@@ -154,7 +154,7 @@ do
 
 		if self.ui.draw==true then
 			setSurface(surf)
-			sdl.blit(self.node.backgrounds.node, sdl.rectangle(0, 0, 174, 24+12*n), surf, sdl.rectangle(1, 1, 0, 0))
+			sdl.blit(self.node.backgrounds.node, sdl.rect(0, 0, 174, 24+12*n), surf, sdl.rect(1, 1, 0, 0))
 			--__sdl.fillRect(surf, NULL, __sdl.mapRGBA(surf,0, 0, 0, 128)); 
 			--_SDL.SDL_SetAlpha(surf, 0x00010000, 0)
 

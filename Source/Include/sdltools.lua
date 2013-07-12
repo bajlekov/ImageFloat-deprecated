@@ -89,8 +89,8 @@ ffi.cdef([[
 local SDL = {}
 local screen
 
-SDL.colour = ffi.typeof("SDL_Color") -- r, g, b, a
-SDL.rectangle = ffi.typeof("SDL_Rect") -- x, y, w, h
+SDL.color = ffi.typeof("SDL_Color") -- r, g, b, a
+SDL.rect = ffi.typeof("SDL_Rect") -- x, y, w, h
 
 function SDL.font(name, size)
 	local t = _TTF.TTF_OpenFont(name, size)
@@ -158,8 +158,11 @@ end
 
 -- create new surface matching screen size
 function SDL.screenSurface()
-	local t = SDL.createSurface(SDL.screen.w, SDL.screen.h)
-	return ffi.gc(t, _SDL.SDL_FreeSurface)
+	return SDL.createSurface(SDL.screen.w, SDL.screen.h)
+	-- surface is already registered in GC
+	
+	--local t = SDL.createSurface(SDL.screen.w, SDL.screen.h)
+	--return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
 
 -- copy portion of buffer to portion of second buffer (check sizes, simplify interface)
@@ -171,11 +174,11 @@ function SDL.screenCopy(buffer) SDL.blit(SDL.screen, nil, buffer, nil) end
 function SDL.screenPaste(buffer) SDL.blit(buffer, nil, SDL.screen, nil) end
 -- put buffer on screen at x,y
 function SDL.screenPut(buffer, x, y)
-	SDL.blit(buffer, nil, SDL.screen, SDL.rectangle(x, y, 0, 0))
+	SDL.blit(buffer, nil, SDL.screen, SDL.rect(x, y, 0, 0))
 end
 -- get buffer from screen at x,y
 function SDL.screenGet(buffer, x, y, w, h)
-	SDL.blit(SDL.screen, _SDL.rectangle(x, y, w or buffer.w, h or buffer.h), buffer, nil)
+	SDL.blit(SDL.screen, _SDL.rect(x, y, w or buffer.w, h or buffer.h), buffer, nil)
 end
 
 -- garbage-collected mutexes
@@ -215,7 +218,7 @@ end
 
 -- render text and put on screen
 function SDL.text(text, font, x, y, r, g, b, a)
-	local ttf_text = ttfRenderText(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
+	local ttf_text = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255));
 	SDL.screenPut(ttf_text, x, y)
 	local x, y = ttf_text.w, ttf_text.h
 	_SDL.SDL_FreeSurface(ttf_text)
@@ -224,7 +227,7 @@ end
 
 -- render text and save to buffer
 function SDL.textCreate(text, font, r, g, b, a)
-	local t = ttfRenderText(font, text, SDL.colour(r or 255, g or 255, b or 255, a or 255));
+	local t = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255));
 	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
 -- paste rendered text, use screenput directly instead
@@ -247,7 +250,7 @@ end
 function SDL.icon(file, x, y)
 	local li = _IMG.IMG_Load(file) -- replace with BMP load, not requiring SDL_image??
 	local oi = _SDL.SDL_DisplayFormatAlpha( li )
-	SDL.blit( oi, nil, SDL.screen, SDL.rectangle(x, y, 0, 0))
+	SDL.blit( oi, nil, SDL.screen, SDL.rect(x, y, 0, 0))
 	_SDL.SDL_FreeSurface(li)
 	_SDL.SDL_FreeSurface(oi)
 end
