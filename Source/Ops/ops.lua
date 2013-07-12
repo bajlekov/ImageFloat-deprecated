@@ -67,30 +67,20 @@ end
 -- and to avoid overhead for single channel ops
 
 -- wrap single channel ops in multichannel functions:
+-- replace with unroll!!
+
+local function callOp(i, fun, b, p) fun(b, p, i) end -- swap parameters and iterator
+local unroll = require("unroll")
 local function wrapChan(fun)
 	return function(b, p, zSize)
-		if zSize==nil then
+		if zSize==1 then
 			fun(b, p, 0)
-			fun(b, p, 1)
-			fun(b, p, 2)
-		elseif zSize==1 then
-			fun(b, p, 0)
-		elseif zSize==2 then
-			fun(b, p, 0)
-			fun(b, p, 1)
 		elseif zSize==3 then
 			fun(b, p, 0)
 			fun(b, p, 1)
 			fun(b, p, 2)
-		elseif zSize==4 then
-			fun(b, p, 0)
-			fun(b, p, 1)
-			fun(b, p, 2)
-			fun(b, p, 3)
 		else
-			for z = 0, zSize-1 do	-- if none of the above still perform loop
-				fun(b, p, z)
-			end
+			unroll[zSize](callOp, fun, b, p) -- use indirect unroll function
 		end
 	end
 end
@@ -275,7 +265,7 @@ local function wrapLoop(fun, preFun)
 		local b = __global.buf
 		local p = __global.params
 		local progress	= __global.progress
-		local inst	= __global.instance
+		local inst		= __global.instance
 		local instmax	= __global.instmax
 		
 		-- preprocessing function, if needed
