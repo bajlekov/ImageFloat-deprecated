@@ -24,6 +24,7 @@ local funStart = "return function(fun, ...) "
 local funEnd = "end"
 
 local function construct(i)
+	print("constructing unroll["..i.."] function")
 	local funTable = {}
 	table.insert(funTable, funStart)
 	for j = 0, i-1 do
@@ -36,7 +37,8 @@ end
 -- extend metatable with newindex
 local unrollMT = {}
 function unrollMT.__index(self, k)
-	return construct(k)
+	self[k] = construct(k)
+	return self[k]
 end
 setmetatable(unroll, unrollMT)
 
