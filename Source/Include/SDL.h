@@ -477,6 +477,8 @@ extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Shad
 extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Solid(TTF_Font *font, const char *text, SDL_Color fg);
 extern __attribute__ ((visibility("default"))) SDL_Surface * SDL_CreateRGBSurface(Uint32 flags, int width, int height, int depth, Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask);
 extern __attribute__ ((visibility("default"))) int SDL_Flip(SDL_Surface *screen);
+extern __attribute__ ((visibility("default"))) void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Uint32 w, Uint32 h);
+extern __attribute__ ((visibility("default"))) int SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color);
 extern __attribute__ ((visibility("default"))) int SDL_PollEvent(SDL_Event *event);
 extern __attribute__ ((visibility("default"))) Uint8 * SDL_GetKeyState(int *numkeys);
 extern __attribute__ ((visibility("default"))) void SDL_Delay(Uint32 ms);
