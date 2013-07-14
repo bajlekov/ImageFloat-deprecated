@@ -1,6 +1,3 @@
-//#include <stdio.h>
-//#include <math.h>
-//#include <SDL/SDL_thread.h>
 #include <luajit-2.0/lualib.h>
 #include <luajit-2.0/lauxlib.h>
 
