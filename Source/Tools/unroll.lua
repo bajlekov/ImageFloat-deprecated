@@ -37,8 +37,17 @@ end
 -- extend metatable with newindex
 local unrollMT = {}
 function unrollMT.__index(self, k)
-	self[k] = construct(k)
-	return self[k]
+	if k>1024 then
+		return function(fun, ...)
+			for i = 0, k-1 do
+				fun(i, ...)
+			end
+		end
+	elseif k>0 then
+		self[k] = construct(k)
+		return self[k]
+	end
+	error("Wrong loop length:"..k)
 end
 setmetatable(unroll, unrollMT)
 
