@@ -63,10 +63,10 @@ local function allocD(size)
 	return ffi.gc(t, free)
 end
 
-function __getAllocCount()
+function __global.getAllocCount()
 	return allocCount
 end
-function __getAllocSize()
+function __global.getAllocSize()
 	local sum = 0
 	for _, v in pairs(allocTable) do
 		sum = sum + v

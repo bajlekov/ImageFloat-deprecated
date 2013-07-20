@@ -68,7 +68,7 @@ if ffi.os=="Windows" then --maybe fix this?
 	loadlib('libtiff-5')
 end
 
-_SDL = loadlib('SDL')
+global("_SDL", loadlib('SDL'))
 local _SDL = _SDL
 local _TTF = loadlib("SDL_ttf")
 local _IMG = loadlib("SDL_image")
@@ -166,7 +166,7 @@ function SDL.screenSurface()
 end
 
 -- copy portion of buffer to portion of second buffer (check sizes, simplify interface)
-function SDL.blit(buf1, rect1, buf2, rect2) _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) debug.traceback() end
+function SDL.blit(buf1, rect1, buf2, rect2) _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) end
 
 -- copy screen to buffer (whole)
 function SDL.screenCopy(buffer) SDL.blit(SDL.screen, nil, buffer, nil) end
@@ -194,10 +194,12 @@ function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
 
 -- garbage-collected thread creation
 function SDL.createThread(fun, ptr) 
-	local t = _SDL.SDL_CreateThread(fun, ptr) 
-	return ffi.gc(t, _SDL.SDL_KillThread)
+	return _SDL.SDL_CreateThread(fun, ptr)
+	--local t = _SDL.SDL_CreateThread(fun, ptr) 
+	--return ffi.gc(t, _SDL.SDL_KillThread)
 end
-function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), NULL) end
+--function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), NULL) end
+function SDL.waitThread(t) _SDL.SDL_WaitThread(t, nil) end
 
 function SDL.input() return require("input")(_SDL) end
 -- same for draw library to access sdl!
@@ -265,6 +267,6 @@ function SDL.mapRGBA(surf, r, g, b, a) -- create color in surface format
 	return _SDL.SDL_MapRGBA(surf.format, r, g, b, a)
 end
 
-__sdl = SDL --create global sdl table
+global("__sdl", SDL) --create global sdl table
 print("SDL loaded")
 return SDL

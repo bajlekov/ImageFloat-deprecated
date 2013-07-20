@@ -17,6 +17,19 @@
 
 print("Thread initialisation...")
 
+-- disable implicit globals
+do
+	function global(k, v) -- assign new global
+		rawset(_G, k, v or false)
+	end
+	local function newGlobal(t, k, v) -- disable globals
+		print("ERROR: Global assignment not allowed: "..k)
+		print(debug.traceback())
+		error("ERROR: Global assignment not allowed: "..k)
+	end
+	setmetatable(_G, {__newindex=newGlobal})
+end
+
 package.path = 	"./?.lua;"..
 				"./Setup/?.lua;"..
 				"./Build/?.lua;"..
@@ -31,7 +44,7 @@ package.path = 	"./?.lua;"..
 
 local ffi = require("ffi")
 
-__global = {}
+global("__global", {})
 __global.setup = require("IFsetup")
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
@@ -48,7 +61,15 @@ if __global.setup.optCompile.ispc then
 	]]
 end
  
-ops = require("ops") -- global ops are required to ease calling
+global("ops", require("ops")) -- global ops are required to ease calling
+global("__init")
+global("__setup")
+
+-- initialise globals before assigning values from main thread
+global("__progress")
+global("__instance")
+global("__tmax")
+global("__mut")
 
 function __init() -- initialisation function, runs once when instance is started
 	__global.progress = ffi.cast("int*", __progress)
@@ -64,6 +85,9 @@ function __init() -- initialisation function, runs once when instance is started
 	--collectgarbage("setstepmul")
 end
 
+global("__bufs")
+global("__dims")
+global("__params")
 function __setup() -- set up instance for processing after node parameters are passed
 	--[[ pass:
 		__bufs
@@ -147,7 +171,7 @@ function __setup() -- set up instance for processing after node parameters are p
 	
 	__global.buf = buf
 	__global.params = __params
-	__params = nil
-	__bufs = nil
-	__dims = nil
+	--__params = nil
+	--__bufs = nil
+	--__dims = nil
 end

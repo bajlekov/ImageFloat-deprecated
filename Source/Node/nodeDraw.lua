@@ -126,6 +126,7 @@ do
 
 	local nodeSurf = {}
 
+	global("nodeDraw") -- FIXME
 	function nodeDraw(self)
 
 		local n = #self.param
@@ -231,7 +232,7 @@ end
 
 
 
-
+global("drawNoodleLoose") -- FIXME
 function drawNoodleLoose(x1, y1, x2, y2, p1)
 	local o1 = p1==0 and 0 or 2+12*p1
 	drawLine(x1 + 155, y1 + 13 + o1, x1 + 169, y1 + 13 +o1, 255, 255, 128)
@@ -246,11 +247,12 @@ local function __drawNoodle(x1, y1, x2, y2, p1, p2, c1, c2, c3)
 	drawLine(x2 - 6, y2 + 13 + o2, x2 - 20, y2 + 13 + o2, c1, c2, c3)
 	drawLine(x1 + 169, y1 + 13 + o1, x2 - 20, y2 + 13 + o2, c1, c2, c3)
 end
-
+global("drawNoodle") -- FIXME
 function drawNoodle(x1, y1, x2, y2, p1, p2)
 	__drawNoodle(x1, y1, x2, y2, p1, p2, 255, 255, 128)
 end
 	---[[
+global("drawNoodles") -- FIXME
 function drawNoodles(node)
 	local function drawNoodle(x1, y1, x2, y2, p1, p2)
 		__drawNoodle(x1, y1, x2, y2, p1, p2, 128, 128, 128)

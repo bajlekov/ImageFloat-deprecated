@@ -119,6 +119,9 @@ do
 	-- choice table constructors outside of main function
 	local ones = {{1,0,0},{1,1,0},{0,1,0},{0,1,1},{0,0,1},{1,0,1}}
 	local exes = {{0,1,0},{-1,0,0},{0,0,1},{0,-1,0},{1,0,0},{0,0,-1}}
+	
+	global("HtoRGB") --FIXME!!
+	global("HSVtoSRGB") --FIXME!!
 	function HtoRGB(h)
 		h = h * 6
 		local n = math.floor(h)
@@ -325,9 +328,9 @@ do
 	-- use sampling at 1K to find matching temperature and green-balance
 end
 
---local TtoXY
---local tanTtoXY
---local norTtoXY
+global("TtoXY")
+global("tanTtoXY")
+global("norTtoXY")
 local TtoM
 local MtoT
 local dMatT
@@ -366,9 +369,10 @@ do
 	end
 	-- tangential vector = (x', y')
 	-- normal vecotr = (y', -x')
-	function TtoM(T) return 1000000/T end
-	function MtoT(M) return 1000000/M end
-	function dMatT(M,T) return MtoT(TtoM(T)+M) end --offset with M mired from T
+	local function TtoM(T) return 1000000/T end
+	local function MtoT(M) return 1000000/M end
+	local function dMatT(M,T) return MtoT(TtoM(T)+M) end --offset with M mired from T
+	global("dTdMatT")
 	function dTdMatT(T) return (MtoT(TtoM(T)+0.5)-MtoT(TtoM(T)-0.5)) end --get offset in K for 1 mired at T 
 end
 
@@ -384,7 +388,7 @@ do
 	g =-0.275
 	function TtoXY_D(T) --CIE Daylight locus
 		local xd, yd
-		i = t<=4000 and 1 or T<=7000 and 2 or 3
+		local i = T<=4000 and 1 or T<=7000 and 2 or 3
 		xd = a[i] + b[i]/T + c[i]/T^2 + d[i]/T^3
 		yd = e*xd^2 + f*xd + g
 		return xd, yd
@@ -401,6 +405,7 @@ end
 --nm to xy (from table)
 
 --chromaticity coordinates
+global("XYtoXYZ")
 function XYtoXYZ(x,y)
 	local X, Z
 	X = x * (1/y)
@@ -433,6 +438,7 @@ local cat = CAT.bradford
 local catInv = mat.inv(cat)
 
 --implement color correction: von kries transform with chosen matrix
+global("vonKriesTransform")
 function vonKriesTransform(source, dest)
 	if type(source)=="string" then source = WP[source] end
 	if type(dest)=="string" then dest = WP[dest] end

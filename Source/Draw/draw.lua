@@ -20,6 +20,10 @@ local __dimX = __sdl.screenWidth
 local __dimY = __sdl.screenHeight
 local pixbuf = __sdl.pixbuf()
 
+global("setPixel") -- FIXME
+global("getPixel") -- FIXME
+global("addPixel") -- FIXME
+
 function setPixel(x,y,r,g,b)
   if x>=0 and x<__dimX and y>=0 and y<__dimY then
   	pixbuf[(x + __dimX*y)*4+2] = r
@@ -35,41 +39,45 @@ function getPixel(x,y)
   return r, g, b
 end
 
-function pixelAdd(x,y,r,g,b)
+function addPixel(x,y,r,g,b)
   if x>=0 and x<__dimX and y>=0 and y<__dimY then
   	if pixbuf[(x + __dimX*y)*4+2] + r>255 then pixbuf[(x + __dimX*y)*4+2] = 255 elseif pixbuf[(x + __dimX*y)*4+2] + r<0 then pixbuf[(x + __dimX*y)*4+2] = 0 else pixbuf[(x + __dimX*y)*4+2] = pixbuf[(x + __dimX*y)*4+2] + r end
   	if pixbuf[(x + __dimX*y)*4+1] + g>255 then pixbuf[(x + __dimX*y)*4+1] = 255 elseif pixbuf[(x + __dimX*y)*4+1] + r<0 then pixbuf[(x + __dimX*y)*4+1] = 0 else pixbuf[(x + __dimX*y)*4+1] = pixbuf[(x + __dimX*y)*4+1] + g end
   	if pixbuf[(x + __dimX*y)*4+0] + b>255 then pixbuf[(x + __dimX*y)*4+0] = 255 elseif pixbuf[(x + __dimX*y)*4+0] + r<0 then pixbuf[(x + __dimX*y)*4+0] = 0 else pixbuf[(x + __dimX*y)*4+0] = pixbuf[(x + __dimX*y)*4+0] + b end
   end
 end
-local pixelAdd = pixelAdd
+local pixelAdd = addPixel
 local setPixel = setPixel
 local setPixeladd = setPixeladd
 
+global("hLine") -- FIXME
+global("vLine") -- FIXME
+global("hLineAdd") -- FIXME
+global("vLineAdd") -- FIXME
 function hLine(x,y,l,r,g,b)
 	for x = x, x+l-1 do
 		setPixel(x,y,r,g,b)
 	end
 end
-
 function vLine(x,y,l,r,g,b)
 	for y = y, y+l-1 do
 		setPixel(x,y,r,g,b)
 	end
 end
-
 function vLineAdd(x,y,l,r,g,b)
   for y = y, y+l-1 do
     pixelAdd(x,y,r,g,b)
   end
 end
-
 function hLineAdd(x,y,l,r,g,b)
   for x = x, x+l-1 do
     pixelAdd(x,y,r,g,b)
   end
 end
 
+global("boxFill") -- FIXME
+global("boxLine") -- FIXME
+global("boxAdd") -- FIXME
 function boxFill(x1,y1,x2,y2,r,g,b)
 	for x = x1, x2 do
 		for y = y1, y2 do
@@ -77,9 +85,6 @@ function boxFill(x1,y1,x2,y2,r,g,b)
 		end
 	end
 end
-
--- function fill() filling whole screen
-
 function boxLine(x1,y1,x2,y2,r,g,b)
 	for x = x1, x2 do
 		for y = y1, y2, y2-y1 do
@@ -92,7 +97,6 @@ function boxLine(x1,y1,x2,y2,r,g,b)
 		end
 	end
 end
-
 function boxAdd(x1,y1,x2,y2,r,g,b)
 	for x = x1, x2 do
 		for y = y1, y2 do
@@ -102,7 +106,7 @@ function boxAdd(x1,y1,x2,y2,r,g,b)
 end
 
 local abs = math.abs
-function drawLine_fast(x0, y0, x1, y1, r, g, b)	
+local function drawLine_fast(x0, y0, x1, y1, r, g, b)	
 	local steep = abs(y1-y0) > abs(x1-x0)
 	if steep then x0, y0, x1, y1 = y0, x0, y1, x1 end
 	if x0>x1 then x0, x1, y0, y1 = x1, x0, y1, y0 end
@@ -131,7 +135,7 @@ do
     local function invpixeladd(x,y,r,g,b) return pixelAdd(y,x,r,g,b) end
 
 
-	function drawLine(x1, y1, x2, y2, r, g, b)
+	local function drawLine(x1, y1, x2, y2, r, g, b)
 		--TODO: handle overlap of connected vertices in endpoint code
 		--TODO: implement connected vertices draw (polyline)
 	    --AA line drawing
@@ -188,14 +192,20 @@ do
 	    end
 	end
 
-end
-
 -- use fast line drawing (about 2x faster, another 3x faster due to pixelset instead of pixeladd)
 if __global.setup.fastDraw then
-	drawLine = drawLine_fast
+	global("drawLine", drawLine_fast)
+else
+	global("drawLine", drawLine)
+end
+
 end
 
 --colour definitions
+global("o") -- FIXME
+global("dg") -- FIXME
+global("mg") -- FIXME
+global("lg") -- FIXME
 
 function o() return 255,128,0 end
 function dg() return 64,64,64 end
