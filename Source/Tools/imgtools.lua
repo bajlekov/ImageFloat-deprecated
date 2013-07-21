@@ -20,6 +20,8 @@ local optim = require "Tools.optimtools"
 local ispc = __global.setup.optCompile.ispc
 if ispc then print ("Optimization for buffer ops enabled...") end
 
+local unroll = require("Tools.unroll")
+
 local prec
 if __global==nil then
 	prec = {"float",4} 
@@ -83,14 +85,19 @@ function buffer.meta.__tostring(a)
 	return "Image buffer ["..a.x..", "..a.y..", "..a.z.."], CS: "..a.cs.."."
 end
 
+-- TODO: use unroll for loops!
+local function addNum(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) + b)
+end
+local function addBuf(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )
+end
 function buffer.meta.__add(a, b)
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
-				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) + b)				
-				end
+				unroll[a.z](addNum, i, j, a, b, o)
 			end
 		end
 		return o
@@ -105,9 +112,7 @@ function buffer.meta.__add(a, b)
 			else
 				for i = 0, a.x-1 do
 					for j = 0, a.y-1 do
-						for k = 0, a.z-1 do
-							o:set(i,j,k, a:get(i,j,k) + b:get(i,j,k) )				
-						end
+						unroll[a.z](addBuf, i, j, a, b, o)
 					end
 				end
 			end
@@ -119,14 +124,18 @@ function buffer.meta.__add(a, b)
 	end
 end
 
+local function subNum(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) - b)
+end
+local function subBuf(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )
+end
 function buffer.meta.__sub(a, b)
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
-				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) - b)				
-				end
+				unroll[a.z](subNum, i, j, a, b, o)
 			end
 		end
 		return o
@@ -141,9 +150,7 @@ function buffer.meta.__sub(a, b)
 			else
 				for i = 0, a.x-1 do
 					for j = 0, a.y-1 do
-						for k = 0, a.z-1 do
-							o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )				
-						end
+						unroll[a.z](subBuf, i, j, a, b, o)
 					end
 				end
 			end
@@ -155,14 +162,18 @@ function buffer.meta.__sub(a, b)
 	end
 end
 
+local function powNum(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) * b)
+end
+local function powBuf(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )
+end
 function buffer.meta.__mul(a, b)
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
-				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) * b)				
-				end
+				unroll[a.z](mulNum, i, j, a, b, o)
 			end
 		end
 		return o
@@ -177,9 +188,7 @@ function buffer.meta.__mul(a, b)
 			else
 				for i = 0, a.x-1 do
 					for j = 0, a.y-1 do
-						for k = 0, a.z-1 do
-							o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )				
-						end
+						unroll[a.z](mulBuf, i, j, a, b, o)
 					end
 				end
 			end
@@ -191,14 +200,18 @@ function buffer.meta.__mul(a, b)
 	end
 end
 
+local function divNum(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) / b)
+end
+local function divBuf(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )
+end
 function buffer.meta.__div(a, b)
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
-				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) / b)				
-				end
+				unroll[a.z](divNum, i, j, a, b, o)
 			end
 		end
 		return o
@@ -213,9 +226,7 @@ function buffer.meta.__div(a, b)
 			else
 				for i = 0, a.x-1 do
 					for j = 0, a.y-1 do
-						for k = 0, a.z-1 do
-							o:set(i,j,k, a:get(i,j,k) / b:get(i,j,k) )				
-						end
+						unroll[a.z](divBuf, i, j, a, b, o)
 					end
 				end
 			end
@@ -227,14 +238,18 @@ function buffer.meta.__div(a, b)
 	end
 end
 
+local function powNum(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) ^ b)
+end
+local function powBuf(k, i, j, a, b, o)
+	o:set(i,j,k, a:get(i,j,k) ^ b:get(i,j,k) )
+end
 function buffer.meta.__pow(a, b)
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
-				for k = 0, a.z-1 do
-					o:set(i,j,k, a:get(i,j,k) ^ b)				
-				end
+				unroll[a.z](powNum, i, j, a, b, o)
 			end
 		end
 		return o
@@ -246,9 +261,7 @@ function buffer.meta.__pow(a, b)
 			local o = a:new()
 			for i = 0, a.x-1 do
 				for j = 0, a.y-1 do
-					for k = 0, a.z-1 do
-						o:set(i,j,k, a:get(i,j,k) ^ b:get(i,j,k) )				
-					end
+					unroll[a.z](powBuf, i, j, a, b, o)
 				end
 			end
 			return o
@@ -259,27 +272,34 @@ function buffer.meta.__pow(a, b)
 	end
 end
 
+local function unm(k, i, j, a, o)
+	o:set(i,j,k, -a:get(i,j,k))
+end
 function buffer.meta.__unm(a)
 	local o = a:new()
 	for i = 0, a.x-1 do
 		for j = 0, a.y-1 do
-			for k = 0, a.z-1 do
-				o:set(i,j,k, - a:get(i,j,k))				
-			end
+			unroll[a.z](unm, i, j, a, o)
 		end
 	end
 	return o
 end
 
+local function minNum(k, i, j, a, b, o)
+	local a = a:get(i,j,k)
+	o:set(i,j,k, a<=b and a or b)
+end
+local function minBuf(k, i, j, a, b, o)
+	local a = a:get(i,j,k)
+	local b = b:get(i,j,k)
+	o:set(i,j,k, a<=b and a or b )
+end
 function buffer.min(a, b)
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
-				for k = 0, a.z-1 do
-					local a = a:get(i,j,k)
-					o:set(i,j,k, a<=b and a or b)				
-				end
+				unroll[a.z](minNum, i, j, a, b, o)
 			end
 		end
 		return o
@@ -291,11 +311,7 @@ function buffer.min(a, b)
 			local o = a:new()
 			for i = 0, a.x-1 do
 				for j = 0, a.y-1 do
-					for k = 0, a.z-1 do
-						local a = a:get(i,j,k)
-						local b = b:get(i,j,k)
-						o:set(i,j,k, a<=b and a or b )				
-					end
+					unroll[a.z](minBuf, i, j, a, b, o)
 				end
 			end
 			return o
@@ -306,15 +322,21 @@ function buffer.min(a, b)
 	end
 end
 
+local function maxNum(k, i, j, a, b, o)
+	local a = a:get(i,j,k)
+	o:set(i,j,k, a>b and a or b)
+end
+local function maxBuf(k, i, j, a, b, o)
+	local a = a:get(i,j,k)
+	local b = b:get(i,j,k)
+	o:set(i,j,k, a>b and a or b )
+end
 function buffer.max(a, b)
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
 			for j = 0, a.y-1 do
-				for k = 0, a.z-1 do
-					local a = a:get(i,j,k)
-					o:set(i,j,k, a>=b and a or b)				
-				end
+				unroll[a.z](maxNum, i, j, a, b, o)
 			end
 		end
 		return o
@@ -326,11 +348,7 @@ function buffer.max(a, b)
 			local o = a:new()
 			for i = 0, a.x-1 do
 				for j = 0, a.y-1 do
-					for k = 0, a.z-1 do
-						local a = a:get(i,j,k)
-						local b = b:get(i,j,k)
-						o:set(i,j,k, a>=b and a or b )				
-					end
+					unroll[a.z](maxBuf, i, j, a, b, o)
 				end
 			end
 			return o
@@ -574,6 +592,7 @@ do
 	function buffer:mDilate()
 		local t = self:new()
 		--TODO: brute-force dilate, remove inner loop!
+		-- FIXME: use unroll!!
 		for x= 1, self.x-2 do
 			for y = 1, self.y-2 do
 				for z = 0, self.z-1 do
@@ -592,6 +611,7 @@ do
 	function buffer:mErode()
 		local t = self:new()
 		--TODO: brute-force dilate, remove inner loop!
+		-- FIXME: use unroll!!
 		for x= 1, self.x-2 do
 			for y = 1, self.y-2 do
 				for z = 0, self.z-1 do
@@ -629,6 +649,7 @@ do
 	function buffer:mClamp()
 		local t = self:new()
 		--TODO: brute-force dilate, remove inner loop!
+		-- FIXME: use unroll!!
 		for x= 1, self.x-2 do
 			for y = 1, self.y-2 do
 				for z = 0, self.z-1 do
