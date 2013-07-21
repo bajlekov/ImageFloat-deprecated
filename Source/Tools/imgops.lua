@@ -23,8 +23,16 @@ else
 	prec = __global.setup.bufferPrecision
 end
 
-return function(img)
+local unroll = require("Tools.unroll")
 
+return function(img)
+	local function scaleDown(c, nx, ny, x, y, out, buffer)
+		local t = out:get(nx,ny,c) + buffer:get(x,y,c)
+		out:set(nx,ny,c, t)
+	end
+	local function scaleNorm(c, x, y, out, count)
+		out:set(x,y,c, out:get(x,y,c) / count[x][y])
+	end
 	--float buffer square aperture scaling
 	function img.scaleDown(buffer, sc)
 		local out = img:new(math.ceil(buffer.x / sc), math.ceil(buffer.y / sc), buffer.z)
@@ -34,24 +42,23 @@ return function(img)
 			local nx = math.floor(x/sc)
 			for y = 0, buffer.y-1 do
 				local ny = math.floor(y/sc)
-				for c = 0, buffer.z-1 do
-					local t = out:get(nx,ny,c) + buffer:get(x,y,c)
-					out:set(nx,ny,c, t)
-				end
+				unroll[buffer.z](scaleDown,nx, ny, x, y, out, buffer)
 				count[nx][ny] = count[nx][ny] + 1
 			end
 		end
 		for x = 0, out.x-1 do
 			for y = 0, out.y-1 do
-				for c = 0, buffer.z-1 do
-					out:set(x,y,c, out.data[x][y][c] / count[x][y])
-				end
+				unroll[buffer.z](scaleNorm, x, y, out, count)
 			end
 		end
 		return out
 	end
 
 	--weighted rescale
+	local function scaleDownHQ(c, nx, ny, x, y, out, buffer, rx, ry)
+		local t = out:get(nx,ny,c) + buffer:get(x,y,c) * rx * ry
+		out:set(nx, ny, c, t)
+	end
 	function img.scaleDownHQ(buffer, sc)
 		local out = img:new(math.ceil(buffer.x / sc), math.ceil(buffer.y / sc), buffer.z)
 		out.cs = buffer.cs
@@ -62,24 +69,22 @@ return function(img)
 			for y = 0, buffer.y-1 do
 				local ny = math.floor(y/sc)
 				local ry = math.abs(y % sc - 0.5 * sc)
-				for c = 0, 2 do
-					local t = out:get(nx,ny,c) + buffer:get(x,y,c) * rx * ry
-					out:set(nx, ny, c, t)
-				end
+				unroll[buffer.z](scaleDownHQ, nx, ny, x, y, out, buffer, rx, ry)
 				count[nx][ny] = count[nx][ny] + rx * ry
 			end
 		end
 		for x = 0, out.x-1 do
 			for y = 0, out.y-1 do
-				for c = 0, 2 do
-					out:set(x,y,c, out:get(x,y,c) / count[x][y])
-				end
+				unroll[buffer.z](scaleNorm, x, y, out, count)
 			end
 		end
 		return out
 	end
 
 	--nearest neighbor scaling
+	local function scaleDownFast(c, nx, ny, x, y, out, buffer)
+		out:set(x,y,c, buffer:get(nx,ny,c))
+	end
 	function img.scaleDownFast(buffer, sc)
 		local out = img:new(math.ceil(buffer.x / sc), math.ceil(buffer.y / sc), buffer.z)
 		out.cs = buffer.cs
@@ -87,15 +92,17 @@ return function(img)
 			local nx = x*sc
 			for y = 0, out.y-1 do
 				local ny = y*sc
-				for c = 0, 2 do
-					out:set(x,y,c, buffer:get(nx,ny,c))
-				end
+				unroll[buffer.z](scaleDownFast,nx, ny, x, y, out, buffer)
 			end
 		end
 		return out
 	end
 
 	--nearest neighbor
+	local function scaleUpFast(c, nx, ny, x, y, out, buffer)
+		local t = out:get(x,y,c) + buffer:get(nx,ny,c)
+		out:set(x,y,c, t)
+	end
 	function img.scaleUpFast(buffer, sc)
 		local out = img:new(math.floor(buffer.x * sc), math.floor(buffer.y * sc), buffer.z)
 		out.cs = buffer.cs
@@ -103,46 +110,75 @@ return function(img)
 			local nx = math.floor(x/sc)
 			for y = 0, out.y-1 do
 				local ny = math.floor(y/sc)
-				for c = 0, 2 do
-					local t = out:get(x,y,c) + buffer:get(nx,ny,c)
-					out:set(x,y,c, t)
-				end
+				unroll[buffer.z](scaleUpFast,nx, ny, x, y, out, buffer)
 			end
 		end
 		return out
 	end
-
+	
+	local function scaleDownQuad(c, x, y, out, buffer)
+		out:set(x,y,c, buffer:get(x*4,y*4,c))
+	end
 	function img.scaleDownQuad(buffer)
 		local out = img:new(math.floor(buffer.x / 4), math.floor(buffer.y / 4), buffer.z)
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
 			for y = 0, out.y-1 do
-				for c = 0, 2 do
-					out:set(x,y,c, buffer:get(x*4,y*4,c))
-				end
+				unroll[buffer.z](scaleDownQuad, x, y, out, buffer)
 			end
 		end
 		return out
 	end
-
+	
+	local unroll344
+	local unroll44
+	do
+		-- local version of unroll for multiple dimensions
+		local funStart = "return function(fun, ...) "
+		local funEnd = "end"
+		local function construct3(ii, jj, kk)
+			local funTable = {}
+			table.insert(funTable, funStart)
+			for i = 0, ii-1 do
+				for j = 0, jj-1 do
+					for k = 0, kk-1 do
+						table.insert(funTable, "fun("..i..","..j..","..k..", ...) ")
+					end
+				end
+			end
+			table.insert(funTable, funEnd)
+			return loadstring(table.concat(funTable))()
+		end
+		local function construct2(ii, jj)
+			local funTable = {}
+			table.insert(funTable, funStart)
+			for i = 0, ii-1 do
+				for j = 0, jj-1 do
+					table.insert(funTable, "fun("..i..","..j..", ...) ")
+				end
+			end
+			table.insert(funTable, funEnd)
+			return loadstring(table.concat(funTable))()
+		end
+		unroll344 = construct3(3,4,4)
+		unroll44 = construct2(4,4)
+	end
+	 
+	local function scaleUpQuad(c, m, n, x, y, out, buffer)
+		out:set(x*4+m,y*4+n,c, buffer:get(x,y,c))
+	end
 	function img.scaleUpQuad(buffer)
 		local out = img:new(buffer.x * 4, buffer.y * 4, buffer.z)
 		out.cs = buffer.cs
 		for x = 0, buffer.x-1 do
 			for y = 0, buffer.y-1 do
-				for c = 0, 2 do
-					for m = 0, 3 do
-						for n = 0, 3 do 
-							out:set(x*4+m,y*4+n,c, buffer:get(x,y,c))
-						end
-					end
-				end
+				unroll344(scaleUpQuad, x, y, out, buffer)
 			end
 		end
 		return out
 	end
 
-	-- bilinear scaling for scales smaller than 100%
+	-- TODO: bilinear scaling for scales smaller than 100%
 
 	--[[float buffer to screen buffer
 	function img.toScreen(buffer)
@@ -169,8 +205,6 @@ return function(img)
 		surface = surface or __sdl.createSurface(buffer.x, buffer.y)
 		local surf = ffi.cast("uint32_t*", surface.pixels)
 		--local surf = ffi.cast("uint8_t*", surface.pixels)
-		
-
 		if buffer.z==3 then
 			for x = 0, buffer.x-1 do
 				for y = 0, buffer.y-1 do
@@ -194,10 +228,16 @@ return function(img)
 				end
 			end
 		end
-
 		return surface
 	end
 
+	local function toSurfaceQuad(xx, yy, bx, by, br, bg, bb, surf, buffer)
+		local x = bx*4+xx
+		local y = by*4+yy
+		surf[(x + (buffer.x*4) * y) * 4 + 2] = br
+		surf[(x + (buffer.x*4) * y) * 4 + 1] = bg
+		surf[(x + (buffer.x*4) * y) * 4 + 0] = bb
+	end
 	function img.toSurfaceQuad(buffer, surface)
 		surface = surface or __sdl.createSurface(buffer.x, buffer.y, 0)
 		local surf = ffi.cast("uint8_t*", surface.pixels)
@@ -216,13 +256,15 @@ return function(img)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					bg, bb = br, br
 				end
-				for x=bx*4, bx*4+3 do
-					for y=by*4, by*4+3 do
-						surf[(x + (buffer.x*4) * y) * 4 + 2] = br
-						surf[(x + (buffer.x*4) * y) * 4 + 1] = bg
-						surf[(x + (buffer.x*4) * y) * 4 + 0] = bb
-					end
-				end
+				
+				unroll44(toSurfaceQuad, bx, by, br, bg, bb, surf, buffer)
+				--for x=bx*4, bx*4+3 do
+				--	for y=by*4, by*4+3 do
+				--		surf[(x + (buffer.x*4) * y) * 4 + 2] = br
+				--		surf[(x + (buffer.x*4) * y) * 4 + 1] = bg
+				--		surf[(x + (buffer.x*4) * y) * 4 + 0] = bb
+				--	end
+				--end
 			end
 		end
 	end
@@ -232,6 +274,7 @@ return function(img)
 		for bx = 0, buffer.x-1 do
 			for by = 0, buffer.y-1 do
 				local br, bg, bb
+				--TODO: move branch outside of loop?
 				if buffer.z==3 then
 					br = buffer:get(bx,by,0)
 					bg = buffer:get(bx,by,1)
