@@ -331,6 +331,6 @@ else
 	print("SDL not loaded, multithreading functionality not supported")
 end
 
-__lua = l
+global("__lua", l)
 print("Lua threads loaded")
 return l

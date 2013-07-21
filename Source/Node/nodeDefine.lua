@@ -421,7 +421,6 @@ nodeTable["WhiteBalance"] = function(self)
 		lua.threadSetup({bo[0].buf, bo[0].buf})
 		lua.threadRun("ops", "cs", "XYZ", "SRGB")
 		coroutine.yield(num)
-		bufsIn = {}
 	end
 	return n
 end

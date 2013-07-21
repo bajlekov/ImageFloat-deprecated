@@ -17,6 +17,8 @@
 
 local dbg = {}
 
+global("tic")
+global("toc")
 if type(__sdl)=="table" then
 	local t = 0
 	function tic()
@@ -84,5 +86,5 @@ function dbg.error(m)
 	error("ERROR: "..m,0)
 end
 
-__dbg = dbg
+global("__dbg", dbg)
 return dbg

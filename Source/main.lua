@@ -21,10 +21,22 @@ This program comes WITHOUT ANY WARRANTY.
 This is free software, and you are welcome to redistribute it under the conditions of the GNU General Public License version 3.
 ]])
 
+-- disable implicit globals
+do
+	function global(k, v) -- assign new global
+		rawset(_G, k, v or false)
+	end
+	local function newGlobal(t, k, v) -- disable globals
+		error("global assignment not allowed: "..k)
+	end
+	setmetatable(_G, {__newindex=newGlobal})
+end
+
 -- setup paths if not loading bytecode
 require("path")
 local ffi = require("ffi")
-__global = require("global")
+--__global = require("global")
+global("__global", require("global"))
 local __global = __global -- local reference to global table
 __global.loadFile = arg and arg[1] or __global.loadFile
 collectgarbage("setpause", 100) -- force quicker garbage collection to prevent heaping up
@@ -40,8 +52,8 @@ local ppm = require("ppmtools")
 local img = require("imgtools")
 
 --put often-used libs in a global namespace and index from there, not as independent globals
-__dbg = dbg
-__img = img
+global("__dbg", dbg)
+global("__img", img)
 
 --local function file_exists(name)
 --   local f=io.open(name,"r")
@@ -65,7 +77,7 @@ local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
 
 -- TODO: move to fonttools, local font reference
-font = {}
+global("font", {})
 font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
 font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 local font = font

@@ -82,6 +82,7 @@ local function cov(im)
 end
 
 -- complex class [extract to module]
+-- replace with existing ffi complex implementation!!!
 local complex = {}
 complex.meta={__index = complex, __call=complex.new}
 

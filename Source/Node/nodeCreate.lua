@@ -46,7 +46,9 @@ local function setup(n, i)
 
 	do
 		local zeroBuf = img:new(1,1,1)
+		global("generic_clean") -- FIXME
 		function generic_clean(i)	-- where is this defined?
+			debug.traceback("deprecated")
 			for k, v in ipairs(n[i].conn_o.list) do
 				v.buf = zeroBuf
 			end
