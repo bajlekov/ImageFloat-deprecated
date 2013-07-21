@@ -193,22 +193,12 @@ function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
 function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
 
 -- garbage-collected thread creation
-<<<<<<< HEAD
 -- FIXME: currently not all threads are correctly closed, properly manage threads and avoid garbage collection need for threads!
 function SDL.createThread(fun, ptr)
 	local t = _SDL.SDL_CreateThread(fun, ptr) 
 	return ffi.gc(t, _SDL.SDL_KillThread)
 end
 function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), nil) end
-=======
-function SDL.createThread(fun, ptr) 
-	return _SDL.SDL_CreateThread(fun, ptr)
-	--local t = _SDL.SDL_CreateThread(fun, ptr) 
-	--return ffi.gc(t, _SDL.SDL_KillThread)
-end
---function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), NULL) end
-function SDL.waitThread(t) _SDL.SDL_WaitThread(t, nil) end
->>>>>>> 06b5c0e41895d01e58fff2a11a564ab171bb2d33
 
 function SDL.input() return require("input")(_SDL) end
 -- same for draw library to access sdl!
