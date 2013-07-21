@@ -50,41 +50,38 @@ local pixelAdd = addPixel
 local setPixel = setPixel
 local setPixeladd = setPixeladd
 
+global("boxFill") -- FIXME
+global("boxLine") -- FIXME
+global("boxAdd") -- FIXME
+local _SDL = _SDL
+local __sdl = __sdl
+function boxFill(x1,y1,x2,y2,r,g,b)
+	_SDL.SDL_FillRect(__sdl.screen, __sdl.rect(x1,y1,x2-x1,y2-y1), b+g*256+r*256*256)
+	--for x = x1, x2 do
+	--	for y = y1, y2 do
+	--		setPixel(x,y,r,g,b)
+	--	end
+	--end
+end
+
 global("hLine") -- FIXME
 global("vLine") -- FIXME
 global("hLineAdd") -- FIXME
 global("vLineAdd") -- FIXME
+local boxFill = boxFill
 function hLine(x,y,l,r,g,b)
-	for x = x, x+l-1 do
-		setPixel(x,y,r,g,b)
-	end
+	boxFill(x,y,x+l,y+1,r,g,b)
+	--for x = x, x+l-1 do
+	--	setPixel(x,y,r,g,b)
+	--end
 end
 function vLine(x,y,l,r,g,b)
-	for y = y, y+l-1 do
-		setPixel(x,y,r,g,b)
-	end
-end
-function vLineAdd(x,y,l,r,g,b)
-  for y = y, y+l-1 do
-    pixelAdd(x,y,r,g,b)
-  end
-end
-function hLineAdd(x,y,l,r,g,b)
-  for x = x, x+l-1 do
-    pixelAdd(x,y,r,g,b)
-  end
+	boxFill(x,y,x+1,y+l,r,g,b)
+	--for y = y, y+l-1 do
+	--	setPixel(x,y,r,g,b)
+	--end
 end
 
-global("boxFill") -- FIXME
-global("boxLine") -- FIXME
-global("boxAdd") -- FIXME
-function boxFill(x1,y1,x2,y2,r,g,b)
-	for x = x1, x2 do
-		for y = y1, y2 do
-			setPixel(x,y,r,g,b)
-		end
-	end
-end
 function boxLine(x1,y1,x2,y2,r,g,b)
 	for x = x1, x2 do
 		for y = y1, y2, y2-y1 do
@@ -103,6 +100,16 @@ function boxAdd(x1,y1,x2,y2,r,g,b)
 			setPixeladd(x,y,r,g,b)
 		end
 	end
+end
+function vLineAdd(x,y,l,r,g,b)
+  for y = y, y+l-1 do
+    pixelAdd(x,y,r,g,b)
+  end
+end
+function hLineAdd(x,y,l,r,g,b)
+  for x = x, x+l-1 do
+    pixelAdd(x,y,r,g,b)
+  end
 end
 
 local abs = math.abs
