@@ -21,6 +21,16 @@ This program comes WITHOUT ANY WARRANTY.
 This is free software, and you are welcome to redistribute it under the conditions of the GNU General Public License version 3.
 ]])
 
+local prof = require("Tools.profiler"):new()
+prof:maxrows(250)
+prof:dont("input")
+prof:dont("sdl")
+prof:dont("luatools")
+prof:dont("draw")
+-- TODO: possibly check performance of mouse:update()!!!
+
+
+
 -- disable implicit globals
 do
 	function global(k, v) -- assign new global
@@ -195,7 +205,9 @@ local calcUpdate
 
 local hist = require("histogram")
 
+local loopTime = sdl.ticks()
 function funProcess()	
+	toc("Overhead")					-- TODO: minimize overhead outside of coroutine (between resets)
 	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 			-- initialise input node, move to other location!
 
@@ -211,29 +223,35 @@ function funProcess()
 		node[v]:processRun(k)	-- run processes
 	end
 	
+	-- TODO: optimize histogram and pasting to surface!!
+	
 	-- put output buffer to screen buffer
 	bufout = node[outNode].bufOut
 	if __global.preview then
 		img.toSurfaceQuad(bufout, surf)
 	else
+		tic()
 		img.toSurface(bufout, surf)
 		bufoutS = img.scaleDownHQ(bufout, 4) --if full process then also update preview buffer
 		img.toSurfaceQuad(bufoutS, surfS)
+		toc("put to surface")
 	end
 	
 	-- calculate histograms
 	hist.calculate(bufout)
 	
-	toc("Loop total")
-	tic()
+	-- loop timer
+	print("Loop total: "..(sdl.ticks()-loopTime).."ms")
+	loopTime = sdl.ticks()
 	
+	tic()
 	coroutine.yield(-1)
 end
 
 --function updating the image and checking when processing should be advanced
 local t = sdl.ticks()
-local vLineAdd = vLineAdd
-local hLineAdd = hLineAdd
+local vLineAdd = vLine -- FIXME: avoid lineAdd
+local hLineAdd = hLine
 local fpsSmooth = 128 -- smoothing parameter
 local fpsData = ffi.new("double[?]", fpsSmooth)
 local fpsCounter = 0
@@ -264,6 +282,7 @@ local function imageProcess(flag)
 	
 	sdl.text(math.floor(fpsSmooth/fpsAverage*1000).."FPS", font.normal, 12, 12)
 
+	-- FIXME: weird colors on chroma histogram, check chroma calc
 	-- put histogram buffer
 	for i=1, 255 do
 		--wrap graphics
@@ -389,7 +408,7 @@ function node:click()
 end
 
 --main loop
-
+--prof:start()
 calcUpdate = true
 node:calcLevels() --!! setup working levels in node setup allready!!
 node:draw()
@@ -430,6 +449,8 @@ while true do
 		node:cleanup()
 		lua.threadQuit()
 		sdl.quit()
+		--prof:stop()
+		--prof:dump("profile.html")
 		os.exit()
 	end
 
