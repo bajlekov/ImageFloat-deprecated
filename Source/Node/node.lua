@@ -50,7 +50,10 @@ function node:paramDrag(n, p)
 	
 	while self.mouse.button[1] do
 		self.mouse:update()
+		
+		-- FIXME: allready checked before?
 		if self[n].param[p].type~="value" then break end --have check earlier and update data
+		
 		local fac = self.mouse.mod.shift and 10 or 1
 		v = v + self.mouse.dx/148/fac*vrange
 		if v>vmax then v=vmax end

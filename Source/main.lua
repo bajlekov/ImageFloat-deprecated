@@ -188,8 +188,11 @@ function funProcess()
 	node[1].bufIn = buf 			-- initialise input node, move to other location!
 
 	-- find output node, make selector for this.../one fixed output node
+	-- TODO: move outside of processing loop! merge with node network evaluation
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
+	
+	-- FIXME: do this only if no nodes are connected => skip the rest of processing
 	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
 	
 	for k, v in ipairs(node.execOrder) do
@@ -359,11 +362,11 @@ function node:click()
 					coProcess=coroutine.wrap(funProcess) -- reset coroutine
 					coProcess()
 				elseif type=="int" then
-
+					error("Not yet implemented")
 				elseif type=="enum" then
-
+					error("Not yet implemented")
 				elseif type=="bool" then
-
+					error("Not yet implemented")
 				elseif type=="text" then
 					self:draw()
 				end
