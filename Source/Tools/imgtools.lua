@@ -587,87 +587,81 @@ function buffer:free()
 end
 
 do
-	local b = ffi.new("double[9]")  
+	-- TODO: handle edges on morphological operators!
+	local b = ffi.new("double[9]")
+	local max = math.max
+	local min = math.min
+	local function mDilate(z, x, y, self, t)
+		b[0] = self:get(x-1, y, z)
+		b[1] = self:get(x, y, z)
+		b[2] = self:get(x+1, y, z)
+		b[3] = self:get(x, y-1, z)
+		b[4] = self:get(x, y+1, z)
+		
+		t:set(x, y, z, max(b[0], b[1], b[2], b[3], b[4]))
+	end
+	local function mErode(z, x, y, self, t)
+		b[0] = self:get(x-1, y, z)
+		b[1] = self:get(x, y, z)
+		b[2] = self:get(x+1, y, z)
+		b[3] = self:get(x, y-1, z)
+		b[4] = self:get(x, y+1, z)
+		
+		t:set(x, y, z, min(b[0], b[1], b[2], b[3], b[4]))
+	end 
 	function buffer:mDilate()
 		local t = self:new()
-		--TODO: brute-force dilate, remove inner loop!
-		-- FIXME: use unroll!!
 		for x= 1, self.x-2 do
 			for y = 1, self.y-2 do
-				for z = 0, self.z-1 do
-					b[0] = self:get(x-1, y, z)
-					b[1] = self:get(x, y, z)
-					b[2] = self:get(x+1, y, z)
-					b[3] = self:get(x, y-1, z)
-					b[4] = self:get(x, y+1, z)
-					
-					t:set(x, y, z, math.max(b[0], b[1], b[2], b[3], b[4]))
-				end
+				unroll[self.z](mDilate, x, y, self, t)
 			end
 		end
 		self:copy(t) -- put back values
 	end
 	function buffer:mErode()
 		local t = self:new()
-		--TODO: brute-force dilate, remove inner loop!
-		-- FIXME: use unroll!!
 		for x= 1, self.x-2 do
 			for y = 1, self.y-2 do
-				for z = 0, self.z-1 do
-					b[0] = self:get(x-1, y, z)
-					b[1] = self:get(x, y, z)
-					b[2] = self:get(x+1, y, z)
-					b[3] = self:get(x, y-1, z)
-					b[4] = self:get(x, y+1, z)
-					
-					t:set(x, y, z, math.min(b[0], b[1], b[2], b[3], b[4]))
-				end
+				unroll[self.z](mErode, x, y, self, t)
 			end
 		end
 		self:copy(t) -- put back values
 	end
+	
 	function buffer:mOpen(n)
 		n = n or 1
-		for i = 1, n do
-			self:mErode()
-		end
-		for i = 1, n do
-			self:mDilate()
-		end  
+		for i = 1, n do self:mErode() end
+		for i = 1, n do self:mDilate() end  
 	end
 	
 	function buffer:mClose(n)
 		n = n or 1
-		for i = 1, n do
-			self:mDilate()
-		end
-		for i = 1, n do
-			self:mErode()
-		end  
+		for i = 1, n do self:mDilate() end
+		for i = 1, n do self:mErode() end  
+	end
+	
+	local function mClamp(z, x, y, self, t)
+		b[0] = self:get(x, y, z)
+		b[1] = self:get(x-1, y, z)
+		b[2] = self:get(x+1, y, z)
+		b[3] = self:get(x, y-1, z)
+		b[4] = self:get(x, y+1, z)
+		b[5] = self:get(x-1, y-1, z)
+		b[6] = self:get(x+1, y+1, z)
+		b[7] = self:get(x+1, y-1, z)
+		b[8] = self:get(x-1, y+1, z)
+		
+		local mmin = min(b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])
+		local mmax = max(b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])
+		b[0] = b[0]>mmax and mmax or b[0]
+		b[0] = b[0]<mmin and mmin or b[0]
+		t:set(x, y, z, b[0])
 	end
 	function buffer:mClamp()
 		local t = self:new()
-		--TODO: brute-force dilate, remove inner loop!
-		-- FIXME: use unroll!!
 		for x= 1, self.x-2 do
 			for y = 1, self.y-2 do
-				for z = 0, self.z-1 do
-					b[0] = self:get(x, y, z)
-					b[1] = self:get(x-1, y, z)
-					b[2] = self:get(x+1, y, z)
-					b[3] = self:get(x, y-1, z)
-					b[4] = self:get(x, y+1, z)
-					b[5] = self:get(x-1, y-1, z)
-					b[6] = self:get(x+1, y+1, z)
-					b[7] = self:get(x+1, y-1, z)
-					b[8] = self:get(x-1, y+1, z)
-					
-					local min = math.min(b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])
-					local max = math.max(b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])
-					b[0] = b[0]>max and max or b[0]
-					b[0] = b[0]<min and min or b[0]
-					t:set(x, y, z, b[0])
-				end
+				unroll[self.z](mClamp, x, y, self, t)
 			end
 		end
 		self:copy(t) -- put back values
