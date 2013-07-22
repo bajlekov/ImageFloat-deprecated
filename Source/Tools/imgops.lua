@@ -285,7 +285,8 @@ return function(img)
 	end
 
 	function img.invert(buffer)
-		buffac = buffer.cs=="LAB" and img.newBuffer({1,0,0}) or img.newBuffer({1,1,1})
+		-- check for multiple cs using luminance
+		local buffac = buffer.cs=="LAB" and img.newBuffer({1,0,0}) or img.newBuffer({1,1,1})
 		__lua.threadSetup({buffer, buffac, buffer}, 2, 1)
 		__lua.threadRunWait("ops", "invert")
 	end
