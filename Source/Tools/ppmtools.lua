@@ -15,9 +15,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local ffi = require "ffi"
+local ffi = require("ffi")
 local ppm = {}
-local img = require "Tools.imgtools"
+local img = require("Tools.imgtools")
+local unroll = require("Tools.unroll")
 
 ---[[methods for ppm headers
 function ppm.newHeader(t)
@@ -78,6 +79,7 @@ local function skip_comment(f)
 end
 
 local function swap_endianness(data, length)
+	-- FIXME: use higher-level ffi function?
 	for i = 0, length-1, 2 do
 		data[i], data[i+1] = data[i+1], data[i]
 	end
@@ -198,21 +200,25 @@ function ppm.readIM(name, op)
 end
 
 --image data to float buffer
+local function toBuffer(c, x,y,scale, buffer, header)
+	local t = header.data[(x + buffer.x * y) * 3 + c] * scale
+	buffer:set(x, y, c, t) 
+end
 function ppm.toBuffer(header)
 	local buffer = img:new(header.res.x, header.res.y, 3)
 	local scale = header.depth==8 and 1/(2^8-1) or 1/(2^16-1)
-	
 	for x = 0, buffer.x-1 do
 		for y = 0, buffer.y-1 do
-			for c = 0, 2 do
-				local t = header.data[(x + buffer.x * y) * 3 + c] * scale
-				buffer:set(x, y, c, t) 
-			end
+			unroll[3](toBuffer, x, y, scale, buffer, header)
 		end
 	end
 	return buffer
 end
 
+local function toBufferCrop(c, x,y,scale,fullX,offX, offY, buffer, header)
+	local t = header.data[(offX + x + fullX * (offY + y)) * 3 + c] * scale
+	buffer:set(x, y, c, t) 
+end
 function ppm.toBufferCrop(header, newX, newY)
 	local buffer = img:new(newX, newY, 3)
 	local offX = math.floor((header.res.x - buffer.x)/2)
@@ -221,16 +227,20 @@ function ppm.toBufferCrop(header, newX, newY)
 	local scale = header.depth==8 and 1/(2^8-1) or 1/(2^16-1)
 	for x = 0, buffer.x-1 do
 		for y = 0, buffer.y-1 do
-			for c = 0, 2 do
-				local t = header.data[(offX + x + fullX * (offY + y)) * 3 + c] * scale
-				buffer:set(x, y, c, t) 
-			end
+			unroll[3](toBufferCrop, x,y,scale,fullX,offX, offY, buffer, header)
 		end
 	end
 	return buffer
 end
 
 --float buffer to ppm image
+local function fromBuffer(c, x, y, scale, buffer, header)
+	local bc
+	bc = buffer:get(x, y, c)
+	bc = bc>1 and scale or bc*scale
+	bc = bc<0 and 0 or bc
+	header.data[(x + buffer.x * y) * 3 + c] = bc
+end
 function ppm.fromBuffer(buffer, depth)
 	depth = depth or 16
 	local header = ppm.newHeader{
@@ -243,15 +253,9 @@ function ppm.fromBuffer(buffer, depth)
 		data = depth==8 and ffi.new("uint8_t[?]", buffer.x * buffer.y * 3) or ffi.new("uint16_t[?]", buffer.x * buffer.y * 3)
 		}
 	local scale = header.depth==8 and (2^8-1) or (2^16-1)
-	local bc
 	for x = 0, buffer.x-1 do
 		for y = 0, buffer.y-1 do
-			for c = 0, 2 do
-				bc = buffer:get(x, y, c)
-				bc = bc>1 and scale or bc*scale
-				bc = bc<0 and 0 or bc
-				header.data[(x + buffer.x * y) * 3 + c] = bc
-			end
+			unroll[3](fromBuffer, x, y, scale, buffer, header)
 		end
 	end
 	return header
