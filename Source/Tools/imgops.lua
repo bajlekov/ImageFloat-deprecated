@@ -231,77 +231,43 @@ return function(img)
 		return surface
 	end
 
-	local function toSurfaceQuad(xx, yy, bx, by, br, bg, bb, surf, buffer)
+	local function toQuadFun(xx, yy, bx, by, br, bg, bb, surf, buffer)
 		local x = bx*4+xx
 		local y = by*4+yy
 		surf[(x + (buffer.x*4) * y) * 4 + 2] = br
 		surf[(x + (buffer.x*4) * y) * 4 + 1] = bg
 		surf[(x + (buffer.x*4) * y) * 4 + 0] = bb
 	end
+	local function toQuad(buffer, surf)
+		for bx = 0, buffer.x-1 do
+			for by = 0, buffer.y-1 do
+				local br, bg, bb
+				if buffer.z==3 then
+					br = buffer:get(bx,by,0)
+					bg = buffer:get(bx,by,1)
+					bb = buffer:get(bx,by,2)
+					br = br>1 and 255 or br<0 and 0 or br*255
+					bg = bg>1 and 255 or bg<0 and 0 or bg*255
+					bb = bb>1 and 255 or bb<0 and 0 or bb*255
+				elseif buffer.z==1 then
+					br = buffer:get(bx,by,0)
+					br = br>1 and 255 or br<0 and 0 or br*255
+					bg, bb = br, br
+				end
+				unroll44(toQuadFun, bx, by, br, bg, bb, surf, buffer)
+			end
+		end
+	end
 	function img.toSurfaceQuad(buffer, surface)
 		surface = surface or __sdl.createSurface(buffer.x, buffer.y, 0)
 		local surf = ffi.cast("uint8_t*", surface.pixels)
-		for bx = 0, buffer.x-1 do
-			for by = 0, buffer.y-1 do
-				local br, bg, bb
-				if buffer.z==3 then
-					br = buffer:get(bx,by,0)
-					bg = buffer:get(bx,by,1)
-					bb = buffer:get(bx,by,2)
-					br = br>1 and 255 or br<0 and 0 or br*255
-					bg = bg>1 and 255 or bg<0 and 0 or bg*255
-					bb = bb>1 and 255 or bb<0 and 0 or bb*255
-				elseif buffer.z==1 then
-					br = buffer:get(bx,by,0)
-					br = br>1 and 255 or br<0 and 0 or br*255
-					bg, bb = br, br
-				end
-				
-				unroll44(toSurfaceQuad, bx, by, br, bg, bb, surf, buffer)
-				--for x=bx*4, bx*4+3 do
-				--	for y=by*4, by*4+3 do
-				--		surf[(x + (buffer.x*4) * y) * 4 + 2] = br
-				--		surf[(x + (buffer.x*4) * y) * 4 + 1] = bg
-				--		surf[(x + (buffer.x*4) * y) * 4 + 0] = bb
-				--	end
-				--end
-			end
-		end
+		toQuad(buffer, surf)
 	end
-
 	function img.toScreenQuad(buffer)
-		local screen = __sdl.pixbuf()
-		for bx = 0, buffer.x-1 do
-			for by = 0, buffer.y-1 do
-				local br, bg, bb
-				--TODO: move branch outside of loop?
-				if buffer.z==3 then
-					br = buffer:get(bx,by,0)
-					bg = buffer:get(bx,by,1)
-					bb = buffer:get(bx,by,2)
-					br = br>1 and 255 or br<0 and 0 or br*255
-					bg = bg>1 and 255 or bg<0 and 0 or bg*255
-					bb = bb>1 and 255 or bb<0 and 0 or bb*255
-				elseif buffer.z==1 then
-					br = buffer:get(bx,by,0)
-					br = br>1 and 255 or br<0 and 0 or br*255
-					bg, bb = br, br
-				end
-				for x=bx*4, bx*4+3 do
-					for y=by*4, by*4+3 do
-						screen[(x + (buffer.x*4) * y) * 4 + 2] = br
-						screen[(x + (buffer.x*4) * y) * 4 + 1] = bg
-						screen[(x + (buffer.x*4) * y) * 4 + 0] = bb
-					end
-				end
-			end
-		end
+		local surf = __sdl.pixbuf()
+		toQuad(buffer, surf)
 	end
 
-	--TODO: Move rest to different utility library!
-
-	--float buffer pixel ops
-	--FIXME: work with all types of buffers!
 	function img.pixelOp(buffer, op)
 		for x = 0, buffer.x-1 do
 			for y = 0, buffer.y-1 do
@@ -311,38 +277,6 @@ return function(img)
 			end
 		end
 	end
-	
-	--[[
-	function img.max(buffer)
-		local m1 = -math.huge
-		local m2 = m1
-		local m3 = m1
-		for x = 0, buffer.x-1 do
-			for y = 0, buffer.y-1 do
-				local c1, c2, c3 = buffer.data[x][y][0], buffer.data[x][y][1], buffer.data[x][y][2]
-				m1 = c1>m1 and c1 or m1
-				m2 = c2>m2 and c2 or m2
-				m3 = c3>m3 and c3 or m3
-			end
-		end
-		return m1, m2, m3
-	end
-
-	function img.min(buffer)
-		local m1 = math.huge
-		local m2 = m1
-		local m3 = m1
-		for x = 0, buffer.x-1 do
-			for y = 0, buffer.y-1 do
-				local c1, c2, c3 = buffer.data[x][y][0], buffer.data[x][y][1], buffer.data[x][y][2]
-				m1 = c1<m1 and c1 or m1
-				m2 = c2<m2 and c2 or m2
-				m3 = c3<m3 and c3 or m3
-			end
-		end
-		return m1, m2, m3
-	end
-	--]]
 
 	function img.csConvert(buffer, cs)
 		__lua.threadSetup({buffer, buffer}, 1, 1)
