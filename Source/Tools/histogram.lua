@@ -46,7 +46,7 @@ local floor = math.floor
 local max = math.max
 
 function hist.calculate(buffer)
-	jit.flush()
+	--jit.flush()
 
 	local hr, hg, hb =hist.r, hist.g, hist.b
 	local hl, hc, hh =hist.l, hist.c, hist.h
@@ -60,7 +60,7 @@ function hist.calculate(buffer)
 	ffi.fill(hh, (size+1)*4)
 
 	--count occurences
-	for x = 0, buffer.x-1 do --buffer.x shows double size
+	for x = 0, buffer.x-1 do
 		for y = 0, buffer.y-1 do
 			local r, g, b = buffer:get3(x,y)
 			local l, c, h = luma(r, g, b), chroma(r, g, b), hue(r, g, b)
@@ -70,7 +70,6 @@ function hist.calculate(buffer)
 			l = (l<0 and 0) or (l>1 and size) or floor(l*size)
 			c = (c<0 and 0) or (c>1 and size) or floor(c*size)
 			h = floor(h*size)
-			--print(r, g, b, l, c, h)
 			hr[r] = hr[r] + 1
 			hg[g] = hg[g] + 1
 			hb[b] = hb[b] + 1
