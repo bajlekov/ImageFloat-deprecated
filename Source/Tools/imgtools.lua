@@ -518,15 +518,14 @@ end
 function buffer:copy(t)
 	if t then
 		if self.x==t.x and self.y==t.y and self.z==t.z then
-			ffi.copy(self.data, t.data, self.x*self.y*self.z*4)
+			ffi.copy(self.data, t.data, self.x*self.y*self.z*prec[2])
 		else
 			print(debug.traceback("ERROR: Buffer size mismatch! Target: ["..self.x..", "..self.y..", "..self.z.."], source: ["..t.x..", "..t.y..", "..t.z.."]."))
 			return nil
 		end
 	else
 		local o = self:new()
-		ffi.copy(o.data, self.data, self.x*self.y*self.z*4) -- switch to 8 for double
-		-- fast SSE memcopy?
+		ffi.copy(o.data, self.data, self.x*self.y*self.z*prec[2])
 		return o
 	end
 end
