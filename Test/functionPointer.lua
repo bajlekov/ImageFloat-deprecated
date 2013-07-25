@@ -285,17 +285,18 @@ ffi.cdef [[
 typedef float (*FPget)(float*, int*, int, int, int);
 typedef void (*FPset)(float*, int*, int, int, int, float);
 
-float get1(float* b, int* m, int x, int y, int z);
-float get2(float* b, int* m, int x, int y, int z);
-float get3(float* b, int* m, int x, int y, int z);
-float get4(float* b, int* m, int x, int y, int z);
+//float get1(float* b, int* m, int x, int y, int z);
+//float get2(float* b, int* m, int x, int y, int z);
+//float get3(float* b, int* m, int x, int y, int z);
+//float get4(float* b, int* m, int x, int y, int z);
 
-void set1(float* b, int* m, int x, int y, int z, float v);
-void set2(float* b, int* m, int x, int y, int z, float v);
-void set3(float* b, int* m, int x, int y, int z, float v);
-void set4(float* b, int* m, int x, int y, int z, float v);
+//void set1(float* b, int* m, int x, int y, int z, float v);
+//void set2(float* b, int* m, int x, int y, int z, float v);
+//void set3(float* b, int* m, int x, int y, int z, float v);
+//void set4(float* b, int* m, int x, int y, int z, float v);
 
 void add(int* m, float* a, float* b, float* c);
+void add_branchy(int* m, float* a, float* b, float* c);
 
 void add_1(int* m, float* a, float* b, float* c);
 void add_2(int* m, float* a, float* b, float* c);
@@ -308,42 +309,42 @@ typedef float (*FPget)(float*, int*, int, int, int);
 typedef void (*FPset)(float*, int*, int, int, int, float);
 
 float get1(float* b, int* m, int x, int y, int z) {
-		return b[0]; }
+		return b[0]; }  __attribute__((hot))
 
 float get2(float* b, int* m, int x, int y, int z) {
-		return b[z]; }
+		return b[z]; }  __attribute__((hot))
 
 float get3(float* b, int* m, int x, int y, int z) {
-		return b[x*m[1] + y]; }
+		return b[x*m[1] + y]; }  __attribute__((hot))
 
 float get4(float* b, int* m, int x, int y, int z) {
-		return b[x*m[1]*m[2] + y*m[2] + z]; }
+		return b[x*m[1]*m[2] + y*m[2] + z]; }  __attribute__((hot))
 
 
 void set1(float* b, int* m, int x, int y, int z, float v) {
-		b[z] = v; }
+		b[z] = v; }  __attribute__((hot))
 
 void set2(float* b, int* m, int x, int y, int z, float v) {
-		b[z] = v; }
+		b[z] = v; }  __attribute__((hot))
 
 void set3(float* b, int* m, int x, int y, int z, float v) {
-		b[x*m[1] + y] = v; }
+		b[x*m[1] + y] = v; }  __attribute__((hot))
 
 void set4(float* b, int* m, int x, int y, int z, float v) {
-		b[x*m[1]*m[2] + y*m[2] + z] = v; }
+		b[x*m[1]*m[2] + y*m[2] + z] = v; }  __attribute__((hot))
 
 FPget getX(int x, int y, int z) {
 	if		(x==1 & y==1 & z==1) { return get1; }
 	else if	(x==1 & y==1 & z==3) { return get2; }
 	else if	(x>1  & y>1  & z==1) { return get3; }
-	else if	(x>1  & y>1  & z==3) { return get4; }
+	else { return get4; }
 }
 
 FPset setX(int x, int y, int z) {
 	if		(x==1 & y==1 & z==1) { return set1; }
 	else if	(x==1 & y==1 & z==3) { return set2; }
 	else if	(x>1  & y>1  & z==1) { return set3; }
-	else if	(x>1  & y>1  & z==3) { return set4; }
+	else { return set4; }
 }
 
 
@@ -373,6 +374,45 @@ void add(int* m, float* a, float* b, float* c) {
 		}}
 	}
 }
+
+static float getF(float* b, int* m, int x, int y, int z) {
+	if		(m[0]==1 & m[1]==1 & m[2]==1) { return get1(b, m, x, y, z); }
+	else if	(m[0]==1 & m[1]==1 & m[2]==3) { return get2(b, m, x, y, z); }
+	else if	(m[0]>1  & m[1]>1  & m[2]==1) { return get3(b, m, x, y, z); }
+	else { return get4(b, m, x, y, z); }
+}  __attribute__((hot))
+
+static void setF(float* b, int* m, int x, int y, int z, float v) {
+	if		(m[0]==1 & m[1]==1 & m[2]==1) { return set1(b, m, x, y, z, v); }
+	else if	(m[0]==1 & m[1]==1 & m[2]==3) { return set2(b, m, x, y, z, v); }
+	else if	(m[0]>1  & m[1]>1  & m[2]==1) { return set3(b, m, x, y, z, v); }
+	else { return set4(b, m, x, y, z, v); }
+	//return set4(b, m, x, y, z, v);
+}  __attribute__((hot))
+
+void add_branchy(int* m, float* a, float* b, float* c) {
+	int x, y, z;
+	
+	if (m[8]==1) {
+		for (x=0; x<m[6]; x++) {
+		for (y=0; y<m[7]; y++) {
+			float v = getF(a, m, x, y, 0) + getF(b, m+3, x, y, 0);
+			setF(c, m+6, x, y, z, 0);
+		}}
+	} else {
+		for (x=0; x<m[6]; x++) {
+		for (y=0; y<m[7]; y++) {
+			float v;
+			v = getF(a, m, x, y, 0) + getF(b, m+3, x, y, 0);
+			setF(c, m+6, x, y, 0, v);
+			v = getF(a, m, x, y, 1) + getF(b, m+3, x, y, 1);
+			setF(c, m+6, x, y, 1, v);
+			v = getF(a, m, x, y, 2) + getF(b, m+3, x, y, 2);
+			setF(c, m+6, x, y, 2, v);
+		}}
+	}
+} __attribute__((hot))
+
 
 void add_1(int* m, float* a, float* b, float* c) {
 	int x, y, z;
@@ -444,7 +484,7 @@ local function addISPC(a, b)
 	-- ispc function takes: [max size, a size, b size], a pointer, b pointer, c pointer, getA, getB, getC
 	-- refine with structs similar to the lua buffer ones 
 	
-	cc.add(s, a.d, b.d, c.d)
+	cc.add_branchy(s, a.d, b.d, c.d)
 	
 	-- fixme: assigning variable value from calculation to uniform vector (b[0] = v) does not work
 	
@@ -609,11 +649,12 @@ print(toc(), "ISPC explicit")
 print("done")
 
 --[[
-	ISPC is about twice as fast as lua for this small benchmark
-	Regular loops in ISPC (equaling non-vectorised C) are slower than lua
+	Regular loops in ISPC are slower than lua
 	Using SSE4 is much faster than AVX instructions
 	Test with actual C compiler for buggy ISPC behaviour - small gain for ISPC
 	Eliminating z-loop from lua makes it even faster!!!
-		Apparently inlining works much better with a tracing jit
+		Apparently inlining works much better with a tracing jit, no penalty for lua
 		Eliminating function pointers makes C a bit faster than lua (0.75s vs 0.45s, ISPC: 0.70s)
+			at the cost of excessive function specialisation (the add alone has 16 varieties)
+			introducing branchy code to select proper getters and setters results in mediocre performance
 --]]
