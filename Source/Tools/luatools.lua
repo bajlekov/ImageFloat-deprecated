@@ -123,11 +123,12 @@ end
 
 -- function indexing multiple levels of global table "name" with vararg keys
 function l.loadVariable(state, name, ...)
-	local arg = {...}
-	lua.lua_getfield(state, LUA_GLOBALSINDEX, name);
-	if #arg>0 then
-		for k, v in ipairs(arg) do
-			lua.lua_getfield(state, -1, v);
+	lua.lua_getfield(state, LUA_GLOBALSINDEX, name)
+	local n = select("#", ...)
+	if n>0 then
+		for k = 1, n do
+			local v = select(k, ...)
+			lua.lua_getfield(state, -1, v)
 		end
 	end
 end
