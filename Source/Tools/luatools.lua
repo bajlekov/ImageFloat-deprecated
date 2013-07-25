@@ -72,16 +72,17 @@ function l.pushUserData(state, data, name)
 	lua.lua_setfield(state, LUA_GLOBALSINDEX, name);
 end
 
-function l.pushTable(state, table, name)
-	local function lua_setfield(key, value)
-		if type(key)=="string" then
-			lua.lua_pushstring(state, key)
-		else
-			lua.lua_pushnumber(state, key)
-		end
-		lua.lua_pushnumber(state, value)
-		lua.lua_settable(state, -3)
+local function lua_setfield(state, key, value)
+	if type(key)=="string" then
+		lua.lua_pushstring(state, key)
+	else
+		lua.lua_pushnumber(state, key)
 	end
+	lua.lua_pushnumber(state, value)
+	lua.lua_settable(state, -3)
+end
+
+function l.pushTable(state, table, name)
 	lua.lua_createtable(state, 0, 0);
 	for k, v in pairs(table) do
 		lua_setfield(k, v)
