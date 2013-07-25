@@ -174,7 +174,7 @@ do
 
 					local t = self.param[n+1].name..":"
 					local tv = string.format("%.2f",self.param[n+1].value[1])
-					text(t, font.normal, x+2, y+20+12*n)
+					text(t, font.normal, x+2, y+20+12*n) -- error thrown or hook called during recording at nodeDraw.lua:177
 					local f = sdl.textCreate(tv, font.normal)
 					textPut(f,x+147-f.w, y+20+12*n)
 				elseif self.param[n+1].type=="text" then

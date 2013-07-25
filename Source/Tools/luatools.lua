@@ -117,7 +117,8 @@ function l.doString(state, str)
 end
 
 function l.doFunction(state, name)
-	lua.lua_getfield(state, LUA_GLOBALSINDEX, name);
+	-- NYI: bytecode 63 at luatools.lua:118
+	lua.lua_getfield(state, LUA_GLOBALSINDEX, name)
 	assert(lua.lua_call(state, 0, 0)==0)
 end
 
@@ -156,7 +157,6 @@ print("!!!!!!!!! COMPILE THREAD CALLER FOR ALL PLATFORMS !!!!!!!!")
 if type(__sdl)=="table" then
 	local p, th
 	if ffi.os == "Linux" then p, th = pcall(ffi.load, __global.libPath.."libthread.so") end
-	print(p, th)
 	if ffi.os == "Windows" then p, th = pcall(ffi.load, __global.libPath.."thread.dll") end
 
 	if p then
@@ -245,7 +245,7 @@ if type(__sdl)=="table" then
 			function l.threadSetup(buflist, params)
 				local bufs = {}
 				local dims = {} -- x1, y1, z1, x2, y2, z2, x3, y3, z3 ...
-				local n
+				local n -- error thrown or hook called during recording at luatools.lua:248
 				
 				if type(bufs)=="table" and buflist.__type==nil then -- table of bufs
 					for k, v in ipairs(buflist) do
@@ -283,6 +283,7 @@ if type(__sdl)=="table" then
 			end
 			function l.threadRun(...)
 				procTime = sdl.ticks()
+				-- NYI: bytecode 71 at luatools.lua:270
 				for i = 0, l.numCores-1 do
 					l.threadProgress[i]=0
 					lua.lua_settop(l.threadInstance[i], 0) -- restore stack
@@ -302,7 +303,8 @@ if type(__sdl)=="table" then
 					end
 					loopTime = sdl.ticks()
 				else
-					print("Thread not running! Skipping threadWait()")
+					-- deprecated use:
+					error("Thread not running! Skipping threadWait()")
 				end
 				l.threadRunning = false
 				for i=0,l.numCores do

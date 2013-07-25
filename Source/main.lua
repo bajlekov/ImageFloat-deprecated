@@ -29,6 +29,28 @@ prof:dont("luatools")
 prof:dont("draw")
 -- TODO: possibly check performance of mouse:update()!!!
 
+--[[ Notes on use of -jv:
+-- NYI: unsupported C type conversion:
+	use of nested structs or passing of structs?? (such as sdl.rect and sdl.color)?? is not compiled!
+-- error thrown or hook called during recording:
+	??? cause unknown
+-- NYI: register coalescing too complex
+	simplify referencing??
+-- Coroutine functions are never compiled!
+
+bytecodes:
+	50: ??
+	51: definition of function inside of hot trace, fix on encounter!!!
+	70: ??
+	71: ??
+
+record:
+luajit -jv=out.txt main.lua
+
+filter output:
+grep "NYI" out.txt | grep -v "coroutine"
+
+--]]
 
 
 -- disable implicit globals

@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+-- performance warning: use of pairs iterator prevents compilation, do not use in performance-sensitive code
+
 local coll = {}
 
 -- collects items from a list in a collection, if a collection is specified then items are added

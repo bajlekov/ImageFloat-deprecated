@@ -144,7 +144,7 @@ local function nodeClick(self, part)
 			return true
 		end
 	else
-		for k,_ in pairs(areas) do
+		for k,_ in pairs(areas) do -- FIXME: replace pairs for fast execution!!!!!
 			local p = nodeClick(self, k)
 			if p and k~="node" then return p, k end
 		end
@@ -441,7 +441,10 @@ do
 		self.noExec = list(noProc)
 	
 		-- refresh view
+		-- NYI: bytecode 50 at node.lua:448
 		for _, v in ipairs(self) do
+		-- FIXME: possibly keep track of number of nodes and use a regular loop instead of an iterator
+		-- then again, this is not (or shouldn't be) performance-sensitive code
 			v.ui.draw=true
 		end
 		sdl.flip()

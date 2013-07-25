@@ -40,11 +40,12 @@ function getPixel(x,y)
 end
 
 function addPixel(x,y,r,g,b)
-  if x>=0 and x<__dimX and y>=0 and y<__dimY then
-  	if pixbuf[(x + __dimX*y)*4+2] + r>255 then pixbuf[(x + __dimX*y)*4+2] = 255 elseif pixbuf[(x + __dimX*y)*4+2] + r<0 then pixbuf[(x + __dimX*y)*4+2] = 0 else pixbuf[(x + __dimX*y)*4+2] = pixbuf[(x + __dimX*y)*4+2] + r end
-  	if pixbuf[(x + __dimX*y)*4+1] + g>255 then pixbuf[(x + __dimX*y)*4+1] = 255 elseif pixbuf[(x + __dimX*y)*4+1] + r<0 then pixbuf[(x + __dimX*y)*4+1] = 0 else pixbuf[(x + __dimX*y)*4+1] = pixbuf[(x + __dimX*y)*4+1] + g end
-  	if pixbuf[(x + __dimX*y)*4+0] + b>255 then pixbuf[(x + __dimX*y)*4+0] = 255 elseif pixbuf[(x + __dimX*y)*4+0] + r<0 then pixbuf[(x + __dimX*y)*4+0] = 0 else pixbuf[(x + __dimX*y)*4+0] = pixbuf[(x + __dimX*y)*4+0] + b end
-  end
+	if x>=0 and x<__dimX and y>=0 and y<__dimY then
+		if pixbuf[(x + __dimX*y)*4+2] + r>255 then pixbuf[(x + __dimX*y)*4+2] = 255 elseif pixbuf[(x + __dimX*y)*4+2] + r<0 then pixbuf[(x + __dimX*y)*4+2] = 0 else pixbuf[(x + __dimX*y)*4+2] = pixbuf[(x + __dimX*y)*4+2] + r end
+		if pixbuf[(x + __dimX*y)*4+1] + g>255 then pixbuf[(x + __dimX*y)*4+1] = 255 elseif pixbuf[(x + __dimX*y)*4+1] + r<0 then pixbuf[(x + __dimX*y)*4+1] = 0 else pixbuf[(x + __dimX*y)*4+1] = pixbuf[(x + __dimX*y)*4+1] + g end
+		if pixbuf[(x + __dimX*y)*4+0] + b>255 then pixbuf[(x + __dimX*y)*4+0] = 255 elseif pixbuf[(x + __dimX*y)*4+0] + r<0 then pixbuf[(x + __dimX*y)*4+0] = 0 else pixbuf[(x + __dimX*y)*4+0] = pixbuf[(x + __dimX*y)*4+0] + b end
+		-- FIXME: NYI: register coalescing too complex at draw.lua:195
+	end
 end
 local pixelAdd = addPixel
 local setPixel = setPixel

@@ -31,7 +31,7 @@ return function(img)
 		out:set(nx,ny,c, t)
 	end
 	local function scaleNorm(c, x, y, out, count)
-		out:set(x,y,c, out:get(x,y,c) / count[x][y])
+		out:set(x,y,c, out:get(x,y,c) / count[x][y]) -- NYI: bytecode 71
 	end
 	--float buffer square aperture scaling
 	function img.scaleDown(buffer, sc)
@@ -56,7 +56,7 @@ return function(img)
 
 	--weighted rescale
 	local function scaleDownHQ(c, nx, ny, x, y, out, buffer, rx, ry)
-		local t = out:get(nx,ny,c) + buffer:get(x,y,c) * rx * ry
+		local t = out:get(nx,ny,c) + buffer:get(x,y,c) * rx * ry -- error thrown or hook called during recording at imgops.lua:59
 		out:set(nx, ny, c, t)
 	end
 	function img.scaleDownHQ(buffer, sc)

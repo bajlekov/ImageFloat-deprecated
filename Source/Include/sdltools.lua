@@ -195,6 +195,7 @@ function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
 -- garbage-collected thread creation
 -- FIXME: currently not all threads are correctly closed, properly manage threads and avoid garbage collection need for threads!
 function SDL.createThread(fun, ptr)
+	-- NYI: unsupported C type conversion at sdltools.lua:198
 	local t = _SDL.SDL_CreateThread(fun, ptr) 
 	return ffi.gc(t, _SDL.SDL_KillThread)
 end
@@ -219,7 +220,7 @@ end
 
 -- render text and put on screen
 function SDL.text(text, font, x, y, r, g, b, a)
-	local ttf_text = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255));
+	local ttf_text = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255)) -- possibly not compiled due to complex struct??
 	SDL.screenPut(ttf_text, x, y)
 	local x, y = ttf_text.w, ttf_text.h
 	_SDL.SDL_FreeSurface(ttf_text)
@@ -228,7 +229,7 @@ end
 
 -- render text and save to buffer
 function SDL.textCreate(text, font, r, g, b, a)
-	local t = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255));
+	local t = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255)) -- possibly not compiled due to complex struct??
 	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
 -- paste rendered text, use screenput directly instead
