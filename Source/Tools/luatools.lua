@@ -250,16 +250,22 @@ if type(__sdl)=="table" then
 				if type(bufs)=="table" and buflist.__type==nil then -- table of bufs
 					for k, v in ipairs(buflist) do
 						bufs[k] = v
-						table.insert(dims, v.x)
-						table.insert(dims, v.y)
-						table.insert(dims, v.z)
+						dims[3*(k-1)+1] = v.x
+						dims[3*(k-1)+2] = v.y
+						dims[3*(k-1)+3] = v.z
+						--table.insert(dims, v.x)
+						--table.insert(dims, v.y)
+						--table.insert(dims, v.z)
 					end
 					n = #bufs
 				elseif type(bufs)=="table" and buflist.__type=="buffer" then
 					bufs[1] = buflist
-					table.insert(dims, buflist.x)
-					table.insert(dims, buflist.y)
-					table.insert(dims, buflist.z)
+					dims[1] = buflist.x
+					dims[2] = buflist.y
+					dims[3] = buflist.z
+					--table.insert(dims, buflist.x)
+					--table.insert(dims, buflist.y)
+					--table.insert(dims, buflist.z)
 					n = 1
 				end
 				
