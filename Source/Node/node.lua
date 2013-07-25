@@ -108,15 +108,16 @@ function node:noodleDrag(n, p)
 	self:draw()
 end
 
+
+local function checkPos(r, mouse, self)
+	local x = mouse.x
+	local y = mouse.y
+	local ox = self.x
+	local oy = self.y
+	if x>=r[1]+ox and x<=r[2]+ox and y>=r[3]+oy and y<=r[4]+oy then return true end
+end
 local function nodeClick(self, part)
 	local mouse = node.mouse
-	local function checkPos(r)
-		local x = mouse.x
-		local y = mouse.y
-		local ox = self.x
-		local oy = self.y
-		if x>=r[1]+ox and x<=r[2]+ox and y>=r[3]+oy and y<=r[4]+oy then return true end
-	end
 
 	local areas = {
 		node = {-13, 162, -2, 23+12*self.p[1]},
@@ -129,7 +130,7 @@ local function nodeClick(self, part)
 	if part~=nil then
 		local area = areas[part]
 
-		if checkPos(area) then
+		if checkPos(area, mouse, self) then
 			if part=="params" then
 				local p = math.floor((mouse.y - self.y - 22)/ 12) + 1
 				if p==0 then return 1 else return p end --correct for math.floor
