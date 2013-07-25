@@ -253,11 +253,10 @@ function drawNoodle(x1, y1, x2, y2, p1, p2)
 end
 	---[[
 global("drawNoodles") -- FIXME
-function drawNoodles(node)
-	local function drawNoodle(x1, y1, x2, y2, p1, p2)
+local function drawNoodle(x1, y1, x2, y2, p1, p2)
 		__drawNoodle(x1, y1, x2, y2, p1, p2, 128, 128, 128)
-	end
-
+end
+function drawNoodles(node)
 	for _, node in ipairs(node) do
 		if #node.conn_o.list>0 then
 			for _,v in ipairs(node.conn_o.list) do
