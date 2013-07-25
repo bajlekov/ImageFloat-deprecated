@@ -439,9 +439,6 @@ do
 	
 		self.exec = allProc
 		self.noExec = list(noProc)
-		for _, v in pairs(self.noExec) do
-			generic_clean(v)
-		end
 	
 		-- refresh view
 		for _, v in ipairs(self) do
