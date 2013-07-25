@@ -25,8 +25,6 @@ local img = __img
 require("opsCS")
 local nodeTable = {}
 
--- FIXME: remove function declarations from process!!! 
-
 nodeTable["Input"] = function(self)
 	local n=self:new("Input")
 	n.param:add("File:", __global.setup.imageLoadName, "text")
@@ -52,7 +50,6 @@ nodeTable["Color RGB"] = function(self)
 	function n:processRun(num)
 		local bo = self.conn_o
 		local r, g, b = self.param[1].value[1], self.param[2].value[1], self.param[3].value[1]
-
 		bo[0].buf = img:newC(r,g,b)
 	end
 	return n
@@ -67,13 +64,15 @@ nodeTable["Color HSV"] = function(self)
 	function n:processRun(num)
 		local bo = self.conn_o
 		local r, g, b = self.param[1].value[1], self.param[2].value[1], self.param[3].value[1]
-
 		r, g, b = HSVtoSRGB(r, g, b) 
-
 		bo[0].buf = img:newC(r,g,b)
-		--coroutine.yield("pass")
 	end
 	return n
+end
+
+
+local function getBufIn(p, self, bi)
+	return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
 end
 
 nodeTable["Rotate"] = function(self)
@@ -87,13 +86,9 @@ nodeTable["Rotate"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
-		end
-
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0)			-- input
-			bo[0].buf = getBufIn(0):new()	-- output
+			bufsIn[1] = getBufIn(0, self, bi)			-- input
+			bo[0].buf = getBufIn(0, self, bi):new()	-- output
 		else
 			bufsIn[1] = img:newC()		-- input
 			bo[0].buf = img:newC()		-- output
@@ -135,14 +130,10 @@ nodeTable["Mixer"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 		local p = self.param
-		--move function to external?
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
-		end
 		
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0):copyC()			-- input
-			bo[0].buf = getBufIn(0):newI()			-- output
+			bufsIn[1] = getBufIn(0, self, bi):copyC()			-- input
+			bo[0].buf = getBufIn(0, self, bi):newI()			-- output
 		else
 			bufsIn[1] = img:newC(1)			-- input
 			bo[0].buf = img:newC()			-- output
@@ -150,17 +141,17 @@ nodeTable["Mixer"] = function(self)
 
 		-- if no input buffers then create from params
 		if bi[2].node then
-			bufsIn[2] = getBufIn(2)
+			bufsIn[2] = getBufIn(2, self, bi)
 		else
 			bufsIn[2] = img:newC(p[1].value[1], p[2].value[1], p[3].value[1])
 		end
 		if bi[5].node then
-			bufsIn[3] = getBufIn(5)
+			bufsIn[3] = getBufIn(5, self, bi)
 		else
 			bufsIn[3] = img:newC(p[4].value[1], p[5].value[1], p[6].value[1])
 		end
 		if bi[8].node then
-			bufsIn[4] = getBufIn(8)
+			bufsIn[4] = getBufIn(8, self, bi)
 		else
 			bufsIn[4] = img:newC(p[7].value[1], p[8].value[1], p[9].value[1])
 		end
@@ -170,9 +161,6 @@ nodeTable["Mixer"] = function(self)
 		lua.threadRun("ops", "mixer")
 		coroutine.yield(num)
 		bufsIn = {}
-
-		--CS process depending on output connection
-		--profiler code
 	end
 	return n
 end
@@ -190,13 +178,9 @@ nodeTable["Add"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 		local p = self.param
-		--move function to external?
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
-		end
 
-		bufsIn[1] = bi[1].node and getBufIn(1) or img:newV()
-		bufsIn[2] = bi[2].node and getBufIn(2) or img:newV()
+		bufsIn[1] = bi[1].node and getBufIn(1, self, bi) or img:newV()
+		bufsIn[2] = bi[2].node and getBufIn(2, self, bi) or img:newV()
 		local x, y, z
 		x = math.max(bufsIn[1].x, bufsIn[2].x)
 		y = math.max(bufsIn[1].y, bufsIn[2].y)
@@ -232,14 +216,10 @@ nodeTable["Merge"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 		local p = self.param
-		--move function to external?
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
-		end
 
-		bufsIn[1] = bi[1].node and getBufIn(1) or img:newV()
-		bufsIn[2] = bi[2].node and getBufIn(2) or img:newV()
-		bufsIn[3] = bi[3].node and getBufIn(3) or img:newV(1)
+		bufsIn[1] = bi[1].node and getBufIn(1, self, bi) or img:newV()
+		bufsIn[2] = bi[2].node and getBufIn(2, self, bi) or img:newV()
+		bufsIn[3] = bi[3].node and getBufIn(3, self, bi) or img:newV(1)
 		
 		local x, y, z
 		x = math.max(bufsIn[1].x, bufsIn[2].x, bufsIn[3].x)
@@ -274,12 +254,8 @@ nodeTable["Split"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
-		end
-
 		if bi[1].node then
-			bufsIn[1] = getBufIn(1)			-- input
+			bufsIn[1] = getBufIn(1, self, bi)			-- input
 		else
 			bufsIn[1] = img:newV(0)		-- input
 		end
@@ -307,12 +283,8 @@ nodeTable["DecomposeRGB"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
-		end
-
 		if bi[1].node then
-			bufsIn[1] = getBufIn(1)			-- input
+			bufsIn[1] = getBufIn(1, self, bi)			-- input
 		else
 			bufsIn[1] = img:newV()		-- input
 		end
@@ -344,12 +316,8 @@ nodeTable["DecomposeLCH"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img.newBuffer(0)
-		end
-
 		if bi[1].node then
-			bufsIn[1] = getBufIn(1)			-- input
+			bufsIn[1] = getBufIn(1, self, bi)			-- input
 		else
 			bufsIn[1] = img:newV()		-- input
 		end
@@ -385,14 +353,10 @@ nodeTable["WhiteBalance"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
-		end
-
 		-- init output buffer same as input
 		-- collect types of input bufs, choose largest combination
 		if bi[0].node then
-			bo[0].buf = getBufIn(0):copyC()	-- output
+			bo[0].buf = getBufIn(0, self, bi):copyC()	-- output
 		else
 			bo[0].buf = img:newC(1)	-- output
 		end
@@ -434,22 +398,10 @@ nodeTable["Output"] = function(self)
 		local bi = self.conn_i
 		local p = self.param
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV(1)
-		end
-		
-		--[[
-		if bi[0].node then
-			self.bufOut = getBufIn(0):copyC()
-		else
-			print("*** node not connected")
-			-- needs to refresh buffer!
-		end
-		--]]
 		--FIXME: needs to scale up to full image if only a color or value is passed!!
 
 		if bi[0].node then
-			bufsIn[1]=getBufIn(0):copyC() --FIXME: better way to handle GS => color
+			bufsIn[1]=getBufIn(0, self, bi):copyC() --FIXME: better way to handle GS => color
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
 			lua.threadSetup({bufsIn[1], self.bufOut})
 			lua.threadRun("ops", "copy")
@@ -482,22 +434,18 @@ local n=self:new("Compose RGB")
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
-		end
-
 		if bi[1].node then
-			bufsIn[1] = getBufIn(1)			-- input
+			bufsIn[1] = getBufIn(1, self, bi)			-- input
 		else
 			bufsIn[1] = img:newV()	-- input
 		end
 		if bi[2].node then
-			bufsIn[2] = getBufIn(2)			-- input
+			bufsIn[2] = getBufIn(2, self, bi)			-- input
 		else
 			bufsIn[2] = img:newV()	-- input
 		end
 		if bi[3].node then
-			bufsIn[3] = getBufIn(3)			-- input
+			bufsIn[3] = getBufIn(3, self, bi)			-- input
 		else
 			bufsIn[3] = img:newV()	-- input
 		end
@@ -525,26 +473,23 @@ local n=self:new("Compose LCH")
 	n.conn_i:add(3)
 	local bufsIn = {}
 	function n:processRun(num)
+		-- NYI: bytecode 51 at nodeDefine.lua:534
 		-- start timer
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newV()
-		end
-
 		if bi[1].node then
-			bufsIn[1] = getBufIn(1)			-- input
+			bufsIn[1] = getBufIn(1, self, bi)			-- input
 		else
 			bufsIn[1] = img:newV()	-- input
 		end
 		if bi[2].node then
-			bufsIn[2] = getBufIn(2)			-- input
+			bufsIn[2] = getBufIn(2, self, bi)			-- input
 		else
 			bufsIn[2] = img:newV()	-- input
 		end
 		if bi[3].node then
-			bufsIn[3] = getBufIn(3)			-- input
+			bufsIn[3] = getBufIn(3, self, bi)			-- input
 		else
 			bufsIn[3] = img:newV()	-- input
 		end
@@ -573,12 +518,8 @@ nodeTable["ColorSpace"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
-		end
-
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0):copyC()			-- input
+			bufsIn[1] = getBufIn(0, self, bi):copyC()			-- input
 			bo[0].buf = bufsIn[1]:new()	-- output
 		else
 			bufsIn[1] = img:newC(1)		-- input
@@ -606,7 +547,6 @@ nodeTable["GradientRot"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 		
-		--
 		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
 		
 		-- FIXME: don't require passing input/output buffers to thread
@@ -627,7 +567,6 @@ nodeTable["GradientLin"] = function(self)
 		local bo = self.conn_o
 		local p = self.param
 		
-		--
 		bo[0].buf = img:new(__global.imageSize[1], __global.imageSize[2], 1)
 		
 		-- FIXME: don't require passing input/output buffers to thread
@@ -651,13 +590,9 @@ nodeTable["Gaussian"] = function(self)
 		local bi = self.conn_i
 		local p = self.param
 		
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
-		end
-		
 		local tempBuf
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0)		-- input
+			bufsIn[1] = getBufIn(0, self, bi)		-- input
 			bo[0].buf = bufsIn[1]:new()	-- output
 			tempBuf = bufsIn[1]:new()	-- temporary
 		else
@@ -691,12 +626,8 @@ nodeTable["Gamma"] = function(self)
 		local bi = self.conn_i
 		local bo = self.conn_o
 
-		local function getBufIn(p)
-			return self.node[bi[p].node].conn_o[bi[p].port].buf or img:newC(1)
-		end
-
 		if bi[0].node then
-			bufsIn[1] = getBufIn(0):copy()			-- input
+			bufsIn[1] = getBufIn(0, self, bi):copy()			-- input
 			bo[0].buf = bufsIn[1]:new()	-- output
 		else
 			bufsIn[1] = img:newV()		-- input
