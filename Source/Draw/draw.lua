@@ -135,10 +135,10 @@ end
 do
 
     local floor = math.floor
-    local function ipart(x) return floor(x) end
-    local function round(x) return ipart(x+0.5) end
+    --local function ipart(x) return floor(x) end
+    --local function round(x) return floor(x+0.5) end
     local function fpart(x) return x-floor(x) end
-    local function rfpart(x) return 1-fpart(x) end
+    local function rfpart(x) return 1-x+floor(x) end
     local function invpixeladd(x,y,r,g,b) return pixelAdd(y,x,r,g,b) end
 
 
@@ -170,29 +170,29 @@ do
 	  local gradient = dy / dx
 	
 	    -- handle first endpoint
-	    local xend = round(x1)
+	    local xend = floor(x1 + 0.5)
 	    local yend = y1 + gradient * (xend - x1)
 	    local xgap = rfpart(x1 + 0.5)
 	    local xpxl1 = xend --this will be used in the main loop
-	    local ypxl1 = ipart(yend)
+	    local ypxl1 = floor(yend)
 	    pixeladd(xpxl1, ypxl1, rfpart(yend)*xgap*r, rfpart(yend)*xgap*g, rfpart(yend)*xgap*b)
 	    pixeladd(xpxl1, ypxl1+1, fpart(yend)*xgap*r, fpart(yend)*xgap*g, fpart(yend)*xgap*b)
 	    
 	    local intery = yend + gradient --first y-intersection for the main loop
 	    
 	    -- handle second endpoint
-	    xend = round (x2)
+	    xend = floor(x2 + 0.5)
 	    yend = y2 + gradient * (xend - x2)
 	    xgap = fpart(x2 + 0.5)
 	    local xpxl2 = xend -- this will be used in the main loop
-	    local ypxl2 = ipart (yend)
+	    local ypxl2 = floor(yend)
 	    pixeladd(xpxl2, ypxl2, rfpart(yend)*xgap*r, rfpart(yend)*xgap*g, rfpart(yend)*xgap*b)
 	    pixeladd(xpxl2, ypxl2+1, fpart(yend)*xgap*r, fpart(yend)*xgap*g, fpart(yend)*xgap*b)
 	    
 	    --main loop
 	    for x = xpxl1+1, xpxl2-1 do
-	        pixeladd(x, ipart (intery), rfpart(intery)*r, rfpart(intery)*g, rfpart(intery)*b)
-	        pixeladd(x, ipart (intery)+1, fpart(intery)*r, fpart(intery)*g, fpart(intery)*b)
+	        pixeladd(x, floor(intery), rfpart(intery)*r, rfpart(intery)*g, rfpart(intery)*b) -- NYI: register coalescing too complex at draw.lua:195
+	        pixeladd(x, floor(intery)+1, fpart(intery)*r, fpart(intery)*g, fpart(intery)*b)
 	        --pixeladd(x, ipart (intery)+1, -rfpart(intery)*r, -rfpart(intery)*g, -rfpart(intery)*b)
 	        --pixeladd(x, ipart (intery)+2, -fpart(intery)*r, -fpart(intery)*g, -fpart(intery)*b)
 	        intery = intery + gradient
