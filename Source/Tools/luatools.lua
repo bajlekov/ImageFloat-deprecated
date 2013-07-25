@@ -85,7 +85,14 @@ end
 function l.pushTable(state, table, name)
 	lua.lua_createtable(state, 0, 0);
 	for k, v in pairs(table) do
-		lua_setfield(k, v)
+		lua_setfield(state, k, v)
+	end
+	lua.lua_setfield(state, LUA_GLOBALSINDEX, name);
+end
+function l.pushITable(state, table, name)
+	lua.lua_createtable(state, 0, 0);
+	for k, v in ipairs(table) do
+		lua_setfield(state, k, v)
 	end
 	lua.lua_setfield(state, LUA_GLOBALSINDEX, name);
 end
@@ -210,6 +217,11 @@ if type(__sdl)=="table" then
 				l.pushTable(l.threadInstance[i], t, n)
 			end
 		end
+		function l.threadPushITable(t, n)
+			for i = 0, l.numCores-1 do
+				l.pushITable(l.threadInstance[i], t, n)
+			end
+		end
 
 		--keep reference to passed data!
 		local buffersData
@@ -255,8 +267,8 @@ if type(__sdl)=="table" then
 				end
 				
 				l.threadPushBuffers(bufs)
-				l.threadPushTable(dims, "__dims")
-				l.threadPushTable(params, "__params")
+				l.threadPushITable(dims, "__dims")
+				l.threadPushITable(params, "__params")
 	
 				for i = 0, l.numCores-1 do
 					l.doFunction(l.threadInstance[i], "__setup") --run setup function
