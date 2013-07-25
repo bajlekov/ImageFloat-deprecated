@@ -241,7 +241,7 @@ function funProcess()
 	hist.calculate(bufout)
 	
 	-- loop timer
-	print("Loop total: "..(sdl.ticks()-loopTime).."ms")
+	io.write("Loop total: "..(sdl.ticks()-loopTime).."ms\n")
 	loopTime = sdl.ticks()
 	
 	tic()

@@ -455,7 +455,7 @@ nodeTable["Output"] = function(self)
 			lua.threadRun("ops", "copy")
 			coroutine.yield(num)
 		else
-			print("*** node not connected")
+			io.write("*** node not connected\n")
 			-- needs to refresh buffer!
 		end
 		

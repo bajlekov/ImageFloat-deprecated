@@ -26,9 +26,9 @@ if type(__sdl)=="table" then
 	end
 	function toc(m)
 		if m then
-			print(m..": "..tostring(__sdl.ticks() - t).."ms")
+			io.write(m..": "..tostring(__sdl.ticks() - t).."ms\n")
 		else
-			print(tostring(__sdl.ticks() - t).."ms")
+			io.write(tostring(__sdl.ticks() - t).."ms\n")
 		end
 	end
 else 

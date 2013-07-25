@@ -278,7 +278,7 @@ if type(__sdl)=="table" then
 						sdl.waitThread(thread[i+1], NULL)
 					end
 					if not __global.preview then
-						print("("..procName.."): "..(sdl.ticks()-procTime).."ms ("..(sdl.ticks()-loopTime).."ms)")
+						io.write("("..procName.."): "..(sdl.ticks()-procTime).."ms ("..(sdl.ticks()-loopTime).."ms)\n")
 					end
 					loopTime = sdl.ticks()
 				else
