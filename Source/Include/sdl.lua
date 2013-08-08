@@ -267,9 +267,9 @@ function sdl.draw.alpha(x, y, a)
 	end
 end
 function sdl.draw.fill(r, g, b, x, y, w, h)
-	r = r or sdl.draw.c.r
-	g = g or sdl.draw.c.g
-	b = b or sdl.draw.c.b
+	r = math.floor(r or sdl.draw.c.r)
+	g = math.floor(g or sdl.draw.c.g)
+	b = math.floor(b or sdl.draw.c.b)
 	local a = sdl.draw.a
 	w = w or sdl.surf.current.w
 	h = h or sdl.surf.current.h
