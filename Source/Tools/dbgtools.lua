@@ -86,5 +86,23 @@ function dbg.error(m)
 	error("ERROR: "..m,0)
 end
 
+local ticks = __sdl.ticks
+local time = ticks()
+local function trace()
+	local t = ticks()-time
+	if t>0 then
+		io.write("\n"..(debug.getinfo (2, "n").name or "*none*")..": "..t.."ms\n")
+		io.write(debug.traceback())
+	else io.write(".") end
+	time = ticks()
+end
+function dbg.traceStart()
+	debug.sethook(trace, "c")
+end
+function dbg.traceStop()
+	debug.sethook()
+end
+
+
 global("__dbg", dbg)
 return dbg
