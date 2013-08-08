@@ -118,6 +118,9 @@ end
 function sdl.surf.__image(file)
 	return _IMG.IMG_Load(file)
 end
+function sdl.surf.__free(buf)
+	_SDL.SDL_FreeSurface(buf)
+end
 
 
 -- thread
