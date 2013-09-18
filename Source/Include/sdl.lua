@@ -31,7 +31,7 @@ ffi.cdef(io.open("./Source/Include/SDL.h", "r"):read('*a')) io.close()
 
 local sdl = {}
 
-sdl.color = ffi.typeof("SDL_Color") -- r, g, b, a
+--sdl.color = ffi.typeof("SDL_Color") -- r, g, b, a
 sdl.rect = ffi.typeof("SDL_Rect") -- x, y, w, h
 
 function sdl.init()
@@ -145,7 +145,7 @@ function sdl.thread.lock(mut) _SDL.SDL_mutexP(mut) end
 function sdl.thread.unlock(mut) _SDL.SDL_mutexV(mut) end
 
 --font
-sdl.font = {f=nil, t=nil, s=12, c=sdl.color(255,255,255)}
+sdl.font = {f=nil, t=nil, s=12, c=255+255*256+255*256*256}
 do
 	local fonts = {}
 	local function font(name, size)
@@ -177,7 +177,7 @@ do
 	end
 end
 function sdl.font.color(r, g, b)
-	sdl.font.c = sdl.color(r,g,b)
+	sdl.font.c = r+g*256+b*256*256
 end
 do
 	local renderer =  _TTF.TTF_RenderText_Blended
@@ -195,9 +195,11 @@ end
 
 -- draw
 -- TODO: check alpha handling
-sdl.draw = {c=sdl.color(255,255,255), a=255, q="high"}
+sdl.draw = {r=255,g=255,b=255,a=255, q="high"}
 function sdl.draw.color(r, g, b, a)
-	sdl.draw.c = sdl.color(r, g, b)
+	sdl.draw.r = r or 0
+	sdl.draw.g = g or 0
+	sdl.draw.b = b or 0
 	sdl.draw.a = a or 255
 end
 function sdl.draw.quality(q) sdl.draw.q = q end
@@ -220,9 +222,9 @@ function sdl.draw.pSet(x, y, r, g, b, a)
 	local xmax = sdl.surf.current.w
 	local ymax = sdl.surf.current.h
 	if x>=0 and x<xmax and y>=0 and y<ymax then
-		p[(x + xmax*y)*4] = b or sdl.draw.c.b
-		p[(x + xmax*y)*4+1] = g or sdl.draw.c.g
-		p[(x + xmax*y)*4+2] = r or sdl.draw.c.r
+		p[(x + xmax*y)*4] = b or sdl.draw.b
+		p[(x + xmax*y)*4+1] = g or sdl.draw.g
+		p[(x + xmax*y)*4+2] = r or sdl.draw.r
 		p[(x + xmax*y)*4+3] = a or sdl.draw.a
 	end
 end
@@ -232,9 +234,9 @@ function sdl.draw.pMix(x, y, r, g, b, a) -- not setting alpha
 	local xmax = sdl.surf.current.w
 	local ymax = sdl.surf.current.h
 	if x>=0 and x<xmax and y>=0 and y<ymax then
-		local b = (b or sdl.draw.c.b)*a + p[(x + xmax*y)*4]*(1-a)
-		local g = (g or sdl.draw.c.g)*a + p[(x + xmax*y)*4+1]*(1-a)
-		local r = (r or sdl.draw.c.r)*a + p[(x + xmax*y)*4+2]*(1-a)
+		local b = (b or sdl.draw.b)*a + p[(x + xmax*y)*4]*(1-a)
+		local g = (g or sdl.draw.g)*a + p[(x + xmax*y)*4+1]*(1-a)
+		local r = (r or sdl.draw.r)*a + p[(x + xmax*y)*4+2]*(1-a)
 		p[(x + xmax*y)*4] = (b>255 and 255) or (b<0 and 0) or b
 		p[(x + xmax*y)*4+1] = (g>255 and 255) or (g<0 and 0) or g
 		p[(x + xmax*y)*4+2] = (r>255 and 255) or (r<0 and 0) or r
@@ -246,9 +248,9 @@ function sdl.draw.pAdd(x, y, r, g, b, a) -- not setting alpha
 	local xmax = sdl.surf.current.w
 	local ymax = sdl.surf.current.h
 	if x>=0 and x<xmax and y>=0 and y<ymax then
-		local b = (b or sdl.draw.c.b)*a + p[(x + xmax*y)*4]
-		local g = (g or sdl.draw.c.g)*a + p[(x + xmax*y)*4+1]
-		local r = (r or sdl.draw.c.r)*a + p[(x + xmax*y)*4+2]
+		local b = (b or sdl.draw.b)*a + p[(x + xmax*y)*4]
+		local g = (g or sdl.draw.g)*a + p[(x + xmax*y)*4+1]
+		local r = (r or sdl.draw.r)*a + p[(x + xmax*y)*4+2]
 		p[(x + xmax*y)*4] = (b>255 and 255) or (b<0 and 0) or b
 		p[(x + xmax*y)*4+1] = (g>255 and 255) or (g<0 and 0) or g
 		p[(x + xmax*y)*4+2] = (r>255 and 255) or (r<0 and 0) or r
@@ -267,9 +269,9 @@ function sdl.draw.alpha(x, y, a)
 	end
 end
 function sdl.draw.fill(r, g, b, x, y, w, h)
-	r = math.floor(r or sdl.draw.c.r)
-	g = math.floor(g or sdl.draw.c.g)
-	b = math.floor(b or sdl.draw.c.b)
+	r = math.floor(r or sdl.draw.r)
+	g = math.floor(g or sdl.draw.g)
+	b = math.floor(b or sdl.draw.b)
 	local a = sdl.draw.a
 	w = w or sdl.surf.current.w
 	h = h or sdl.surf.current.h
@@ -342,7 +344,7 @@ do
 		end
 	end
 	function sdl.draw.line(x1, y1, x2, y2)
-		local r, g, b, a = sdl.draw.c.r, sdl.draw.c.g, sdl.draw.c.b, sdl.draw.a
+		local r, g, b, a = sdl.draw.r, sdl.draw.g, sdl.draw.b, sdl.draw.a
 		if x1==x2 then
 			sdl.draw.fill(r,g,b,x1,y1,1,y2-y1+1)
 		elseif y1==y2 then
