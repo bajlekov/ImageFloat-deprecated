@@ -220,7 +220,7 @@ end
 
 -- render text and put on screen
 function SDL.text(text, font, x, y, r, g, b, a)
-	local ttf_text = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255)) -- possibly not compiled due to complex struct??
+	local ttf_text = ttfRenderText(font, text, (r or 255)+256*(g or 255)+256*256*(b or 255)+256*256*256*(a or 255)) -- possibly not compiled due to complex struct??
 	SDL.screenPut(ttf_text, x, y)
 	local x, y = ttf_text.w, ttf_text.h
 	_SDL.SDL_FreeSurface(ttf_text)
@@ -229,7 +229,7 @@ end
 
 -- render text and save to buffer
 function SDL.textCreate(text, font, r, g, b, a)
-	local t = ttfRenderText(font, text, SDL.color(r or 255, g or 255, b or 255, a or 255)) -- possibly not compiled due to complex struct??
+	local t = ttfRenderText(font, text, (r or 255)+256*(g or 255)+256*256*(b or 255)+256*256*256*(a or 255)) -- possibly not compiled due to complex struct??
 	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
 -- paste rendered text, use screenput directly instead
