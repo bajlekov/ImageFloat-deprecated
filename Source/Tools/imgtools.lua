@@ -378,7 +378,11 @@ function buffer:setABC(x,y,z, v)
 end
 
 function buffer:get(x,y,z)
-	return self.data[x*self.y*self.z + y*self.z + z]
+	if z then
+		return self.data[x*self.y*self.z + y*self.z + z]
+	else
+		return self.data+x*self.y*self.z + y*self.z
+	end
 end
 function buffer:set(x,y,z, v)
 	self.data[x*self.y*self.z + y*self.z + z] = v
