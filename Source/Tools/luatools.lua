@@ -294,7 +294,7 @@ if type(__sdl)=="table" then
 				procName = table.concat({...},".")
 			end
 			function l.threadWait()
-				if l.threadRunning then
+				--if l.threadRunning then
 					for i = 0, l.numCores-1 do
 						sdl.waitThread(thread[i+1], NULL)
 					end
@@ -302,10 +302,10 @@ if type(__sdl)=="table" then
 						io.write("("..procName.."): "..(sdl.ticks()-procTime).."ms ("..(sdl.ticks()-loopTime).."ms)\n")
 					end
 					loopTime = sdl.ticks()
-				else
-					-- deprecated use:
-					error("Thread not running! Skipping threadWait()")
-				end
+				--else
+				--	-- deprecated use:
+				--	error("Thread not running! Skipping threadWait()")
+				--end
 				l.threadRunning = false
 				for i=0,l.numCores do
 					l.threadProgress[i]=0
