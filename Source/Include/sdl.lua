@@ -132,14 +132,14 @@ end
 -- thread
 sdl.thread = {}
 do
-	local count
+	local count = 0
 	function sdl.thread.new(fun, ptr)
 		count = count+1
 		return _SDL.SDL_CreateThread(fun, ptr) 
 	end
 	function sdl.thread.wait(th)
 		count = count-1
-		_SDL.SDL_WaitThread(th, nil)
+		return _SDL.SDL_WaitThread(th, nil)
 	end
 	function sdl.thread.count() return count end
 end
