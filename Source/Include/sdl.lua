@@ -74,7 +74,13 @@ end
 
 function sdl.time() return _SDL.SDL_GetTicks() end
 function sdl.wait(x) _SDL.SDL_Delay(x) end
-
+do
+	local time
+	function sdl.tic() time = sdl.time() end
+	function sdl.toc(str)
+		print((str and str..": " or "")..(sdl.time()-time).."ms") 
+	end
+end
 -- surface
 sdl.surf = {current=nil, pixels=nil}
 function sdl.surf.new(w, h)
