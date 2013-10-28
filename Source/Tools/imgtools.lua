@@ -359,12 +359,22 @@ function buffer.max(a, b)
 	end
 end
 
+function buffer:get(x,y,z)
+	if z then
+		return (self.data + x*self.y*self.z + y*self.z + z)[0]
+	else
+		return self.data+x*self.y*self.z + y*self.z
+	end
+end
+function buffer:set(x,y,z, v)
+	(self.data + x*self.y*self.z + y*self.z + z)[0] = v
+end
 function buffer:getABC(x,y,z)
 	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
 		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
 		return 0
 	else
-		return self.data[x*self.y*self.z + y*self.z + z]
+		return self:get(x,y,z)
 	end
 end
 
@@ -373,29 +383,17 @@ function buffer:setABC(x,y,z, v)
 		print(debug.traceback("WARNING: Index outside array bounds, element ["..x..", "..y..", "..z.."] of ["..self.x..", "..self.y..", "..self.z.."]."))
 		return nil
 	else
-		self.data[x*self.y*self.z + y*self.z + z] = v
+		self:set(x,y,z, v)
 	end
 end
 
-function buffer:get(x,y,z)
-	if z then
-		return self.data[x*self.y*self.z + y*self.z + z]
-	else
-		return self.data+x*self.y*self.z + y*self.z
-	end
-end
-function buffer:set(x,y,z, v)
-	self.data[x*self.y*self.z + y*self.z + z] = v
-end
 function buffer:get3(x,y)
-	local c = x*self.y*self.z + y*self.z
-	return self.data[c], self.data[c+1], self.data[c+2] 
+	return self:get(x,y,0), self:get(x,y,1), self:get(x,y,2)
 end
 function buffer:set3(x,y, v1,v2,v3)
-	local c = x*self.y*self.z + y*self.z
-	self.data[c] = v1
-	self.data[c+1] = v2
-	self.data[c+2] = v3
+	self:set(x,y,0, v1)
+	self:set(x,y,1, v2)
+	self:set(x,y,2, v3)
 end
 function buffer:newI(x, y, c1, c2, c3)
 	x = x or self.x or 1
@@ -413,8 +411,8 @@ function buffer:newI(x, y, c1, c2, c3)
 	return o
 end
 
-function buffer:getM(x,y) return self.data[x*self.y*self.z + y*self.z] end
-function buffer:setM(x,y, v) self.data[x*self.y*self.z + y*self.z] = v end
+function buffer:getM(x,y) return self:get(x, y, 0) end
+function buffer:setM(x,y, v) self:set(x, y, 0, v) end
 function buffer:newM(x, y, v1)
 	x = x or self.x or 1
 	y = y or self.y or 1
