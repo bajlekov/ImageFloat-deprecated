@@ -24,7 +24,7 @@ local function chroma(r, g, b) return max(r, g, b)-min(r, g, b) end
 local function hue(r, g, b)
 	local c = chroma(r, g, b)
 	if c==0 then return 0 end
-	local hue
+	local hue = 0
 	local m = max(r, g, b)
 	if m==r then hue = ((g - b) / c) end
 	if m==g then hue = (2 + (b - r) / c) end
