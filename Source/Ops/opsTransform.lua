@@ -20,7 +20,7 @@ local transform = {}
 
 --transforms should be implemented as inverse operations performed on the output pixels!!
 
-require("mathtools")
+--require("mathtools")
 
 --prerequisites
 local pi = math.pi
@@ -212,7 +212,7 @@ function transform.gradLin()
 end
 
 
-local gaussIIR = require("gaussIIR")
+local gaussIIR = require("Math.gaussIIR")
 function transform.gaussV(i, o)
 	i = i or 1
 	o = o or 2

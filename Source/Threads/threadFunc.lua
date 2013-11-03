@@ -30,6 +30,9 @@ do
 	setmetatable(_G, {__newindex=newGlobal})
 end
 
+package.path = 	"./?.lua;"..package.path
+
+--[[
 package.path = 	"./?.lua;"..
 				"./Setup/?.lua;"..
 				"./Build/?.lua;"..
@@ -41,15 +44,15 @@ package.path = 	"./?.lua;"..
 				"./Ops/?.lua;"..
 				"./Threads/?.lua;"..
 				"./Tools/?.lua;"..package.path
-
+--]]
 local ffi = require("ffi")
 
 global("__global", {})
-__global.setup = require("IFsetup")
+__global.setup = require("Setup.IFsetup")
 __global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
 -- replace the complete sdl lib with just the mutex functions and possibly tick/wait!
-local sdl = require("sdltools")
+local sdl = require("Include.sdltools")
 
 if __global.setup.optCompile.ispc then
 	__global.ISPC = ffi.load("./Ops/ISPC/ops.so")
@@ -61,7 +64,7 @@ if __global.setup.optCompile.ispc then
 	]]
 end
  
-global("ops", require("ops")) -- global ops are required to ease calling
+global("ops", require("Ops.ops")) -- global ops are required to ease calling
 global("__init")
 global("__setup")
 

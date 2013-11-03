@@ -18,6 +18,7 @@
 -- collection of SDL-dependent utilities
 
 local ffi = require("ffi")
+--local compile = require("Tools.compile")
 
 -- TODO: load relevant SDL libs
 local function loadlib(lib)	return ffi.load("lib"..lib..".so") end

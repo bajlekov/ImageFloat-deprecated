@@ -17,7 +17,7 @@
 
 local fftops = {}
 
-local fft = require ("fftw")
+local fft = require ("Include.fftw")
 local ffi = require ("ffi")
 
 local function loadlib(lib)

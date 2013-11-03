@@ -18,13 +18,13 @@
 -- getters and setters are found in global tables, slowdown?
 
 local ops = {}
-ops.cs = require("opsCS")
---ops.fft = require("opsFFT")
-ops.transform = require("opsTransform")
-ops.filter = require("opsFilter")
-ops.layer = require("opsLayer")
+require("Math.mathtools")
+ops.cs = require("Ops.opsCS")
+--ops.fft = require("Ops.opsFFT")
+ops.transform = require("Ops.opsTransform")
+ops.filter = require("Ops.opsFilter")
+ops.layer = require("Ops.opsLayer")
 
-require("mathtools")
 local ffi = require("ffi")
 
 -- function to synchronise between a multi-pass operation
@@ -70,7 +70,7 @@ end
 -- replace with unroll!!
 
 local function callOp(i, fun, b, p) fun(b, p, i) end -- swap parameters and iterator
-local unroll = require("unroll")
+local unroll = require("Tools.unroll")
 local function wrapChan(fun)
 	return function(b, p, zSize)
 		if zSize==1 then

@@ -16,7 +16,7 @@
 ]]
 
 --require("../Lua/lua_utils.lua")
-require("nodeDraw")
+require("Node.nodeDraw")
 
 -- pass struct instead of globals
 local nodeDraw = nodeDraw
@@ -352,7 +352,7 @@ function node:cleanup()
 end
 
 do
-	local c = require("boolops") 
+	local c = require("Math.boolops") 
 	function node:calcLevels()
 		local current = {}
 		local level = 1

@@ -293,13 +293,13 @@ local s = toSpline({
 })
 
 local ffi = require("ffi")
-local sdl = require("sdltools")
+local sdl = require("Include.sdltools")
 
 sdl.init()
 sdl.setScreen(820, 820, 32)
 sdl.caption("Test UI", "Test UI");
-require("draw")
-require("mathtools")
+require("Draw.draw")
+require("Math.mathtools")
 
 ---[[
 --s.splineType = "Smooth"

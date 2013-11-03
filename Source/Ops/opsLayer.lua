@@ -16,7 +16,6 @@
 ]]
 
 local ops = {}
---require("mathtools")
 
 -- generic pixel function loop
 local startstring_matrix = [[

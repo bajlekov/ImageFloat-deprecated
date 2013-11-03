@@ -29,8 +29,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 		- direction of parent (fields are always full-size in one direction)
 --]]
 
+package.path = 	"./?.lua;"..package.path
+
 -- use the new SDL bindings
-local sdl = require"Include.sdl"
+local sdl = require"Source.Include.sdl"
 sdl.init()
 
 sdl.screen.set(1400, 700)

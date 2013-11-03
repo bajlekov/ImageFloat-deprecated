@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+--[[
 package.path = 	"./?.lua;"..
 "./Setup/?.lua;"..
 "./Build/?.lua;"..
@@ -26,3 +27,4 @@ package.path = 	"./?.lua;"..
 "./Ops/?.lua;"..
 "./Threads/?.lua;"..
 "./Tools/?.lua;"..package.path
+--]]

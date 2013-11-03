@@ -22,7 +22,7 @@ local lua = __lua
 local img = __img
 
 -- FIXME: other way to include CS ops!
-require("opsCS")
+require("Ops.opsCS")
 local nodeTable = {}
 
 nodeTable["Input"] = function(self)

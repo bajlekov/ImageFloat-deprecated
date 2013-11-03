@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local dbg = require("dbgtools")
+local dbg = require("Tools.dbgtools")
 
 local cs = {}
 local ffi = require("ffi")

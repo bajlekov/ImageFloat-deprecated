@@ -21,13 +21,16 @@ This program comes WITHOUT ANY WARRANTY.
 This is free software, and you are welcome to redistribute it under the conditions of the GNU General Public License version 3.
 ]])
 
-local prof = require("Tools.profiler"):new()
-prof:maxrows(250)
-prof:dont("input")
-prof:dont("sdl")
-prof:dont("luatools")
-prof:dont("draw")
--- TODO: possibly check performance of mouse:update()!!!
+__DEBUG = false
+function DBprint(...)
+	if __DEBUG then
+		print(debug.traceback(...))
+	end
+end
+
+-- setup paths if not loading bytecode
+package.path = 	"./?.lua;"..package.path
+--require("path")
 
 --[[ Notes on use of -jv:
 -- NYI: unsupported C type conversion:
@@ -64,8 +67,6 @@ do
 	setmetatable(_G, {__newindex=newGlobal})
 end
 
--- setup paths if not loading bytecode
-require("path")
 local ffi = require("ffi")
 --__global = require("global")
 global("__global", require("global"))
@@ -77,11 +78,11 @@ math.randomseed(os.time())
 -- TODO internal console for debugging etc.
 -- TODO	currently not working with luaJIt 2.1 alpha
 
-local sdl = require("sdltools")
-local lua = require("luatools")
-local dbg = require("dbgtools")
-local ppm = require("ppmtools")
-local img = require("imgtools")
+local sdl = require("Include.sdltools")
+local lua = require("Tools.luatools")
+local dbg = require("Tools.dbgtools")
+local ppm = require("Tools.ppmtools")
+local img = require("Tools.imgtools")
 
 --put often-used libs in a global namespace and index from there, not as independent globals
 global("__dbg", dbg)
@@ -103,7 +104,7 @@ sdl.setCaption("ImageFloat...loading", "ImageFloat");
 sdl.setIcon("icon.bmp")
 
 -- TODO refactor draw
-require("draw")
+require("Draw.draw")
 
 local mouse = sdl.input()
 mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
@@ -114,10 +115,10 @@ font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
 font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 local font = font
 
-local node = require("node")
+local node = require("Node.node")
 
 --move to node?
-require("nodeCreate")(node, img)
+require("Node.nodeCreate")(node, img)
 
 node:add("Input")
 node:add("Rotate")
@@ -225,7 +226,7 @@ local coProcess
 local funProcess
 local calcUpdate
 
-local hist = require("histogram")
+local hist = require("Tools.histogram")
 
 local loopTime = sdl.ticks()
 function funProcess()	

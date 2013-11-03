@@ -15,7 +15,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local dbg = require("dbgtools")
+local dbg = require("Tools.dbgtools")
 local img = __img
 
 --node creation
@@ -42,7 +42,7 @@ end
 
 local function setup(n, i)
 	n.add = add
-	nodeTable = require("nodeDefine")
+	nodeTable = require("Node.nodeDefine")
 end
 
 
