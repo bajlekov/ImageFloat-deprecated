@@ -17,7 +17,7 @@
 
 local ffi = require "ffi"
 local optim = require "Tools.optimtools"
-local ispc = __global.setup.optCompile.ispc
+local ISPC = __global.setup.optCompile.ispc
 if ispc then print ("Optimization for buffer ops enabled...") end
 
 local unroll = require("Tools.unroll")
