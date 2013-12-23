@@ -49,18 +49,55 @@ function frameFun:split(name, size, unit)
 	name = name or "frame_"..(n+1)
 	size = size or "fill"
 	unit = unit or "px"
-	self[n+1] = new{name = name, size = size, unit = unit}
-	self[n+1].direction = self.direction=="H" and "V" or "H" 
+	self[n+1] = new{name = name, size = size, unit = unit, parent = self}
+	self[n+1].direction = self.direction=="H" and "V" or "H"
 	return self[n+1]
+end
+function frameFun:addData() self.data = {} return self.data end
+function frameFun:getData()
+	if self.data then
+		return self.data
+	elseif self.parent then
+		return self.parent:getData()
+	else
+		return false
+	end
+end
+function frameFun:getFrame(x, y)
+	if #self>0 then
+		for k, v in ipairs(self) do
+			if x>=v.x and x<v.x+v.w and y>=v.y and y<v.y+v.h then
+				return v:getFrame(x,y)
+			end
+		end
+	else
+		return self
+	end
+end
+function frameFun:getElem(x, y)
+	local fr = self:getFrame()
+	
+	if fr.elements and #(fr.elements)>0 then
+		-- get element position -> needs size, tiling etc...
+	end
 end
 function frameFun:vertical() self.direction="V" return self end
 function frameFun:horizontal() self.direction="H" return self end
-function frameFun:addElem(type, name, value)
-	value = value or 0
+function frameFun:addElem(name, eltype, value)
+	value = value or {}
+	eltype = eltype or "float"
 	if not self.elements then self.elements = {parent = self} end
 	local e = self.elements
 	local n = #e
-	e[n+1] = {type = type, name = name, value = value}
+	
+	local data = self:getData()
+	if data then
+		-- TODO: parse values
+		e[n+1] = {name = name, type=eltype, value = value}
+		data[name] = e[n+1]
+	else
+		error("no data storage set up for elements")
+	end
 end
 
 
@@ -119,9 +156,23 @@ local function parseFrames(table)
 		v.parent = table -- convenience parent link
 	end
 end
-
+-- TODO:
+--[[
+	- tabs, collapsible frames, popups etc are all frames that need to be inplemented
+		- tabs are switchable frames depending on top tab list
+		- collapsible frames provide their space to their neighbors, needs recalculation, limit to pairs of frames for easier management and no distortion
+		- popups gain focus, are presented as single frame on top of others. clicking outside of area dismisses popup
+		- nodes are implemented individually as a layer, their specifics are not close to the frame system
+		- stacks are implemented as elements due to the dynamic nature of their content
+	- resizing of window area
+		- forces recalculation of frames (otherwise recalculate as little as possible)
+		- forces redraws
+	- dynamic frames passing control to other functions (ex: navigation buttons)
+	- warnings for incompatible behaviour
+--]]
 
 --test
+-- setup structure
 local gui = new():vertical()
 	local top = gui:split(nil, 20)
 		local menu = top:split("Menu", 300)
@@ -137,62 +188,102 @@ local gui = new():vertical()
 			local browser = right:split("Browser", 200)
 	local status = gui:split("Status", 20)
 
-input:addElem("float", "Test 1", 4)
-input:addElem("float", "Test 2", 3)
-input:addElem("float", "Test 2", 3)
-input:addElem("float", "Test 2", 3)
-input:addElem("float", "Test 2", 3)
-view:addElem("float", "Test 2", 3)
-view:addElem("float", "Test 2", 3)
-view:addElem("float", "Test 2", 3)
-view:addElem("float", "Test 2", 3)
-view:addElem("float", "Test 2", 3)
-view:addElem("float", "Test 2", 3)
-view:addElem("float", "Test 2", 3)
-output:addElem("float", "Test 2", 3)
+-- setup data storage
+local data1 = input:addData()
+local data2 = right:addData()
 
+-- setup elements
+input:addElem("Test1")
+input:addElem("Test2")
+input:addElem("Test3")
+input:addElem("Test4")
+input:addElem("Test5")
+view:addElem("Test6")
+view:addElem("Test7")
+view:addElem("Test8")
+view:addElem("Test9")
+view:addElem("Test10", "float", {1, 0.1234, 5})
+view:addElem("Test11")
+view:addElem("Test12")
+output:addElem("Test13")
+
+-- get data values
+print(data2.Test10.value[2])
+
+-- change ui values
+view.elements[5].value[2] = 0.2345
+
+-- get new data values
+print(data2.Test10.value[2])
+
+
+-- draw ui
 local function rnd() return 0.5+math.random()*0.5 end
 local fl = math.floor
 math.randomseed(os.time())
 
 local level = 0
-local function drawElems(table)
+local function drawElems(table, num)
+--[[
+	keep all elements position-independent due to scrolling
+	- off-screen rendering and pasting to allow partial rendering (top and bottom incomplete elements only)
+	- have element list offset and additional on-screen offset (or always align top element?)
+	- overscroll (elastic)
+--]]
 	local x = table.x
 	local y = table.y
 	local w = table.w
 	local e = table.elements
 	local n = #e
-	for k, v in ipairs(e) do
-		sdl.draw.box(x+2, y-8+k*10, x+w-4, y+10*k)
+	if num then
+		if num<=n then
+			local k, v = num, e[num]
+			sdl.draw.box(x+2, y+2+k*10, x+w-4, y+10+10*k)
+			sdl.draw.text(x+3, y+k*10, v.name)
+		else
+			return
+		end
+	else
+		for k, v in ipairs(e) do
+			sdl.draw.box(x+2, y+2+k*10, x+w-4, y+10+10*k)
+			sdl.draw.text(x+3, y+k*10, v.name)
+		end
 	end
-	print("draw elements")
 end
 local function drawFrames(table)
-	for k, v in ipairs(table) do
-		sdl.draw.fill(255*rnd(), 255*rnd(), 255*rnd(), fl(v.x+level*2), fl(v.y+level*2), fl(v.w-level*4), fl(v.h-level*4))
-		sdl.draw.text(v.x+5, v.y+5, v.name)
+	if #table>0 then
+		for k, v in ipairs(table) do
+			sdl.draw.fill(255*rnd(), 255*rnd(), 255*rnd(), fl(v.x), fl(v.y), fl(v.w), fl(v.h))
+			sdl.draw.text(v.x+10, v.y, v.name)
+			if #v>0 then drawFrames(v)
+			elseif v.elements then drawElems(v) end
+		end
+	else
+		sdl.draw.fill(255*rnd(), 255*rnd(), 255*rnd(), fl(table.x), fl(table.y), fl(table.w), fl(table.h))
+		sdl.draw.text(table.x+10, table.y, table.name)
+		if #table>0 then drawFrames(table)
+		elseif table.elements then drawElems(table) end
 	end
-	level = level + 1
-	for k, v in ipairs(table) do
-		if #v>0 then drawFrames(v)
-		elseif v.elements then drawElems(v) end
-	end
-	level = level - 1
 end
 
-sdl.font.type("Resources/Fonts/UbuntuR.ttf", 12)
+sdl.font.type("Resources/Fonts/UbuntuR.ttf", 10)
 sdl.font.color(0,128,0)
 
-t = sdl.time()
-for i = 1, 1 do
+local t = sdl.time()
+for i = 1, 1000 do
 parseFrames(gui)
 end
 print(sdl.time()-t)
+
+local t = sdl.time()
+for i = 1, 10 do
 drawFrames(gui)
+end
+print(sdl.time()-t)
 
 while not sdl.input.quit do
-	sdl.wait(1)
 	sdl.update()
+	drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
 end
 
 sdl.quit()
