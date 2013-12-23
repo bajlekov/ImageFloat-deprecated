@@ -79,6 +79,7 @@ print(combined(3,6))
 --]=]
 
 ---[[
+
 -- test whether function calling and temporaries adds overhead!
 local ffi = require("ffi")
 local size = 1024000
@@ -105,7 +106,7 @@ for n = 1, 1000 do
 		dataOut[i] = dataInA[i] * dataTemp[i]
 	end
 end
-print(os.clock()-t)
+print(os.clock()-t, "chained loops")
 
 -- no penalty for function calls or storage in temporaries before assignment to buffer
 
@@ -119,7 +120,7 @@ for n = 1, 1000 do
 		dataOut[i] = dataInA[i] * dataTemp[i]
 	end
 end
-print(os.clock()-t)
+print(os.clock()-t, "eliminated loop")
 
 --combined direct temp: using local temporaries reduces load significantly
 jit.flush()
@@ -131,7 +132,7 @@ for n = 1, 1000 do
 		dataOut[i] = dataInA[i] * t
 	end
 end
-print(os.clock()-t)
+print(os.clock()-t, "local temporary")
 
 --combined func temps: same performance
 jit.flush()
@@ -146,7 +147,7 @@ for n = 1, 1000 do
 		dataOut[i] = o2_1
 	end
 end
-print(os.clock()-t)
+print(os.clock()-t, "generic function with objects")
 
 --ultimate func temps: same performance
 jit.flush()
@@ -166,7 +167,7 @@ do
 		end
 	end
 end
-print(os.clock()-t)
+print(os.clock()-t, "generic function with tables :)") -- the magic of tracing compilers, a lisp-like structure might work
 
 -- ultimate compiled func temp
 jit.flush()
@@ -191,6 +192,6 @@ for n = 1, 1000 do
 		dataOut[i] = c(dataInA[i], dataInB[i])
 	end
 end
-print(os.clock()-t)
+print(os.clock()-t, "compiled chunk")
 
 --]]
