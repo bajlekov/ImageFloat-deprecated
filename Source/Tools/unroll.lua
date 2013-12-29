@@ -37,7 +37,7 @@ end
 -- extend metatable with newindex
 local unrollMT = {}
 function unrollMT.__index(self, k)
-	if k>1024 then
+	if k>4096 then
 		return function(fun, ...)
 			for i = 0, k-1 do
 				fun(i, ...)
