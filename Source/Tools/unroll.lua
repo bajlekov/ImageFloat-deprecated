@@ -51,6 +51,70 @@ function unrollMT.__index(self, k)
 end
 setmetatable(unroll, unrollMT)
 
+
+-- add functions for multidimensional unrolling
+unroll.construct1 = function(i1, i2)
+  local funTable = {}
+  table.insert(funTable, funStart)
+  for i = i1, i2 do
+    table.insert(funTable, "fun("..i..", ...) ")
+  end
+  table.insert(funTable, funEnd)
+  return loadstring(table.concat(funTable))()
+end
+
+unroll.construct2 = function(i1, i2, j1, j2)
+  local funTable = {}
+  table.insert(funTable, funStart)
+  for i = i1, i2 do
+    for j = j1, j2 do
+      table.insert(funTable, "fun("..i..","..j..", ...) ")
+    end
+  end
+  table.insert(funTable, funEnd)
+  return loadstring(table.concat(funTable))()
+end
+
+unroll.construct3 = function(i1, i2, j1, j2, k1, k2)
+  local funTable = {}
+  table.insert(funTable, funStart)
+  for i = i1, i2 do
+    for j = j1, j2 do
+      for k = k1, k2 do
+        table.insert(funTable, "fun("..i..","..j..","..k..", ...) ")
+      end
+    end
+  end
+  table.insert(funTable, funEnd)
+  return loadstring(table.concat(funTable))()
+end
+
+unroll.construct4 = function(i1, i2, j1, j2, k1, k2, l1, l2)
+  local funTable = {}
+  table.insert(funTable, funStart)
+  for i = i1, i2 do
+    for j = j1, j2 do
+      for k = k1, k2 do
+        for l = l1, l2 do
+          table.insert(funTable, "fun("..i..","..j..","..k..","..l..", ...) ")
+        end
+      end
+    end
+  end
+  table.insert(funTable, funEnd)
+  return loadstring(table.concat(funTable))()
+end
+
+function unroll.construct(i1, i2, j1, j2, k1, k2, l1, l2)
+  if      l1 and l2 then return unroll.construct4(i1,i2,j1,j2,k1,k2,l1,l2)
+  elseif  k1 and k2 then return unroll.construct3(i1,i2,j1,j2,k1,k2)
+  elseif  j1 and j2 then return unroll.construct2(i1,i2,j1,j2)
+  elseif  i1 and j1 then return unroll.construct1(i1,i2)
+  else
+    error("insufficient parameters")
+  end
+end
+
 --testcase:
 --[[
 unroll[34](

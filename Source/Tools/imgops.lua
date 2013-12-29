@@ -130,39 +130,8 @@ return function(img)
 		return out
 	end
 	
-	local unroll344
-	local unroll44
-	do
-		-- local version of unroll for multiple dimensions
-		local funStart = "return function(fun, ...) "
-		local funEnd = "end"
-		local function construct3(ii, jj, kk)
-			local funTable = {}
-			table.insert(funTable, funStart)
-			for i = 0, ii-1 do
-				for j = 0, jj-1 do
-					for k = 0, kk-1 do
-						table.insert(funTable, "fun("..i..","..j..","..k..", ...) ")
-					end
-				end
-			end
-			table.insert(funTable, funEnd)
-			return loadstring(table.concat(funTable))()
-		end
-		local function construct2(ii, jj)
-			local funTable = {}
-			table.insert(funTable, funStart)
-			for i = 0, ii-1 do
-				for j = 0, jj-1 do
-					table.insert(funTable, "fun("..i..","..j..", ...) ")
-				end
-			end
-			table.insert(funTable, funEnd)
-			return loadstring(table.concat(funTable))()
-		end
-		unroll344 = construct3(3,4,4)
-		unroll44 = construct2(4,4)
-	end
+	local unroll344 = unroll.construct(0,2,0,3,0,3)
+	local unroll44 = unroll.construct(0,3,0,3)
 	 
 	local function scaleUpQuad(c, m, n, x, y, out, buffer)
 		out:set(x*4+m,y*4+n,c, buffer:get(x,y,c))

@@ -79,24 +79,6 @@ function transform.rotFast()
 	progress[inst] = -1
 end
 
-local construct2
-do
-  -- local version of unroll for multiple dimensions
-  local funStart = "return function(fun, ...) "
-  local funEnd = "end"
-  construct2  = function(ii, jj)
-    local funTable = {}
-    table.insert(funTable, funStart)
-    for i = 0, ii-1 do
-      for j = 0, jj-1 do
-        table.insert(funTable, "fun("..i..","..j..", ...) ")
-      end
-    end
-    table.insert(funTable, funEnd)
-    return loadstring(table.concat(funTable))()
-  end
-end
-
 do
   local filt = math.window.cubic
   math.window.cubicSet("BSpline")
@@ -106,7 +88,7 @@ do
   local width = 2
   local sqrt = math.sqrt
   
-  local unrollWW = construct2(2*width, 2*width)
+  local unrollWW = unroll.construct(1-width, width, 1-width, width)
   
   function transform.rotFilt()
   	local s = __global.state
@@ -120,9 +102,6 @@ do
   	local sum, bo
   	
   	local function fi(x, y, c)
-      x = 1 + x - width
-      y = 1 + y - width
-      
       local weight = filt(sqrt((x-xf)^2 + (y-yf)^2)/scale,filtType)
       sum = sum + weight
       bo = bo + (((xr+x)>0 and (yr+y)>0 and (xr+x)<=s.xmax-1 and (yr+y)<=s.ymax-1) and weight*b[1]:getxy(c,xr+x,yr+y) or 0 )
