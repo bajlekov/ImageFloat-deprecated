@@ -15,17 +15,80 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-sdl = require("sdltools")
-dbg = require("dbgtools")
+--jit.opt.start("hotexit=1")
 
-a=1
+do
+	function global(k, v) -- assign new global
+		rawset(_G, k, v or false)
+	end
+	local function newGlobal(t, k, v) -- disable globals
+		error("global assignment not allowed: "..k)
+	end
+	setmetatable(_G, {__newindex=newGlobal})
+end
+
+local sdl = require("Include.sdltools")
+local dbg = require("Tools.dbgtools")
+local unroll = require("Tools.unroll")
+
+local a=128
 local function f(b) return b+1 end
 local function g(b) return b+1 end
 
+jit.flush()
+
+local function test(f, x, y)
+  local b=0
+  tic()
+  for j=1,x do
+  	b=0
+  	for i=1,y do
+  		b=f(b)
+  	end
+  end
+  toc()
+  print(b)
+end
+
+test(f, 100000000, 10)
+
+local function test(f, x, y)
+  local b=0
+  local function g() b = f(b) end
+  
+  tic()
+  for j=1,x do
+    b=0
+    unroll[y](g)
+  end
+  toc()
+  print(b)
+end
+
+test(f, 100000000, 10)
+
+--[[
+local b=0
+tic()
+for j=1,1000000 do
+	b=0
+	b=g(b)
+	b=g(b)
+	b=g(b)
+	b=g(b)
+	b=g(b)
+	b=g(b)
+	b=g(b)
+	b=g(b)
+	b=g(b)
+	b=g(b)
+end
+toc()
+print(b)
 
 local b=0
 tic()
-for j=1,1000000000 do
+for j=1,1000000 do
 	b=0
 	for i=1,a do
 		b=f(b)
@@ -35,10 +98,13 @@ toc()
 print(b)
 
 local b=0
+local function ff(i) b = g(i) end
+
 tic()
-for j=1,1000000000 do
+for j=1,1000000 do
 	b=0
-	b=g(b)
+	unroll[4095](ff)
 end
 toc()
 print(b)
+--]]
