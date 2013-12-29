@@ -34,19 +34,30 @@ return {
 			glsl	= false,
 	},
 	optNode		= {
-			fuseOps	= false,
-			fuseCS	= false,
-			memoize	= false,
-			cacheCS	= false,
+			fuseOps	= false,	-- fuse functional ops together in a single loop
+			fuseCS	= false,	-- fuse CS ops with getters/setters on in/output
+			cacheCS	= false,	-- set cache points containing all CS
 	},
 	optCache	= {
-			disk	= false,
-			tiled	= false,
-			pack	= false,	-- "float16"/"int16"/"int8"
-			compr	= false,	-- enable buffer compression
+			cache	= false,	-- keep intermediate results in ram
+			disk	= false,	-- keep buffers on disk for huge files (set limit)
+			tiled	= false,	-- tiled processing -> whenever possible
+			
+			pack	= false,	-- "float16"/"int16"/"int8"/"32bit RGBE" -> c-code for float<>half conversion!
+			compr	= false,	-- enable buffer compression -> external lib?
 	},
-	
-	fastDraw = false, -- use faster line and text drawing
+	optCalc		= {
+			memoize	= false,	-- tables of 16/18/20/22/24 bits -> out of range still handled correctly
+			linear	= true,		-- linear or step interpolation
+			approx	= false,	-- approximate functions by taylor/remez/polynomial
+	},
+	optDraw		= {
+			fast	= false,	-- use faster line and text drawing
+			hist	= true,		-- histogram update on preview?
+			
+			preview	= 4,		-- preview downsampling
+			filter	= false,	-- change interpolation filter for a faster one during preview (NN or even floor)
+	},
 	
 	--library names
 }

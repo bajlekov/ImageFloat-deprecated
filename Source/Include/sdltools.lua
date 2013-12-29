@@ -24,7 +24,8 @@ if not __global then
 	__global.libPath = "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
 	__global.setup = {}
 	__global.setup.incPath = "./Source/Include/"
-	__global.setup.fastDraw = false
+	__global.setup.optDraw = {}
+	__global.setup.optDraw.fast = false
 end
 
 --check native libs
