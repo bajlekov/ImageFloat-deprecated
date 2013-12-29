@@ -201,7 +201,7 @@ do
 	end
 
 -- use fast line drawing (about 2x faster, another 3x faster due to pixelset instead of pixeladd)
-if __global.setup.fastDraw then
+if __global.setup.optDraw.fast then
 	global("drawLine", drawLine_fast)
 else
 	global("drawLine", drawLine)
