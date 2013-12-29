@@ -22,6 +22,8 @@ local transform = {}
 
 --require("mathtools")
 
+local unroll = require("Tools.unroll")
+
 --prerequisites
 local pi = math.pi
 local cos, sin = math.cos, math.sin
@@ -50,22 +52,26 @@ function transform.rotFast()
 	local inst	= __global.instance
 	local instmax	= __global.instmax
 	
+	local xr, yr, xf, yf
+	
+	local function f(c)
+    local bo =  ((xr>=s.xmax-1 or yr>=s.ymax-1) and 0 or xf*yf*b[1]:getxy(c,xr+1,yr+1)) +
+            ((xr<=0 or yr>=s.ymax-1) and 0 or (1-xf)*yf*b[1]:getxy(c,xr,yr+1)) +
+            ((xr>=s.xmax-1 or yr<=0) and 0 or xf*(1-yf)*b[1]:getxy(c,xr+1,yr)) +
+            ((xr<=0 or yr<=0) and 0 or (1-xf)*(1-yf)*b[1]:getxy(c,xr,yr))
+    b[2]:set(bo, c)
+	end
+	
 	local xm, ym = s.xmax/2-1, s.ymax/2-1
 	for x = inst, s.xmax-1, instmax do
 		if progress[instmax]==-1 then break end
 		for y = 0, s.ymax-1 do
 			s:up(x, y)
-			for c = 0, s.zmax-1 do
-				local xr, yr = rot(x, y, p[1], xm, ym)
-				local xf, yf = xr%1, yr%1
-				xr, yr = floor(xr), floor(yr)
-				if xr>=0 and xr<=s.xmax-1 and yr>=0 and yr<=s.ymax-1 then
-					local bo = 	((xr>=s.xmax-1 or yr>=s.ymax-1) and 0 or xf*yf*b[1]:getxy(c,xr+1,yr+1)) +
-										((xr<=0 or yr>=s.ymax-1) and 0 or (1-xf)*yf*b[1]:getxy(c,xr,yr+1)) +
-										((xr>=s.xmax-1 or yr<=0) and 0 or xf*(1-yf)*b[1]:getxy(c,xr+1,yr)) +
-										((xr<=0 or yr<=0) and 0 or (1-xf)*(1-yf)*b[1]:getxy(c,xr,yr))
-					b[2]:set(bo, c)
-				end
+			xr, yr = rot(x, y, p[1], xm, ym)
+      xf, yf = xr%1, yr%1
+      xr, yr = floor(xr), floor(yr)
+      if xr>=0 and xr<=s.xmax-1 and yr>=0 and yr<=s.ymax-1 then
+        unroll[s.zmax](f)
 			end
 		end
 		progress[inst] = x - inst
@@ -73,46 +79,79 @@ function transform.rotFast()
 	progress[inst] = -1
 end
 
-function transform.rotFilt()
-	local s = __global.state
-	local b = __global.buf
-	local p = __global.params
-	local progress	= __global.progress
-	local inst	= __global.instance
-	local instmax	= __global.instmax
+local construct2
+do
+  -- local version of unroll for multiple dimensions
+  local funStart = "return function(fun, ...) "
+  local funEnd = "end"
+  construct2  = function(ii, jj)
+    local funTable = {}
+    table.insert(funTable, funStart)
+    for i = 0, ii-1 do
+      for j = 0, jj-1 do
+        table.insert(funTable, "fun("..i..","..j..", ...) ")
+      end
+    end
+    table.insert(funTable, funEnd)
+    return loadstring(table.concat(funTable))()
+  end
+end
 
-	local filt = math.window.cubic
-	math.window.cubicSet("BSpline")
-	--math.window.blackmanSet("blackmanHarris4")
-	local filtType = .5
-	local scale = 1
-	local width = 2
-	local xm, ym = s.xmax/2, s.ymax/2
-	for x = inst, s.xmax-1, instmax do
-		if progress[instmax]==-1 then break end
-		for y = 0, s.ymax-1 do
-			s:up(x, y)
-			for c = 0, s.zmax-1 do
-				local xr, yr = rot(x, y, p[1], xm, ym)
-				local xf, yf = xr%1, yr%1
-				xr, yr = floor(xr), floor(yr)
-				if xr>=0 and xr<=s.xmax-1 and yr>=0 and yr<=s.ymax-1 then
-					local bo = 0
-					local sum = 0
-						for x=1-width, width do
-							for y=1-width, width do
-								local weight = filt(math.sqrt((x-xf)^2 + (y-yf)^2)/scale,filtType)
-								sum = sum + weight
-								bo = bo + (((xr+x)>0 and (yr+y)>0 and (xr+x)<=s.xmax-1 and (yr+y)<=s.ymax-1) and weight*b[1]:getxy(c,xr+x,yr+y) or 0 )
-							end
-						end
-					b[2]:set(bo/sum, c)
-				end
-			end
-		end
-		progress[inst] = x - inst
-	end
-	progress[inst] = -1
+do
+  local filt = math.window.cubic
+  math.window.cubicSet("BSpline")
+  --math.window.blackmanSet("blackmanHarris4")
+  local filtType = .5
+  local scale = 1
+  local width = 2
+  local sqrt = math.sqrt
+  
+  local unrollWW = construct2(2*width, 2*width)
+  
+  function transform.rotFilt()
+  	local s = __global.state
+  	local b = __global.buf
+  	local p = __global.params
+  	local progress	= __global.progress
+  	local inst	= __global.instance
+  	local instmax	= __global.instmax
+  	
+  	local xr, yr, xf, yf
+  	local sum, bo
+  	
+  	local function fi(x, y, c)
+      x = 1 + x - width
+      y = 1 + y - width
+      
+      local weight = filt(sqrt((x-xf)^2 + (y-yf)^2)/scale,filtType)
+      sum = sum + weight
+      bo = bo + (((xr+x)>0 and (yr+y)>0 and (xr+x)<=s.xmax-1 and (yr+y)<=s.ymax-1) and weight*b[1]:getxy(c,xr+x,yr+y) or 0 )
+  	end
+  	
+  	local function f(c)
+      bo = 0
+      sum = 0
+        unrollWW(fi, c)
+      b[2]:set(bo/sum, c)
+  	end
+  	
+  	local xm, ym = s.xmax/2, s.ymax/2
+  	for x = inst, s.xmax-1, instmax do
+  		if progress[instmax]==-1 then break end
+  		for y = 0, s.ymax-1 do
+  			s:up(x, y)
+  			xr, yr = rot(x, y, p[1], xm, ym)
+        xf, yf = xr%1, yr%1
+        xr, yr = floor(xr), floor(yr)
+        if xr>=0 and xr<=s.xmax-1 and yr>=0 and yr<=s.ymax-1 then
+          -- performance regression when unrolling function with inner loops
+  			  unroll[s.zmax](f)
+  			end
+  		end
+  		progress[inst] = x - inst
+  	end
+  	progress[inst] = -1
+  end
 end
 
 -- rotates input and splats on output, only way to use sample-based angles
