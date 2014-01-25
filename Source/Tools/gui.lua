@@ -38,10 +38,16 @@ sdl.init()
 sdl.screen.set(1400, 700)
 sdl.screen.caption("GUI test")
 
+-- params for interface
+local elemHeight = 12
+sdl.font.type("Resources/Fonts/UbuntuR.ttf", 10)
+sdl.font.color(0,128,0)
+
+
 local frameFun = {}
 
 local function new(table, h, w)
-	return setmetatable(table or {direction = "H", x = 0, y = 0, h = h or 700, w = w or 1400 }, {__index=frameFun})
+	return setmetatable(table or {direction = "H", x = 0, y = 0, h = h or sdl.screen.height, w = w or sdl.screen.width }, {__index=frameFun})
 end
 
 function frameFun:split(name, size, unit)
@@ -63,6 +69,7 @@ function frameFun:getData()
 		return false
 	end
 end
+
 function frameFun:getFrame(x, y)
 	if #self>0 then
 		for k, v in ipairs(self) do
@@ -71,18 +78,51 @@ function frameFun:getFrame(x, y)
 			end
 		end
 	else
-		return self
+		return self, x-self.x, y-self.y
 	end
 end
 function frameFun:getElem(x, y)
-	local fr = self:getFrame()
-	
+	local fr = self:getFrame(x, y)
 	if fr.elements and #(fr.elements)>0 then
-		-- get element position -> needs size, tiling etc...
+		local n = #(fr.elements)
+		
+		y = y + (fr.scroll or 0)
+		
+		local x = x-fr.x-2 -- 0
+		local y = y-fr.y-2 -- k*elemHeight
+		local k = math.floor(y/elemHeight)
+		y = y - k*elemHeight
+		if k==0 or k>n or y>=elemHeight-2 or
+			x<0 or x>fr.w-5 or
+			fr.elements[k].visible==false then return nil end
+		return fr.elements[k], x, y
 	end
 end
+
 function frameFun:vertical() self.direction="V" return self end
 function frameFun:horizontal() self.direction="H" return self end
+-- tabbed
+
+local function drawElem(elem)
+	local x = elem.frame.x
+	local y = elem.frame.y
+	local w = elem.frame.w
+	local h = elem.frame.h
+	local k = elem.num
+	
+	local yp = k*elemHeight-(elem.frame.scroll or 0)
+	
+	if yp>elemHeight-3 and yp+elemHeight<h-2 then
+		sdl.draw.color(224, 224, 224)
+		sdl.draw.fill(x+2, y+2+yp, w-4, elemHeight-2)
+		sdl.font.color(32,32,32)
+		sdl.draw.text(x+4, y+yp, elem.name)
+		elem.visible = true
+	else
+		elem.visible = false
+	end
+end
+
 function frameFun:addElem(name, eltype, value)
 	value = value or {}
 	eltype = eltype or "float"
@@ -93,7 +133,9 @@ function frameFun:addElem(name, eltype, value)
 	local data = self:getData()
 	if data then
 		-- TODO: parse values
-		e[n+1] = {name = name, type=eltype, value = value}
+		e[n+1] = {name = name, type=eltype, value = value, draw=drawElem, frame=self, num=n+1}
+		-- add local draw function
+		
 		data[name] = e[n+1]
 	else
 		error("no data storage set up for elements")
@@ -115,11 +157,12 @@ table.onKey = nil -- key press					fun(input)
 table.onChange = nil -- widget data change		fun(data)
 --]]
 
+
 --> parse structure to defined sizes
 local function parseFrames(table)
 	-- initial sizes:
-	local w = table.w or 1400
-	local h = table.h or 700
+	local w = table.w or sdl.screen.width
+	local h = table.h or sdl.screen.height
 	local x = table.x or 0
 	local y = table.y or 0
 	
@@ -133,7 +176,7 @@ local function parseFrames(table)
 			width[k] = "fill"
 			fill = fill+1
 		elseif v.unit=="px" then width[k] = v.size
-		elseif v.unit=="ln" then width[k] = v.size*12
+		elseif v.unit=="ln" then width[k] = v.size*elemHeight
 		elseif v.unit=="%" then width[k] = v.size/100*w
 		else error("wrong specification") end
 		
@@ -152,6 +195,7 @@ local function parseFrames(table)
 			v.x, v.y = x, y
 			x = x + width[k]
 		end
+		v.scroll = 0
 		if #v>0 then parseFrames(v) end -- recurse over sub-frames
 		v.parent = table -- convenience parent link
 	end
@@ -174,7 +218,7 @@ end
 --test
 -- setup structure
 local gui = new():vertical()
-	local top = gui:split(nil, 20)
+	local top = gui:split(nil, 30)
 		local menu = top:split("Menu", 300)
 		local toolbox = top:split("Toolbox")
 	local main = gui:split()
@@ -184,7 +228,7 @@ local gui = new():vertical()
 		local right = main:split()
 			local temp = right:split()
 				local view = temp:split("View")
-				local output = temp:split("Output", 200)
+				local output = temp:split("Output", 200) -- collapsible!
 			local browser = right:split("Browser", 200)
 	local status = gui:split("Status", 20)
 
@@ -219,7 +263,6 @@ print(data2.Test10.value[2])
 
 -- draw ui
 local function rnd() return 0.5+math.random()*0.5 end
-local fl = math.floor
 math.randomseed(os.time())
 
 local level = 0
@@ -230,44 +273,48 @@ local function drawElems(table, num)
 	- have element list offset and additional on-screen offset (or always align top element?)
 	- overscroll (elastic)
 --]]
-	local x = table.x
-	local y = table.y
-	local w = table.w
 	local e = table.elements
 	local n = #e
 	if num then
-		if num<=n then
-			local k, v = num, e[num]
-			sdl.draw.box(x+2, y+2+k*10, x+w-4, y+10+10*k)
-			sdl.draw.text(x+3, y+k*10, v.name)
+		if num<=n and num>0 then -- draw specific element if exists
+			e[num]:draw()
 		else
 			return
 		end
-	else
+	else -- draw all elements
 		for k, v in ipairs(e) do
-			sdl.draw.box(x+2, y+2+k*10, x+w-4, y+10+10*k)
-			sdl.draw.text(x+3, y+k*10, v.name)
+			v:draw()
 		end
 	end
 end
 local function drawFrames(table)
 	if #table>0 then
 		for k, v in ipairs(table) do
-			sdl.draw.fill(255*rnd(), 255*rnd(), 255*rnd(), fl(v.x), fl(v.y), fl(v.w), fl(v.h))
+			local t = rnd()
+			sdl.draw.color(t*128, t*128, t*128)
+			sdl.draw.fill(v.x, v.y, v.w, v.h)
+			
+			sdl.draw.color(255, 255, 255)
+			sdl.draw.line(v.x+2, v.y+elemHeight-1, v.w-5, 0)
+			sdl.draw.line(v.x+2, v.y+v.h-3, v.w-5, 0)
+			sdl.font.color(255,255,255)
 			sdl.draw.text(v.x+10, v.y, v.name)
 			if #v>0 then drawFrames(v)
 			elseif v.elements then drawElems(v) end
 		end
 	else
-		sdl.draw.fill(255*rnd(), 255*rnd(), 255*rnd(), fl(table.x), fl(table.y), fl(table.w), fl(table.h))
+		sdl.draw.color(128, 128, 128)
+		sdl.draw.fill(table.x, table.y, table.w, table.h)
+		
+		sdl.draw.color(255, 255, 255)
+		sdl.draw.line(table.x+2, table.y+elemHeight-1, table.w-5, 0)
+		sdl.draw.line(table.x+2, table.y+table.h-3, table.w-5, 0)
+		sdl.font.color(255,255,255)
 		sdl.draw.text(table.x+10, table.y, table.name)
 		if #table>0 then drawFrames(table)
 		elseif table.elements then drawElems(table) end
 	end
 end
-
-sdl.font.type("Resources/Fonts/UbuntuR.ttf", 10)
-sdl.font.color(0,128,0)
 
 local t = sdl.time()
 for i = 1, 1000 do
@@ -281,9 +328,28 @@ drawFrames(gui)
 end
 print(sdl.time()-t)
 
+sdl.input.fps(60)
 while not sdl.input.quit do
-	sdl.update()
-	drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
+	sdl.update(true)
+	--drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
+	if sdl.input.click[1] then
+		print(sdl.input.x, sdl.input.y)
+	end
+	if sdl.input.button[1] then
+		local t, x, y = gui:getElem(sdl.input.x, sdl.input.y)
+		if t then print(t.name, x, y) end
+	end
+	if sdl.input.mod.up or sdl.input.click[4] then
+		local f = gui:getFrame(sdl.input.x, sdl.input.y)
+		f.scroll = f.scroll - 5
+		drawFrames(f)
+	end
+	if sdl.input.mod.down or sdl.input.click[5] then
+		local f = gui:getFrame(sdl.input.x, sdl.input.y)
+		f.scroll = f.scroll + 5
+		drawFrames(f)
+	end
+	
 end
 
 sdl.quit()
