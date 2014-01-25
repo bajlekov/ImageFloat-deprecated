@@ -11,19 +11,19 @@ return {
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
 	imageLoadName = "img.ppm",
-	imageLoadPath = "../",
+	imageLoadPath = "./",
 	
 	imageSaveType = "PPM", -- PPM / IM / FPM
 	imageSaveParams = "",
 	imageSaveName = "out.ppm",
-	imageSavePath = "../",
+	imageSavePath = "./",
 	
 	--Paths
-	threadPath = "./Threads/threadFunc.lua",
+	threadPath = "./Source/Threads/threadFunc.lua",
 	libPath = nil,
-	imgPath = "../Resources/Images/",
-	ttfPath = "../Resources/Fonts/",
-	incPath = "./Include/",
+	imgPath = "./Resources/Images/",
+	ttfPath = "./Resources/Fonts/",
+	incPath = "./Source/Include/",
 	
 	--optimizations
 	optRecompile = false,
