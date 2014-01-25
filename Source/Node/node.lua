@@ -295,7 +295,7 @@ node.backgrounds.node = sdl.loadImage(__global.imgPath.."node_t.png")
 
 local helpText = {
 	"ImageFloat",
-	"Copyright (C) 2011-2012 G.Bajlekov",
+	"Copyright (C) 2011-2014 G.Bajlekov",
 	"This program comes WITHOUT",
 	"ANY WARRANTY. This is free",
 	"software, and you are welcome to",

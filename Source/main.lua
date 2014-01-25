@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
 print([[
-ImageFloat  Copyright (C) 2011-2012 G.Bajlekov
+ImageFloat  Copyright (C) 2011-2014 G.Bajlekov
 This program comes WITHOUT ANY WARRANTY.
 This is free software, and you are welcome to redistribute it under the conditions of the GNU General Public License version 3.
 ]])
