@@ -297,6 +297,10 @@ local function minBuf(k, i, j, a, b, o)
 	local b = b:get(i,j,k)
 	o:set(i,j,k, a<=b and a or b )
 end
+local function minElem(k, i, j, a, m)
+	local a = a:get(i,j,k)
+	m[1] = m[1]<a and m[1] or a
+end
 function buffer.min(a, b)
 	if type(b)=="number" then
 		local o = a:new()
@@ -319,6 +323,16 @@ function buffer.min(a, b)
 			end
 			return o
 		end
+	elseif b==nil then
+		local m = {math.huge}
+		
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				unroll[a.z](minElem, i, j, a, m)
+			end
+		end
+		
+		return m[1]
 	else
 		print(debug.traceback("ERROR: Invalid type."))
 		return nil
@@ -333,6 +347,10 @@ local function maxBuf(k, i, j, a, b, o)
 	local a = a:get(i,j,k)
 	local b = b:get(i,j,k)
 	o:set(i,j,k, a>b and a or b )
+end
+local function maxElem(k, i, j, a, m)
+	local a = a:get(i,j,k)
+	m[1] = m[1]>a and m[1] or a
 end
 function buffer.max(a, b)
 	if type(b)=="number" then
@@ -356,6 +374,16 @@ function buffer.max(a, b)
 			end
 			return o
 		end
+	elseif b==nil then
+		local m = {-math.huge}
+		
+		for i = 0, a.x-1 do
+			for j = 0, a.y-1 do
+				unroll[a.z](maxElem, i, j, a, m)
+			end
+		end
+		
+		return m[1]
 	else
 		print(debug.traceback("ERROR: Invalid type."))
 		return nil
