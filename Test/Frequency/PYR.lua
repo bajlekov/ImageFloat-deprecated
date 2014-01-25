@@ -17,14 +17,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- General implementation of pyramids
 
---[[
-
-Gn -> smooth -> downsample -> Gn+1
-Ln = Gn - (Gn+1 -> upsample -> smooth)
-
---]]
 local ffi = require("ffi")
 local unroll = require("Tools.unroll")
+local pyr = {}
 
 local gb
 local function gBuf(i)
@@ -50,6 +45,7 @@ end
 -- construct kernel
 local a = 0.4
 local k = ffi.new("double[5]", 1/4-a/2, 1/4, a, 1/4, 1/4-a/2)
+pyr.kernel = k
 
 local function convXG(z,x,y, h) -- gather 
 	local xi = x*2
@@ -86,23 +82,18 @@ local function convYS(z,x,y, lo) -- scatter
 	s(x, yi+2, z, t*k[4])
 end
 
--- get lower level
-local function pyrDown(hi)
-	local lo = hi:new(math.ceil(hi.x/2), math.ceil(hi.y/2), hi.z)
+function pyr.reduce(hi)
+	local lo = hi:new(math.floor(hi.x/2)+1, math.floor(hi.y/2)+1, hi.z)
 	local h = hi:new(lo.x, hi.y, hi.z)
-	
 	gBuf(hi)
 	for x = 1, h.x-1 do
 		for y = 0, h.y-1 do
 			unroll[h.z](convXG, x, y, h)
 		end
 	end
-	
-	-- single iteration for first line due to unrepresentative branch for conditionals
 	for y = 0, h.y-1 do
 		unroll[h.z](convXG, 0, y, h)
 	end
-
 	gBuf(h)
 	for x = 0, lo.x-1 do
 		for y = 0, lo.y-1 do
@@ -112,10 +103,9 @@ local function pyrDown(hi)
 	return lo
 end
 
-local function pyrUp(lo)
+function pyr.expand(lo) -- check whether scatter is effective?
 	local hi = lo:new(lo.x*2, lo.y*2, lo.z)
 	local h = lo:new(hi.x, lo.y, lo.z)
-	-- scattering convolution! check if gathering is faster (more reads, less writes)
 	gBuf(h)
 	for x = 1, lo.x-1 do
 		for y = 0, lo.y-1 do
@@ -134,16 +124,16 @@ local function pyrUp(lo)
 	return hi
 end
 
-
 local function subFun(z, x, y, a, b, c)
 	c:a(x,y,z, a:i(x, y, z) - b:i(x, y, z))
 end
 local function addFun(z, x, y, a, b, c)
 	c:a(x,y,z, a:i(x, y, z) + b:i(x, y, z))
 end
-local function pyrDiff(hi)
-	local lo = pyrDown(hi)
-	local rec = pyrUp(lo)
+
+function pyr.down(hi)
+	local lo = pyr.reduce(hi) -- possibly combine steps?
+	local rec = pyr.expand(lo)
 	local diff = hi:new()
 	for x = 0, hi.x-1 do
 		for y = 0, hi.y-1 do
@@ -153,8 +143,8 @@ local function pyrDiff(hi)
 	return lo, diff
 end
 
-local function pyrMerge(lo, diff)
-	local rec = pyrUp(lo)
+function pyr.up(lo, diff)
+	local rec = pyr.expand(lo)
 	local hi = diff:new()
 	for x = 0, hi.x-1 do
 		for y = 0, hi.y-1 do
@@ -164,53 +154,25 @@ local function pyrMerge(lo, diff)
 	return hi
 end
 
-
-
----[[ --test
-math.randomseed(os.time())
-require("global")
-
-local sdl = require("Include.sdl")
-local ppm = require("Tools.ppmtools")
-local img = require("Tools.imgtools")
-
-
-local i = ppm.toBuffer(ppm.readIM("~/banded.jpg"))
-
-pyrDown(i)
-print(i.x, i.y, i.z)
---i = pyrDown(i)
---i = pyrDown(i)
-
-local G = {}
-local L = {}
-G[0] = i
-sdl.tic()
-for i = 1, 10 do
-	G[i], L[i-1] = pyrDiff(G[i-1])
-end
-sdl.toc()
-G[10] = G[10]:new()
-L[9] = (L[9]-L[9]:min())*3
-sdl.tic()
-for i = 10, 1, -1 do
-	G[i-1] = pyrMerge(G[i], L[i-1])
-end
-sdl.toc()
-i = G[2]
-
-sdl.screen.set(i.x, i.y)
-
-local function imshow(i)
-	i:toSurface(sdl.screen.surf)
-	sdl.update()
-
-	while not sdl.input.key.any do
-		sdl.input.update()
+function pyr.construct(i, lvl)
+	lvl = lvl or 5
+	local G, L= {}, {}
+	G[0] = i:copy()
+	for i = 1, lvl do
+		G[i], L[i-1] = pyr.down(G[i-1])
 	end
+	L[lvl] = G[lvl]:copy()
+	return L, G
 end
 
-print(i.x, i.y, i.z)
+function pyr.collapse(L, top)
+	top = top or 1
+	local lvl = #L
+	local G = L[lvl]
+	for i = lvl, top, -1 do
+		G = pyr.up(G, L[i-1])
+	end
+	return G
+end
 
-imshow(i)
---]]
+return pyr
