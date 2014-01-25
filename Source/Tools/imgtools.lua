@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+-- TODO: structure of buffer objects
+
 local ffi = require "ffi"
 local optim = require "Tools.optimtools"
 local ISPC = __global.setup.optCompile.ispc
@@ -131,6 +133,7 @@ local function subBuf(k, i, j, a, b, o)
 	o:set(i,j,k, a:get(i,j,k) - b:get(i,j,k) )
 end
 function buffer.meta.__sub(a, b)
+	if type(a)=="number" then a,b = b,a end
 	if type(b)=="number" then
 		local o = a:new()
 		for i = 0, a.x-1 do
@@ -162,10 +165,10 @@ function buffer.meta.__sub(a, b)
 	end
 end
 
-local function powNum(k, i, j, a, b, o)
+local function mulNum(k, i, j, a, b, o)
 	o:set(i,j,k, a:get(i,j,k) * b)
 end
-local function powBuf(k, i, j, a, b, o)
+local function mulBuf(k, i, j, a, b, o)
 	o:set(i,j,k, a:get(i,j,k) * b:get(i,j,k) )
 end
 function buffer.meta.__mul(a, b)
