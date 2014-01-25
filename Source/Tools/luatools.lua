@@ -150,8 +150,8 @@ os.execute("gcc -O3 -shared -fomit-frame-pointer -fPIC -o lib/Linux_x64/libthrea
 os.execute("gcc -m32 -O3 -shared -fomit-frame-pointer -o lib/Linux_x32/libthread.so thread.c -L. -lSDL")
 os.execute("i586-mingw32msvc-gcc -O3 -shared -fomit-frame-pointer -o lib/Windows_x32/thread.dll thread.c -L. -llua51 -lsdl")
 --]]
-os.execute("gcc -O3 -shared -fomit-frame-pointer -fPIC -o ../Libraries/Linux_x64/libthread.so ./Threads/thread.c -L. -lSDL")
-print("!!!!!!!!! COMPILE THREAD CALLER FOR ALL PLATFORMS !!!!!!!!")
+--os.execute("gcc -O3 -shared -fomit-frame-pointer -fPIC -o ../Libraries/Linux_x64/libthread.so ./Threads/thread.c -L. -lSDL")
+--print("!!!!!!!!! COMPILE THREAD CALLER FOR ALL PLATFORMS !!!!!!!!")
 -- in a pinch, create independently running threads, and use flags to signal start/end of processing
 
 if type(__sdl)=="table" then
@@ -179,7 +179,7 @@ if type(__sdl)=="table" then
 		function l.threadArgOut(n) th.arg_out = n end	-- not used
 		
 		function l.threadInit(n, file)	--number of threads, file to load in new instances
-			l.numCores = n
+			l.numCores = n -- #number
 			l.threadCounter = ffi.new("int[?]", n)
 			for i = 0, n-1 do l.threadCounter[i]=i end
 			print("using "..l.numCores.." threads...")

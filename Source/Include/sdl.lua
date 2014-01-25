@@ -16,6 +16,9 @@
 ]]
 
 -- collection of SDL-dependent utilities
+-- make available a C/ISPC library containing same functions with light lua wrappers
+	-- prevents passing color and rect structs by value (not compiled)
+	-- allows for compiled custom renderers using SIMD instructions
 
 local ffi = require("ffi")
 --local compile = require("Tools.compile")
@@ -32,7 +35,6 @@ ffi.cdef(io.open("./Source/Include/SDL.h", "r"):read('*a')) io.close()
 
 local sdl = {}
 
---sdl.color = ffi.typeof("SDL_Color") -- r, g, b, a
 sdl.rect = ffi.typeof("SDL_Rect") -- x, y, w, h
 
 function sdl.init()
@@ -106,6 +108,7 @@ function sdl.surf.get(x, y, w, h)
 	return buf
 end
 function sdl.surf.put(buf, x, y, w, h)
+	-- optional offset of origin buffer
 	sdl.surf.copy(buf, sdl.surf.current, nil, sdl.rect(x or 0,y or 0,w or 0,h or 0))
 end
 function sdl.surf.pixbuf(buf)
@@ -156,6 +159,7 @@ sdl.font = {f=nil, t=nil, s=12, c=255+255*256+255*256*256}
 do
 	local fonts = {}
 	local function font(name, size)
+		-- discriminate between file name and font name!!
 		print("register new font: "..name.."["..size.."]")
 		local t = _TTF.TTF_OpenFont(name, size)
 		return ffi.gc(t, _TTF.TTF_CloseFont)
@@ -425,6 +429,7 @@ do
 		self.old_x = self.x
 		self.old_y = self.y
 		self.key = {sym = 0, num = nil}
+		self.key.any = false	
 		while _SDL.SDL_PollEvent(event)==1 do
 			if event.type==_SDL.SDL_MOUSEMOTION then
 				self.dx = event.motion.x - self.old_x

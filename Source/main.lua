@@ -77,7 +77,6 @@ collectgarbage("setpause", 100) -- force quicker garbage collection to prevent h
 math.randomseed(os.time())
 
 -- TODO internal console for debugging etc.
--- TODO	currently not working with luaJIt 2.1 alpha
 
 local sdl = require("Include.sdltools")
 local lua = require("Tools.luatools")
@@ -89,6 +88,7 @@ local img = require("Tools.imgtools")
 global("__dbg", dbg)
 global("__img", img)
 
+-- check for files before opening or while opening! use error checking for os operations!
 --local function file_exists(name)
 --   local f=io.open(name,"r")
 --   if f~=nil then io.close(f) return true else return false end
@@ -113,6 +113,7 @@ mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
 -- TODO: move to fonttools, local font reference
 global("font", {})
 font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
+print(__global.ttfPath.."UbuntuR.ttf")
 font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
 local font = font
 
@@ -157,7 +158,7 @@ local readFun = readFunTable[__global.setup.imageLoadType]
 
 local imageTemp = ppm.toBuffer(readFun(__global.loadFile, __global.setup.imageLoadParams))
 local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
-math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
+	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
 local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
 sdl.setCaption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
@@ -178,7 +179,6 @@ local surfS = img.toSurface(img.scaleUpQuad(bufS:new()))
 local bufL = bufO
 local bufoutL = bufL:new()
 local surfL = img.toSurface(bufL:new())
-
 
 --toggles buffers between cropped and scaled
 local bufZoom
@@ -230,7 +230,7 @@ local calcUpdate
 local hist = require("Tools.histogram")
 
 local loopTime = sdl.ticks()
-function funProcess()	
+function funProcess()
 	toc("Overhead")					-- TODO: minimize overhead outside of coroutine (between resets)
 	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 			-- initialise input node, move to other location!
@@ -239,16 +239,16 @@ function funProcess()
 	-- TODO: move outside of processing loop! merge with node network evaluation
 	local outNode for k, v in ipairs(node) do if v.procFlags.output then outNode=k end end
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
-	
+
 	-- FIXME: do this only if no nodes are connected => skip the rest of processing
 	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
-	
+
 	for k, v in ipairs(node.execOrder) do
 		node[v]:processRun(k)	-- run processes
 	end
-	
+
 	-- TODO: optimize histogram and pasting to surface!!
-	
+
 	-- put output buffer to screen buffer
 	bufout = node[outNode].bufOut
 	if __global.preview then
@@ -260,14 +260,14 @@ function funProcess()
 		img.toSurfaceQuad(bufoutS, surfS)
 		toc("put to surface")
 	end
-	
+
 	-- calculate histograms
 	hist.calculate(bufout)
-	
+
 	-- loop timer
 	io.write("Loop total: "..(sdl.ticks()-loopTime).."ms\n")
 	loopTime = sdl.ticks()
-	
+
 	tic()
 	coroutine.yield(-1)
 end
@@ -288,22 +288,22 @@ local function imageProcess(flag)
 		end -- if processing is done then start again
 		cp = coProcess() -- go to next step
 	end
-	
+
 	sdl.screenPut(surf, 350, 20)
-	
+
 	-- fps averaging
 	local tt = sdl.ticks()-t
 	t = sdl.ticks()
-	
+
 	if tt<250 then -- filter outliers!
 		fpsAverage = fpsAverage + tt - fpsData[fpsCounter]
-		fpsData[fpsCounter] = tt 
+		fpsData[fpsCounter] = tt
 		fpsCounter = fpsCounter + 1
 		fpsCounter = fpsCounter==fpsSmooth and 0 or fpsCounter
 	else
 		print("*** slow screen refresh ***")
 	end
-	
+
 	sdl.text(math.floor(fpsSmooth/fpsAverage*1000).."FPS", font.normal, 12, 12)
 
 	-- FIXME: weird colors on chroma histogram, check chroma calc
@@ -365,14 +365,14 @@ function node:click()
 						local pp = self[n].conn_i[p].port
 						self:focus(nn)	--focus source node
 						self:noodleDrag(nn, pp) --noodle-drag from source node
-					end
-					lua.threadStop() -- stop processing
-					self:calcLevels()
-					calcUpdate = true
-					bufSet("L")
-					coProcess=coroutine.wrap(funProcess) -- reset coroutine
-					coProcess()
-					self:draw()
+				end
+				lua.threadStop() -- stop processing
+				self:calcLevels()
+				calcUpdate = true
+				bufSet("L")
+				coProcess=coroutine.wrap(funProcess) -- reset coroutine
+				coProcess()
+				self:draw()
 				end
 			elseif t=="connR" then
 				if self[n].conn_o[p]~=nil then --if port exists
@@ -388,10 +388,10 @@ function node:click()
 				end
 			elseif t=="title" then
 				if (not self[n].ui.noClose) and -- prevent closing of non-closable items
-				self.mouse.x>=self[n].ui.x+130 and --delete node
-				self.mouse.x<=self[n].ui.x+146 and
-				self.mouse.y>=self[n].ui.y+2 and
-				self.mouse.y<=self[n].ui.y+18 then
+					self.mouse.x>=self[n].ui.x+130 and --delete node
+					self.mouse.x<=self[n].ui.x+146 and
+					self.mouse.y>=self[n].ui.y+2 and
+					self.mouse.y<=self[n].ui.y+18 then
 					self:remove(n)
 					self:draw()
 					self:calcLevels()
@@ -457,7 +457,7 @@ while true do
 	end
 	if mouse.key.num==122 then--"Z"
 		bufZoom()
-		lua.threadStop() -- stop processing		
+		lua.threadStop() -- stop processing
 		calcUpdate = true
 		bufSet("L")
 		coProcess=coroutine.wrap(funProcess) -- reset coroutine

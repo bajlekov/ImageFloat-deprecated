@@ -17,6 +17,13 @@
 
 print("Thread initialisation...")
 
+__DEBUG = true
+function DBprint(...)
+	if __DEBUG then
+		print(debug.traceback(...))
+	end
+end
+
 -- disable implicit globals
 do
 	function global(k, v) -- assign new global
@@ -63,7 +70,8 @@ if __global.setup.optCompile.ispc then
 	void ispc_GtoL(float* src, float* dst, int size);
 	]]
 end
- 
+
+--FIXME!! no global ops, rewrite with thread calling!
 global("ops", require("Ops.ops")) -- global ops are required to ease calling
 global("__init")
 global("__setup")

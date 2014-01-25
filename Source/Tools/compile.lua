@@ -17,6 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 --functions for compiling various sources
 
+-- specify linker name
+-- specify executable path
+
+-- specify compiler arguments
+-- specify linker arguments
+
 local compile = {}
 local ffi = require("ffi")
 

@@ -455,7 +455,6 @@ typedef union SDL_Event {
 } SDL_Event;
 
 typedef struct _TTF_Font TTF_Font;
-//struct SDL_Thread;
 typedef struct SDL_Thread SDL_Thread;
 
 extern __attribute__ ((visibility("default"))) void TTF_CloseFont(TTF_Font *font);
