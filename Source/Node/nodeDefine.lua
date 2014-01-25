@@ -96,7 +96,7 @@ nodeTable["Rotate"] = function(self)
 
 		if bufsIn[1]:type()==3 or bufsIn[1]:type()==4 then
 			lua.threadSetup({bufsIn[1], bo[0].buf}, {p[1].value[1]})
-			lua.threadRun("ops", "transform", "rotFast")
+			lua.threadRun("ops", "transform", "rotFilt")
 			coroutine.yield(num)
 		else
 			bo[0].buf = bufsIn[1]:copy()
@@ -360,7 +360,9 @@ nodeTable["WhiteBalance"] = function(self)
 		else
 			bo[0].buf = img:newC(1)	-- output
 		end
-
+		
+		-- FIXME: nonlocal functions
+		
 		local T, G, A = p[1].value[1], p[2].value[1], p[3].value[1]
 		local x, y, z = TtoXY(T)
 		local gx, gy = norTtoXY(T)
