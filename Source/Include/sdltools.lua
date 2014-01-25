@@ -19,21 +19,29 @@ local ffi = require("ffi")
 
 -- TODO: move lib loading to separate package!!!
 
+do
+  function global(k, v) -- assign new global
+    rawset(_G, k, v or false)
+  end
+  local function newGlobal(t, k, v) -- disable globals
+    error("global assignment not allowed: "..k)
+  end
+  setmetatable(_G, {__newindex=newGlobal})
+end
+
+
 if not __global then
-	__global = {}
+	global("__global", {})
 	__global.libPath = "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
 	__global.setup = {}
 	__global.setup.incPath = "./Source/Include/"
+	--__global.setup.incPath = "./Include/"
 	__global.setup.optDraw = {}
 	__global.setup.optDraw.fast = false
 end
 
---check native libs
---check user folder with libs
---check supplied libs (errs sometimes)
-
---set local paths!! different between packaged and developer versions!
 local function loadlib(lib)
+	--DBprint("Deprecated, missing!")
 	
 	local path = __global.libPath
 		
@@ -94,17 +102,20 @@ SDL.color = ffi.typeof("SDL_Color") -- r, g, b, a
 SDL.rect = ffi.typeof("SDL_Rect") -- x, y, w, h
 
 function SDL.font(name, size)
+	DBprint("Deprecated!")
 	local t = _TTF.TTF_OpenFont(name, size)
 	return ffi.gc(t, _TTF.TTF_CloseFont) -- regiter for GC
 end
 
 -- initialise SDL, check parameters
 function SDL.init()
+	DBprint("Deprecated!")
 	_SDL.SDL_Init(20)
 	_TTF.TTF_Init()
 	_IMG.IMG_Init(7) -- load JPG, PNG and TIFF support
 end
 function SDL.quit()
+	DBprint("Deprecated!")
 	_SDL.SDL_Quit()
 	_TTF.TTF_Quit()
 	_IMG.IMG_Quit()
@@ -119,6 +130,7 @@ local SDL_NOFRAME	= 0x00000020
 
 -- create new screen of x, y dimensions
 function SDL.setScreen(x, y, b)
+	DBprint("Deprecated!")
 	if b then
 		-- FIXME
 		debug.traceback()
@@ -130,22 +142,16 @@ function SDL.setScreen(x, y, b)
 	return SDL.screen
 end
 
--- set window caption and toolbar caption
-function SDL.setCaption(title, toolbar) _SDL.SDL_WM_SetCaption(title, toolbar) end
--- set window icon
-function SDL.setIcon(file) _SDL.SDL_WM_SetIcon(_IMG.IMG_Load(file), null) end
--- get pixel buffer location -> move to property of SDL?
-function SDL.pixbuf() return ffi.cast("uint8_t*", SDL.screen.pixels) end
+function SDL.setCaption(title, toolbar) DBprint("Deprecated!") _SDL.SDL_WM_SetCaption(title, toolbar) end
+function SDL.setIcon(file) DBprint("Deprecated!") _SDL.SDL_WM_SetIcon(_IMG.IMG_Load(file), null) end
+function SDL.pixbuf() DBprint("Deprecated!") return ffi.cast("uint8_t*", SDL.screen.pixels) end
 
--- refresh full screen
-function SDL.flip() _SDL.SDL_Flip(SDL.screen) end
--- refresh rectangle
-function SDL.flipRect(x, y, w, h) _SDL.SDL_UpdateRect(SDL.screen, x, y, w, h) end
--- destroy surface
-function SDL.destroySurface(surf) _SDL.SDL_FreeSurface(ffi.gc(surf, nil)) end
+function SDL.flip() DBprint("Deprecated!") _SDL.SDL_Flip(SDL.screen) end
+function SDL.flipRect(x, y, w, h) DBprint("Deprecated!") _SDL.SDL_UpdateRect(SDL.screen, x, y, w, h) end
+function SDL.destroySurface(surf) DBprint("Deprecated!") _SDL.SDL_FreeSurface(ffi.gc(surf, nil)) end
 
--- create surface
 function SDL.createSurface(width, height, flags)
+	DBprint("Deprecated!")
 	if flags then
 		-- FIXME
 		debug.traceback()
@@ -157,70 +163,55 @@ function SDL.createSurface(width, height, flags)
 	return ffi.gc(t, _SDL.SDL_FreeSurface) -- register for GC
 end
 
--- create new surface matching screen size
 function SDL.screenSurface()
+	DBprint("Deprecated!")
 	return SDL.createSurface(SDL.screen.w, SDL.screen.h)
-	-- surface is already registered in GC
-	
-	--local t = SDL.createSurface(SDL.screen.w, SDL.screen.h)
-	--return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
 
--- copy portion of buffer to portion of second buffer (check sizes, simplify interface)
-function SDL.blit(buf1, rect1, buf2, rect2) _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) end
+function SDL.blit(buf1, rect1, buf2, rect2) DBprint("Deprecated!") _SDL.SDL_UpperBlit(buf1, rect1, buf2, rect2) end
 
--- copy screen to buffer (whole)
-function SDL.screenCopy(buffer) SDL.blit(SDL.screen, nil, buffer, nil) end
--- paste screen from buffer (whole)
-function SDL.screenPaste(buffer) SDL.blit(buffer, nil, SDL.screen, nil) end
--- put buffer on screen at x,y
+function SDL.screenCopy(buffer) DBprint("Deprecated!") SDL.blit(SDL.screen, nil, buffer, nil) end
+function SDL.screenPaste(buffer) DBprint("Deprecated!") SDL.blit(buffer, nil, SDL.screen, nil) end
 function SDL.screenPut(buffer, x, y)
+	DBprint("Deprecated!")
 	SDL.blit(buffer, nil, SDL.screen, SDL.rect(x, y, 0, 0))
 end
--- get buffer from screen at x,y
 function SDL.screenGet(buffer, x, y, w, h)
+	DBprint("Deprecated!")
 	SDL.blit(SDL.screen, _SDL.rect(x, y, w or buffer.w, h or buffer.h), buffer, nil)
 end
 
--- garbage-collected mutexes
-function SDL.destroyMutex(m) _SDL.SDL_DestroyMutex(ffi.gc(m, nil)) end
+function SDL.destroyMutex(m) DBprint("Deprecated!") _SDL.SDL_DestroyMutex(ffi.gc(m, nil)) end
 function SDL.createMutex()
+	DBprint("Deprecated!")
 	local t = _SDL.SDL_CreateMutex()
 	return ffi.gc(t, _SDL.SDL_DestroyMutex) 
 end
 
--- lock and unlock mutex
 function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
 function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
 
--- garbage-collected thread creation
--- FIXME: currently not all threads are correctly closed, properly manage threads and avoid garbage collection need for threads!
 function SDL.createThread(fun, ptr)
+	DBprint("Deprecated!")
 	-- NYI: unsupported C type conversion at sdltools.lua:198
 	local t = _SDL.SDL_CreateThread(fun, ptr) 
 	return ffi.gc(t, _SDL.SDL_KillThread)
 end
 function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), nil) end
 
-function SDL.input() return require("input")(_SDL) end
--- same for draw library to access sdl!
-
--- time functions
+function SDL.input() return require("Tools.input")(_SDL) end
 function SDL.ticks() return _SDL.SDL_GetTicks() end
 function SDL.wait(x) _SDL.SDL_Delay(x) end
 
 local ttfRenderText
-if __global.setup.fastDraw then
+if __global.setup.optDraw.fast then
 	ttfRenderText = _TTF.TTF_RenderText_Solid
 else
 	ttfRenderText = _TTF.TTF_RenderText_Blended
 end
--- _TTF.TTF_RenderText_Solid
--- _TTF.TTF_RenderText_Shaded
--- _TTF.TTF_RenderText_Blended
 
--- render text and put on screen
 function SDL.text(text, font, x, y, r, g, b, a)
+	DBprint("Deprecated!")
 	local ttf_text = ttfRenderText(font, text, (r or 255)+256*(g or 255)+256*256*(b or 255)+256*256*256*(a or 255)) -- possibly not compiled due to complex struct??
 	SDL.screenPut(ttf_text, x, y)
 	local x, y = ttf_text.w, ttf_text.h
@@ -228,29 +219,22 @@ function SDL.text(text, font, x, y, r, g, b, a)
 	return x, y
 end
 
--- render text and save to buffer
 function SDL.textCreate(text, font, r, g, b, a)
+	DBprint("Deprecated!")
 	local t = ttfRenderText(font, text, (r or 255)+256*(g or 255)+256*256*(b or 255)+256*256*256*(a or 255)) -- possibly not compiled due to complex struct??
 	return ffi.gc(t, _SDL.SDL_FreeSurface)
 end
--- paste rendered text, use screenput directly instead
-function SDL.textPut(textObj, x, y)
-	debug.traceback()
-	error("DEPRECATED FUNCTION SDL.textPut")
-	SDL.screenPut(textObj, x, y)
-end
 
 function SDL.loadImage(file)
+	DBprint("Deprecated!")
 	local li = _IMG.IMG_Load(file)
 	local oi = _SDL.SDL_DisplayFormatAlpha(li)
 	_SDL.SDL_FreeSurface(li)
 	return ffi.gc(oi, _SDL.SDL_FreeSurface)
 end
 
---buffer to new surface
---surface to new buffer
-
 function SDL.icon(file, x, y)
+	DBprint("Deprecated!")
 	local li = _IMG.IMG_Load(file) -- replace with BMP load, not requiring SDL_image??
 	local oi = _SDL.SDL_DisplayFormatAlpha( li )
 	SDL.blit( oi, nil, SDL.screen, SDL.rect(x, y, 0, 0))
@@ -258,15 +242,8 @@ function SDL.icon(file, x, y)
 	_SDL.SDL_FreeSurface(oi)
 end
 
-function SDL.fillRect(buf, rect, col) _SDL.SDL_FillRect(buf, rect, col) end -- better interface with actual coordinates
-function SDL.blankScreen() _SDL.SDL_FillRect(SDL.screen, nil, 0) end
-
---FIXME: deprecated
-function SDL.mapRGBA(surf, r, g, b, a) -- create color in surface format
-	debug.traceback()
-	error("DEPRECATED FUNCTION SDL.mapRGBA")
-	return _SDL.SDL_MapRGBA(surf.format, r, g, b, a)
-end
+function SDL.fillRect(buf, rect, col) DBprint("Deprecated!") _SDL.SDL_FillRect(buf, rect, col) end -- better interface with actual coordinates
+function SDL.blankScreen() DBprint("Deprecated!") _SDL.SDL_FillRect(SDL.screen, nil, 0) end
 
 global("__sdl", SDL) --create global sdl table
 print("SDL loaded")
