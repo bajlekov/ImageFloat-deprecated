@@ -424,7 +424,7 @@ do
 		self.dy=0
 		self.old_x = self.x
 		self.old_y = self.y
-		self.key = {sym = 0, num = nil}	
+		self.key = {sym = 0, num = nil}
 		while _SDL.SDL_PollEvent(event)==1 do
 			if event.type==_SDL.SDL_MOUSEMOTION then
 				self.dx = event.motion.x - self.old_x
@@ -445,6 +445,7 @@ do
 			elseif event.type==_SDL.SDL_KEYDOWN then
 				self.key.sym = event.key.keysym.unicode
 				self.key.num = event.key.keysym.sym
+				self.key.any = true
 			elseif event.type==_SDL.SDL_QUIT then
 				self.quit=true
 			end
