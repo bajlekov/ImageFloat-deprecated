@@ -30,7 +30,7 @@ do
 	setmetatable(_G, {__newindex=newGlobal})
 end
 
-package.path = 	"./?.lua;"..package.path
+--package.path = 	"./?.lua;"..package.path
 
 --[[
 package.path = 	"./?.lua;"..
@@ -49,13 +49,13 @@ local ffi = require("ffi")
 
 global("__global", {})
 __global.setup = require("Setup.IFsetup")
-__global.libPath = __global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
+__global.libPath = __global.setup.libPath or "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
 -- replace the complete sdl lib with just the mutex functions and possibly tick/wait!
 local sdl = require("Include.sdltools")
 
 if __global.setup.optCompile.ispc then
-	__global.ISPC = ffi.load("./Ops/ISPC/ops.so")
+	__global.ISPC = ffi.load("./Source/Ops/ISPC/ops.so")
 	ffi.cdef[[
 	void ispc_pow(float* a, float b, float* o, int size);
 	
