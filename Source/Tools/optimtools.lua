@@ -36,9 +36,8 @@ local optim = {}
 --]]
 
 local ffi = require("ffi")
-local C
 
-local path = "Ops/ISPC/"
+local path = "./Source/Ops/ISPC/"
 local file = "ops"
 
 -- ISPC implementation:
