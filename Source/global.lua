@@ -15,18 +15,30 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local global
+do
+  function global(k, v) -- assign new global
+    rawset(_G, k, v or false)
+  end
+  local function newGlobal(t, k, v) -- disable globals
+    error("global assignment not allowed: "..k)
+  end
+  setmetatable(_G, {__newindex=newGlobal})
+end
+
+local g
 local ffi = require("ffi")
 
-global = {preview = true, error=false, info=true}
-global.setup = require("Setup.IFsetup")
-global.setup.bufferPrecision = global.setup.bufferPrecision or {"float", 4}
+g = {preview = true, error=false, info=true}
+g.setup = require("Setup.IFsetup")
+g.setup.bufferPrecision = g.setup.bufferPrecision or {"float", 4}
 
-global.libPath = global.setup.libPath or "../Libraries/"..ffi.os.."_"..ffi.arch.."/"
-global.imgPath = global.setup.imgPath or "../Resources/Images/"
-global.ttfPath = global.setup.ttfPath or "../Resources/Fonts/"
+g.libPath = g.setup.libPath or "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
+g.imgPath = g.setup.imgPath or "./Resources/Images/"
+g.ttfPath = g.setup.ttfPath or "./Resources/Fonts/"
 
-global.loadFile = global.setup.imageLoadPath..global.setup.imageLoadName
-global.saveFile = global.setup.imageSavePath..global.setup.imageSaveName
+g.loadFile = g.setup.imageLoadPath..g.setup.imageLoadName
+g.saveFile = g.setup.imageSavePath..g.setup.imageSaveName
 
-return global
+global("__global", g)
+
+return g
