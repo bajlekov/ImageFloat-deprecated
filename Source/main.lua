@@ -29,21 +29,22 @@ function DBprint(...)
 end
 
 -- setup paths if not loading bytecode
-package.path = 	"./?.lua;"..package.path
+--package.path = 	"./?.lua;"..package.path
 --require("path")
 
 --[[ Notes on use of -jv:
 -- NYI: unsupported C type conversion:
-	use of nested structs or passing of structs?? (such as sdl.rect and sdl.color)?? is not compiled!
+	use of nested structs or passing of structs?? only when passed by value (such as sdl.rect and sdl.color)?? is not compiled!
+	-> fixed through passing uint32 instead of color, rects are passed by reference
 -- error thrown or hook called during recording:
 	??? cause unknown
 -- NYI: register coalescing too complex
-	simplify referencing??
+	simplify referencing???
 -- Coroutine functions are never compiled!
 
 bytecodes:
 	50: ??
-	51: definition of function inside of hot trace, fix on encounter!!!
+	51: definition of function inside of hot trace, fix immediately on encounter!!!
 	70: ??
 	71: ??
 
@@ -55,22 +56,22 @@ grep "NYI" out.txt | grep -v "coroutine"
 
 --]]
 
-
--- disable implicit globals
-do
-	function global(k, v) -- assign new global
-		rawset(_G, k, v or false)
-	end
-	local function newGlobal(t, k, v) -- disable globals
-		error("global assignment not allowed: "..k)
-	end
-	setmetatable(_G, {__newindex=newGlobal})
-end
+--[[ FUN IDEAS
+	- channel annotation when connecting noodles!
+	- CHALLENGE: function constructor nodes
+	- functional nodes collapsed into single function
+	- eval-once function construction through string of nested calls
+	- or better: new functional descriptors in double array:
+	- delimiters (-1, -2)
+	- functions (1..oo)
+	- fixed number of inputs per function
+	- known order of controls
+	- still better to create regular function and parse that for optimization -> JIT-y compilation instead of branchy code
+--]]
 
 local ffi = require("ffi")
---__global = require("global")
-global("__global", require("global"))
-local __global = __global -- local reference to global table
+local __global = require("global")
+global("__global", __global)
 __global.loadFile = arg and arg[1] or __global.loadFile
 collectgarbage("setpause", 100) -- force quicker garbage collection to prevent heaping up
 math.randomseed(os.time())
