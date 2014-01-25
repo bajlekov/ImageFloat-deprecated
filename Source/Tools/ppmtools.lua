@@ -241,7 +241,11 @@ local function fromBuffer(c, x, y, scale, buffer, header)
 	bc = bc<0 and 0 or bc
 	header.data[(x + buffer.x * y) * 3 + c] = bc
 end
-function ppm.fromBuffer(buffer, depth)
+function ppm.fromBuffer(buffer, depth, name)
+	if type(depth)=="string" and name==nil then
+    name = depth
+    depth = nil
+	end
 	depth = depth or 16
 	local header = ppm.newHeader{
 		name = "",
@@ -258,6 +262,7 @@ function ppm.fromBuffer(buffer, depth)
 			unroll[3](fromBuffer, x, y, scale, buffer, header)
 		end
 	end
+	header.name = name
 	return header
 end
 
