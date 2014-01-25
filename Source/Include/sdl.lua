@@ -208,10 +208,10 @@ end
 -- TODO: check alpha handling
 sdl.draw = {r=255,g=255,b=255,a=255, q="high"}
 function sdl.draw.color(r, g, b, a)
-	sdl.draw.r = r or 0
-	sdl.draw.g = g or 0
-	sdl.draw.b = b or 0
-	sdl.draw.a = a or 255
+	sdl.draw.r = math.floor(r or 0)
+	sdl.draw.g = math.floor(g or 0)
+	sdl.draw.b = math.floor(b or 0)
+	sdl.draw.a = math.floor(a or 255)
 end
 function sdl.draw.quality(q) sdl.draw.q = q end
 function sdl.draw.pGet(x, y)
@@ -279,10 +279,10 @@ function sdl.draw.alpha(x, y, a)
 		_SDL.SDL_FillRect(sdl.surf.current, nil, x*256*256*256)
 	end
 end
-function sdl.draw.fill(r, g, b, x, y, w, h)
-	r = math.floor(r or sdl.draw.r)
-	g = math.floor(g or sdl.draw.g)
-	b = math.floor(b or sdl.draw.b)
+function sdl.draw.fill(x, y, w, h)
+	local r = sdl.draw.r
+	local g = sdl.draw.g
+	local b = sdl.draw.b
 	local a = sdl.draw.a
 	w = w or sdl.surf.current.w
 	h = h or sdl.surf.current.h
@@ -354,12 +354,13 @@ do
 			intery = intery + gradient
 		end
 	end
-	function sdl.draw.line(x1, y1, x2, y2)
+	function sdl.draw.line(x1, y1, w, h)
+		local x2, y2 = x1+w, y1+h
 		local r, g, b, a = sdl.draw.r, sdl.draw.g, sdl.draw.b, sdl.draw.a
 		if x1==x2 then
-			sdl.draw.fill(r,g,b,x1,y1,1,y2-y1+1)
+			sdl.draw.fill(x1,y1,1,y2-y1+1)
 		elseif y1==y2 then
-			sdl.draw.fill(r,g,b,x1,y1,x2-x1+1,1)
+			sdl.draw.fill(x1,y1,x2-x1+1,1)
 		elseif sdl.draw.q=="high" then
 			drawLineHQ(x1, y1, x2, y2, r, g, b, a)
 		else
@@ -367,11 +368,11 @@ do
 		end
 	end
 end
-function sdl.draw.box(x1, y1, x2, y2)
-	sdl.draw.line(x1,y1,x1,y2)
-	sdl.draw.line(x1,y1,x2,y1)
-	sdl.draw.line(x1,y2,x2,y2)
-	sdl.draw.line(x2,y1,x2,y2)
+function sdl.draw.box(x, y, w, h)
+	sdl.draw.line(x,y,0,h)
+	sdl.draw.line(x,y,w,0)
+	sdl.draw.line(x,y+h,w,0)
+	sdl.draw.line(x+w,y,0,h)
 end
 function sdl.draw.clear()
 	_SDL.SDL_FillRect(sdl.surf.current, nil, 0)
@@ -400,7 +401,7 @@ sdl.input.dy 	= 0				-- y-movement
 sdl.input.cx 	= 0				-- x-click LMB
 sdl.input.cy 	= 0				-- y-click LMB
 sdl.input.button	= {}		-- pressed button
-sdl.input.press		= {}		-- clicked button
+sdl.input.click		= {}		-- clicked button
 sdl.input.release 	= {}		-- released button
 sdl.input.quit 		= false		-- closed window
 sdl.input.key 		= {sym = "", num = nil}		--keyboard input
@@ -416,6 +417,7 @@ sdl.input.mod 		= {			-- modifier keys
 	right = false,
 	}
 sdl.input.interrupt = function() return false end --interrupt callback
+function sdl.input.fps(x) sdl.input.refreshDelay = 1000/x end
 
 do
 	local event = ffi.new("SDL_Event")
