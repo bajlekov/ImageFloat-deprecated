@@ -17,36 +17,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- graphic ui toolkit accomodating for the desired interface (nodes, stacks, layout management etc.)
 
---[[
-		frames manager:
-		(frames = manually structured areas containing automatically positioned elements)
-		
-		- sub-frames of a frame are positioned in order, according to size preferences
-		- global properties:
-			- name
-			- size (none or number)
-			- unit ("px", "ln", "%", "cm", "in")
-		- direction of parent (fields are always full-size in one direction)
---]]
 
 package.path = 	"./?.lua;"..package.path
 
 -- use the new SDL bindings
 local sdl = require"Source.Include.sdl"
 sdl.init()
-
 sdl.screen.set(1400, 700)
 sdl.screen.caption("GUI test")
 
 -- params for interface
-local elemHeight = 12
-sdl.font.type("Resources/Fonts/UbuntuR.ttf", 10)
+local elemHeight = 14
+sdl.font.type("Resources/Fonts/UbuntuR.ttf", 12)
 sdl.font.color(0,128,0)
 
 
 local frameFun = {}
-
-local function new(table, h, w)
+local function newGui(table, h, w)
 	return setmetatable(table or {direction = "H", x = 0, y = 0, h = h or sdl.screen.height, w = w or sdl.screen.width }, {__index=frameFun})
 end
 
@@ -55,7 +42,7 @@ function frameFun:split(name, size, unit)
 	name = name or "frame_"..(n+1)
 	size = size or "fill"
 	unit = unit or "px"
-	self[n+1] = new{name = name, size = size, unit = unit, parent = self}
+	self[n+1] = newGui{name = name, size = size, unit = unit, parent = self}
 	self[n+1].direction = self.direction=="H" and "V" or "H"
 	return self[n+1]
 end
@@ -123,6 +110,14 @@ local function drawElem(elem)
 	end
 end
 
+--[[
+	eltype can be:
+		empty
+		text
+		slider
+		toggle
+		fill -> single element with own handler
+--]]
 function frameFun:addElem(name, eltype, value)
 	value = value or {}
 	eltype = eltype or "float"
@@ -132,31 +127,28 @@ function frameFun:addElem(name, eltype, value)
 	
 	local data = self:getData()
 	if data then
-		-- TODO: parse values
-		e[n+1] = {name = name, type=eltype, value = value, draw=drawElem, frame=self, num=n+1}
-		-- add local draw function
-		
+		e[n+1] = {
+			name	= name,
+			type	= eltype,
+			value	= value,
+			draw	= drawElem,
+			event	= {
+				onAction	= nil,
+				onContext	= nil,
+				onHover		= nil,
+				onDrag		= nil,
+				onWheel		= nil,
+				onKey		= nil,
+				onChange	= nil,
+			},
+			frame	= self,
+			num		= n+1,
+		}
 		data[name] = e[n+1]
 	else
 		error("no data storage set up for elements")
 	end
 end
-
-
--- construct table further, move to different process which is not repeated on resize
---[[
-table.elements = {}
-table.data = {}
-
-table.onAction = nil --left click				fun(input)
-table.onContext = nil -- right click			fun(input)
-table.onHover = nil -- mouse over				fun(input) -> tooltip/expand??
-table.onDrag = nil -- mouse dragged				fun(input)
-table.onWheel = nil -- wheel change				fun(input)
-table.onKey = nil -- key press					fun(input)
-table.onChange = nil -- widget data change		fun(data)
---]]
-
 
 --> parse structure to defined sizes
 local function parseFrames(table)
@@ -217,7 +209,7 @@ end
 
 --test
 -- setup structure
-local gui = new():vertical()
+local gui = newGui():vertical()
 	local top = gui:split(nil, 30)
 		local menu = top:split("Menu", 300)
 		local toolbox = top:split("Toolbox")
@@ -246,7 +238,7 @@ view:addElem("Test6")
 view:addElem("Test7")
 view:addElem("Test8")
 view:addElem("Test9")
-view:addElem("Test10", "float", {1, 0.1234, 5})
+view:addElem("Test10", "float", {1, 1, 0, 5})
 view:addElem("Test11")
 view:addElem("Test12")
 output:addElem("Test13")
@@ -267,12 +259,6 @@ math.randomseed(os.time())
 
 local level = 0
 local function drawElems(table, num)
---[[
-	keep all elements position-independent due to scrolling
-	- off-screen rendering and pasting to allow partial rendering (top and bottom incomplete elements only)
-	- have element list offset and additional on-screen offset (or always align top element?)
-	- overscroll (elastic)
---]]
 	local e = table.elements
 	local n = #e
 	if num then
@@ -331,7 +317,10 @@ print(sdl.time()-t)
 sdl.input.fps(60)
 while not sdl.input.quit do
 	sdl.update(true)
+	
+	-- main event loop, move to function:
 	--drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
+	
 	if sdl.input.click[1] then
 		print(sdl.input.x, sdl.input.y)
 	end
@@ -349,7 +338,6 @@ while not sdl.input.quit do
 		f.scroll = f.scroll + 5
 		drawFrames(f)
 	end
-	
 end
 
 sdl.quit()
