@@ -43,7 +43,7 @@ setmetatable(allocTable, {__mode="k"})
 local function free(p)
 	allocCount = allocCount - 1
 	allocTable[p] = nil
-	ffi.C.free(p)
+	ffi.C.free(ffi.gc(p, nil))
 end
 local function allocF(size)
 	allocCount = allocCount + 1
@@ -92,7 +92,22 @@ function data:new(x, y, z)
 	return o
 end
 
-local hybridSize = 128
+local function ABC(d, x, y, z)
+	if d.x==1 then x=0 end -- cast
+	if d.y==1 then y=0 end -- cast
+	if d.z==1 then z=0 end -- cast
+	if x>=d.x or x<0 then error("x out of bounds")
+	elseif y>=d.y or y<0 then error("y out of bounds")
+	elseif z>=d.z or z<0 then error("z out of bounds")
+	else return x, y, z end
+end
+
+local function AC(d, n)
+	if n>=d.x*d.y*d.z or n<0 then error("element out of bounds: "..n..">"..(d.x*d.y*d.z-1))
+	else return n end
+end
+
+local hybridSize = 1024
 
 local function toSoA(data)
 	if data.layout.pack=="SoA" or data.z==1 then
@@ -115,17 +130,26 @@ local function toSoA(data)
 	elseif data.layout.pack=="Hybrid" then
 		local size = data.x*data.y
 		local sz = data.z
-		local t = data.alloc(size*sz) -- errs for hybridSize=34, size=small
+		local t = data.alloc(size*sz)
 		local d = data.data
+		local rem = size%hybridSize
+		
 		local function fun (z, i, j)
 			t[(i+j)+z*size] = d[j*sz+i+z*hybridSize]
 		end
-		for j = 0, size-1, hybridSize do
-			local max = hybridSize<size-j and hybridSize or size-j
+		local function funrem (z, i, j)
+			t[(i+j)+z*size] = d[j*sz+i+z*rem]
+		end
+		
+		for j = 0, size-hybridSize, hybridSize do
 			for i = 0, hybridSize-1 do
 				unroll[sz](fun, i, j)
 			end
 		end
+		for i = 0, rem-1 do
+			unroll[sz](funrem, i, size-rem)
+		end
+		
 		free(data.data)
 		data.data = t
 		data.layout.pack = "SoA"
@@ -158,15 +182,24 @@ local function toAoS(data)
 		local sz = data.z
 		local t = data.alloc(size*sz)
 		local d = data.data
+		local rem = size%hybridSize
+		
 		local function fun (z, i, j)
 			t[(i+j)*sz+z] = d[j*sz+i+z*hybridSize]
 		end
-		for j = 0, size-1, hybridSize do
-			local max = hybridSize<size-j and hybridSize or size-j
-			for i = 0, max-1 do
+		local function funrem (z, i, j)
+			t[(i+j)*sz+z] = d[j*sz+i+z*rem]
+		end
+		
+		for j = 0, size-hybridSize, hybridSize do
+			for i = 0, hybridSize-1 do
 				unroll[sz](fun, i, j)
 			end
 		end
+		for i = 0, rem-1 do
+			unroll[sz](funrem, i, size-rem)
+		end
+		
 		free(data.data)
 		data.data = t
 		data.layout.pack = "AoS"
@@ -184,15 +217,24 @@ local function toHybrid(data)
 		local sz = data.z
 		local t = data.alloc(size*sz)
 		local d = data.data
+		local rem = size%hybridSize
+		
 		local function fun (z, i, j)
 			t[j*sz+i+z*hybridSize] = d[(j+i)*sz+z]
 		end
-		for j = 0, size-1, hybridSize do
-			local max = hybridSize<size-j and hybridSize or size-j
-			for i = 0, max-1 do
+		local function funrem (z, i, j)
+			t[j*sz+i+z*rem] = d[(j+i)*sz+z]
+		end
+		
+		for j = 0, size-hybridSize, hybridSize do
+			for i = 0, hybridSize-1 do
 				unroll[sz](fun, i, j)
 			end
 		end
+		for i = 0, rem-1 do
+			unroll[sz](funrem, i, size-rem)
+		end
+		
 		free(data.data)
 		data.data = t
 		data.layout.pack = "Hybrid"
@@ -202,15 +244,24 @@ local function toHybrid(data)
 		local sz = data.z
 		local t = data.alloc(size*sz)
 		local d = data.data
+		local rem = size%hybridSize
+		
 		local function fun (z, i, j)
 			t[j*sz+i+z*hybridSize] = d[(i+j)+z*size] 
 		end
-		for j = 0, size-1, hybridSize do
-			local max = hybridSize<size-j and hybridSize or size-j
-			for i = 0, max-1 do
+		local function funrem (z, i, j)
+			t[j*sz+i+z*rem] = d[(i+j)+z*size]
+		end
+		
+		for j = 0, size-hybridSize, hybridSize do
+			for i = 0, hybridSize-1 do
 				unroll[sz](fun, i, j)
 			end
 		end
+		for i = 0, rem-1 do
+			unroll[sz](funrem, i, size-rem)
+		end
+		
 		free(data.data)
 		data.data = t
 		data.layout.pack = "Hybrid"
@@ -220,18 +271,60 @@ local function toHybrid(data)
 	end
 end
 
-local d = data:new(6000,8000,12)
-
-
-for i = 0, 63 do
-	d.data[i] = i
+local function pos(d, x, y, z)
+	if d.layout.pack=="AoS" then
+		return (x*d.y*d.z+y*d.z+z)
+	elseif d.layout.pack=="SoA" then
+		return (z*d.x*d.y+x*d.y+y)
+	elseif d.layout.pack=="Hybrid" then
+		local n = (x+1)*(y+1)-1
+		local m = hybridSize
+		local size = d.x*d.y
+		local sz = d.z
+		local thr = size-size%m
+		local t = n<thr
+		local rem = t and n%m or n-thr
+		local off = t and n-rem or thr
+		local m = t and m or size-thr
+		return (off*sz+z*m+rem)
+	else
+		error("Unrecognised layout!")
+	end
 end
 
+local function get(d, x, y, z)
+	return d.data[pos(d, x, y, z)]
+end
+local function set(d, x, y, z, v)
+	d.data[pos(d, x, y, z)] = v
+end
+local function getABC(d, x, y, z)
+	return d.data[pos(d, ABC(d, x, y, z))]
+end
+local function setABC(d, x, y, z, v)
+	d.data[pos(d, ABC(d, x, y, z))] = v
+end
 
+-- test
+
+local d = data:new(6000,4000,3)
+
+-- warmup
 toHybrid(d)
 toSoA(d)
 toAoS(d)
 
+toHybrid(d)
+sdl.tic()
+for i = 0, d.x-1 do
+	for j = 0, d.y-1 do
+		set(d, i, j, 0, i+1000)
+		set(d, i, j, 1, i+2000)
+	end
+end
+sdl.toc("assign")
+
+toAoS(d)
 sdl.tic()
 toHybrid(d)
 sdl.toc("aos->hybrid")
@@ -251,8 +344,13 @@ sdl.tic()
 toAoS(d)
 sdl.toc("hybrid->aos")
 
-for i = 0, 63 do
-	--print(d.data[i])
+sdl.tic()
+for i = 0, d.x-1 do
+	for j = 0, d.y-1 do
+		local a, b = get(d, i, j, 0), get(d, i, j, 1)
+		--print(a,b)
+	end
 end
+sdl.toc("index")
 
 print(d.layout.pack)
