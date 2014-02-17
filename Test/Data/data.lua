@@ -80,7 +80,7 @@ function data:new(x, y, z)
 	
 	local o = {
 		data = self.alloc(size),
-		color = self.cs or {cs = "MAP",
+		color = self.color or {cs = "MAP",
 							gamma = nil,
 							wp = nil,
 							xyz = nil,
@@ -108,6 +108,7 @@ local hybridSize = 5
 -- TODO: unroll loops over hybrid chunks for small sizes!
 
 local function toSoA(data)
+	jit.flush()
 	if data.layout.pack=="SoA" or data.z==1 then
 		return data
 	elseif data.layout.pack=="AoS" then
@@ -158,6 +159,7 @@ local function toSoA(data)
 end
 
 local function toAoS(data)
+	jit.flush()
 	if data.layout.pack=="AoS" or data.z==1 then
 		return data
 	elseif data.layout.pack=="SoA" then
@@ -208,6 +210,7 @@ local function toAoS(data)
 end
 
 local function toHybrid(data)
+	jit.flush()
 	if data.layout.pack=="Hybrid" or data.z==1 then
 		return data
 	elseif data.layout.pack=="AoS" then
@@ -305,14 +308,43 @@ end
 -- hybrid layout only useful when whole chunks are processed at once
 
 -- every getter/setter should be implemented in terms of the get/set functions!
-local function get(d, x, y, z)
+local function __get(d, x, y, z)
 	return d.data[pos(d, x, y, z)]
 end
-local function set(d, x, y, z, v)
+local function __set(d, x, y, z, v)
 	d.data[pos(d, x, y, z)] = v
+	-- check target color space : efficient for set3, get3
+	-- error on color space mismatch!!!
 end
 
--- introduce switchable XY / YX loops
+
+local get, set, setWorkingCS, getWorkingCS
+do
+	local workingCS = "MAP"
+	function setWorkingCS(s)
+		assert(type(s)=="string")
+		workingCS = s
+	end
+	function getWorkingCS()
+		return workingCS
+	end
+	
+	function get(d, x, y, z)
+		if d.color.cs==workingCS then
+			return d.data[pos(d, x, y, z)]
+		else
+			error("Wrong CS!")
+		end
+	end
+	function set(d, x, y, z, v)
+		if d.color.cs==workingCS then
+			d.data[pos(d, x, y, z)] = v
+		else
+			error("Wrong CS!")
+		end
+	end
+end
+-- introduce switchable XY / YX loops based on layout
 
 local function getABC(d, x, y, z)
 	get(d, ABC(d, x, y, z))
@@ -323,6 +355,7 @@ end
 
 local function get3(d, x, y)
 	if d.z==3 then
+		-- implicit color space switch!
 		return get(d, x, y, 0), get(d, x, y, 1), get(d, x, y, 2)
 	elseif d.z==1 then -- broadcast
 		local t = get(d, x, y, 0)
@@ -335,6 +368,7 @@ local function set3(d, x, y, a, b, c)
 	b = b or a
 	c = c or a
 	if d.z==3 then
+		-- implicit color space switch!
 		set(d, x, y, 0, a)
 		set(d, x, y, 1, b)
 		set(d, x, y, 2, c)
@@ -353,7 +387,7 @@ local function toXY(d)
 		t.layout.order = "XY"
 		t.layout.pack = d.layout.pack
 		local function fun(z, x, y)
-			set(t, x, y, z, get(d, x, y, z))
+			__set(t, x, y, z, __get(d, x, y, z))
 		end
 		for x = 0, d.x-1 do
 			for y = 0, d.y-1 do
@@ -377,7 +411,7 @@ local function toYX(d)
 		t.layout.order = "YX"
 		t.layout.pack = d.layout.pack
 		local function fun(z, x, y)
-			set(t, x, y, z, get(d, x, y, z))
+			__set(t, x, y, z, __get(d, x, y, z))
 		end
 		for y = 0, d.y-1 do
 			for x = 0, d.x-1 do
@@ -438,7 +472,7 @@ toYX(d)
 sdl.toc("Flip")
 sdl.tic()
 toXY(d)
-sdl.toc("Fliop")
+sdl.toc("Flop")
 
 --d.layout.pack="AoS"
 sdl.tic()
@@ -452,7 +486,7 @@ for i = 0, d.x-1 do
 end
 sdl.toc("index")
 
---[[
+---[[
 toSoA(d)
 sdl.tic()
 for i = 0, d.x-1 do
