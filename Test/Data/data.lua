@@ -93,9 +93,6 @@ function data:new(x, y, z)
 end
 
 local function ABC(d, x, y, z)
-	if d.x==1 then x=0 end -- cast
-	if d.y==1 then y=0 end -- cast
-	if d.z==1 then z=0 end -- cast
 	if x>=d.x or x<0 then error("x out of bounds")
 	elseif y>=d.y or y<0 then error("y out of bounds")
 	elseif z>=d.z or z<0 then error("z out of bounds")
@@ -107,7 +104,8 @@ local function AC(d, n)
 	else return n end
 end
 
-local hybridSize = 1024
+local hybridSize = 5
+-- TODO: unroll loops over hybrid chunks for small sizes!
 
 local function toSoA(data)
 	if data.layout.pack=="SoA" or data.z==1 then
@@ -272,54 +270,145 @@ local function toHybrid(data)
 end
 
 local function pos(d, x, y, z)
+	if d.x==1 then x=0 end -- broadcast
+	if d.y==1 then y=0 end -- broadcast
+	if d.z==1 then z=0 end -- broadcast
+	
+	local xx, yy, zz = d.x, d.y, d.z
+	
+	if d.layout.order=="YX" then
+		x, y = y, x
+		xx, yy = yy, xx
+	elseif d.layout.order~="XY" then
+		error("Unrecognised layout!")
+	end
+	
 	if d.layout.pack=="AoS" then
-		return (x*d.y*d.z+y*d.z+z)
+		return (x*yy*zz+y*zz+z)
 	elseif d.layout.pack=="SoA" then
-		return (z*d.x*d.y+x*d.y+y)
+		return (z*xx*yy+x*yy+y)
 	elseif d.layout.pack=="Hybrid" then
-		local n = (x+1)*(y+1)-1
+		local size = xx*yy
 		local m = hybridSize
-		local size = d.x*d.y
-		local sz = d.z
 		local thr = size-size%m
+		local n = x*yy+y
 		local t = n<thr
 		local rem = t and n%m or n-thr
 		local off = t and n-rem or thr
 		local m = t and m or size-thr
-		return (off*sz+z*m+rem)
+		return (off*zz+z*m+rem)
 	else
 		error("Unrecognised layout!")
 	end
 end
 
+-- hybrid layout only useful when whole chunks are processed at once
+
+-- every getter/setter should be implemented in terms of the get/set functions!
 local function get(d, x, y, z)
 	return d.data[pos(d, x, y, z)]
 end
 local function set(d, x, y, z, v)
 	d.data[pos(d, x, y, z)] = v
 end
+
+-- introduce switchable XY / YX loops
+
 local function getABC(d, x, y, z)
-	return d.data[pos(d, ABC(d, x, y, z))]
+	get(d, ABC(d, x, y, z))
 end
 local function setABC(d, x, y, z, v)
-	d.data[pos(d, ABC(d, x, y, z))] = v
+	set(d, ABC(d, x, y, z), v)
+end
+
+local function get3(d, x, y)
+	if d.z==3 then
+		return get(d, x, y, 0), get(d, x, y, 1), get(d, x, y, 2)
+	elseif d.z==1 then -- broadcast
+		local t = get(d, x, y, 0)
+		return t, t, t
+	else
+		error("wrong z-size")
+	end
+end
+local function set3(d, x, y, a, b, c)
+	b = b or a
+	c = c or a
+	if d.z==3 then
+		set(d, x, y, 0, a)
+		set(d, x, y, 1, b)
+		set(d, x, y, 2, c)
+	elseif d.z==1 then -- compress
+		set(d, x, y, 0, (a+b+c)/3)
+	else
+		error("wrong z-size")
+	end
+end
+
+local function toXY(d)
+	if d.layout.order=="XY" then
+		return d
+	elseif d.layout.order=="YX" then
+		local t = d:new()
+		t.layout.order = "XY"
+		t.layout.pack = d.layout.pack
+		local function fun(z, x, y)
+			set(t, x, y, z, get(d, x, y, z))
+		end
+		for x = 0, d.x-1 do
+			for y = 0, d.y-1 do
+				unroll[d.z](fun, x, y)
+			end
+		end
+		free(d.data)
+		d.data = t.data
+		d.layout.order = t.layout.order
+		return d
+	else
+		error("Unrecognised layout!")
+	end
+end
+
+local function toYX(d)
+	if d.layout.order=="YX" then
+		return d
+	elseif d.layout.order=="XY" then
+		local t = d:new()
+		t.layout.order = "YX"
+		t.layout.pack = d.layout.pack
+		local function fun(z, x, y)
+			set(t, x, y, z, get(d, x, y, z))
+		end
+		for x = 0, d.x-1 do
+			for y = 0, d.y-1 do
+				unroll[d.z](fun, x, y)
+			end
+		end
+		free(d.data)
+		d.data = t.data
+		d.layout.order = t.layout.order
+		return d
+	else
+		error("Unrecognised layout!")
+	end
 end
 
 -- test
 
-local d = data:new(6000,4000,3)
+local d = data:new(4,4,3)
 
 -- warmup
 toHybrid(d)
 toSoA(d)
 toAoS(d)
 
-toHybrid(d)
+toAoS(d)
 sdl.tic()
 for i = 0, d.x-1 do
 	for j = 0, d.y-1 do
-		set(d, i, j, 0, i+1000)
-		set(d, i, j, 1, i+2000)
+		set(d, i, j, 0, i*10+j+100)
+		set(d, i, j, 1, i*10+j+200)
+		set(d, i, j, 2, i*10+j+300)
 	end
 end
 sdl.toc("assign")
@@ -338,19 +427,41 @@ sdl.tic()
 toSoA(d)
 sdl.toc("aos->soa")
 sdl.tic()
-toHybrid(d)
+--toHybrid(d)
 sdl.toc("soa->hybrid")
 sdl.tic()
-toAoS(d)
+--toAoS(d)
 sdl.toc("hybrid->aos")
 
 sdl.tic()
+toYX(d)
+--toXY(d)
+sdl.toc("Flip")
+
+
+--d.layout.pack="AoS"
+sdl.tic()
+print("====================")
 for i = 0, d.x-1 do
 	for j = 0, d.y-1 do
-		local a, b = get(d, i, j, 0), get(d, i, j, 1)
+		local a, b, c = get(d, i, j, 0), get(d, i, j, 1), get(d, i, j, 2) 
+		print(a,b,c)
+	end
+	print("====================")
+end
+sdl.toc("index")
+
+--[[
+toSoA(d)
+sdl.tic()
+for i = 0, d.x-1 do
+	for j = 0, d.y-1 do
+		local a, b, c = get3(d, i, j)
+		set3(d, i, j, a*b/c)
 		--print(a,b)
 	end
 end
-sdl.toc("index")
+sdl.toc("add")
+--]]
 
 print(d.layout.pack)
