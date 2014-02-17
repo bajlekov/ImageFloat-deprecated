@@ -379,8 +379,8 @@ local function toYX(d)
 		local function fun(z, x, y)
 			set(t, x, y, z, get(d, x, y, z))
 		end
-		for x = 0, d.x-1 do
-			for y = 0, d.y-1 do
+		for y = 0, d.y-1 do
+			for x = 0, d.x-1 do
 				unroll[d.z](fun, x, y)
 			end
 		end
@@ -395,7 +395,7 @@ end
 
 -- test
 
-local d = data:new(4,4,3)
+local d = data:new(6000,4000,3)
 
 -- warmup
 toHybrid(d)
@@ -427,27 +427,28 @@ sdl.tic()
 toSoA(d)
 sdl.toc("aos->soa")
 sdl.tic()
---toHybrid(d)
+toHybrid(d)
 sdl.toc("soa->hybrid")
 sdl.tic()
---toAoS(d)
+toAoS(d)
 sdl.toc("hybrid->aos")
 
 sdl.tic()
 toYX(d)
---toXY(d)
 sdl.toc("Flip")
-
+sdl.tic()
+toXY(d)
+sdl.toc("Fliop")
 
 --d.layout.pack="AoS"
 sdl.tic()
-print("====================")
+--print("====================")
 for i = 0, d.x-1 do
 	for j = 0, d.y-1 do
 		local a, b, c = get(d, i, j, 0), get(d, i, j, 1), get(d, i, j, 2) 
-		print(a,b,c)
+		--print(a,b,c)
 	end
-	print("====================")
+	--print("====================")
 end
 sdl.toc("index")
 
