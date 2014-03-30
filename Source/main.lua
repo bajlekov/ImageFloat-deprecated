@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+require("jit.p").start("sli1m1", "profileMain")
+
 print([[
 ImageFloat  Copyright (C) 2011-2014 G.Bajlekov
 This program comes WITHOUT ANY WARRANTY.
@@ -473,8 +475,7 @@ while true do
 		node:cleanup()
 		lua.threadQuit()
 		sdl.quit()
-		--prof:stop()
-		--prof:dump("profile.html")
+		require("jit.p").stop()
 		os.exit()
 	end
 
@@ -518,6 +519,7 @@ while true do
 		node:cleanup()
 		lua.threadQuit()
 		sdl.quit()
+		require("jit.p").stop()
 		os.exit()
 	end
 end
