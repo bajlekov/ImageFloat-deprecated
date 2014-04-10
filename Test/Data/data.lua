@@ -86,6 +86,7 @@ function data:new(x, y, z)
 							xyz = nil,
 							},
 		x = x, y = y, z = z,
+		
 		layout = {pack = "AoS", order = "XY", slice = nil}
 	}
 	setmetatable(o, self.meta)
@@ -104,11 +105,11 @@ local function AC(d, n)
 	else return n end
 end
 
-local hybridSize = 5
+local hybridSize = 128
 -- TODO: unroll loops over hybrid chunks for small sizes!
 
 local function toSoA(data)
-	jit.flush()
+	jit.flush(true)
 	if data.layout.pack=="SoA" or data.z==1 then
 		return data
 	elseif data.layout.pack=="AoS" then
@@ -159,7 +160,7 @@ local function toSoA(data)
 end
 
 local function toAoS(data)
-	jit.flush()
+	jit.flush(true)
 	if data.layout.pack=="AoS" or data.z==1 then
 		return data
 	elseif data.layout.pack=="SoA" then
@@ -210,7 +211,7 @@ local function toAoS(data)
 end
 
 local function toHybrid(data)
-	jit.flush()
+	jit.flush(true)
 	if data.layout.pack=="Hybrid" or data.z==1 then
 		return data
 	elseif data.layout.pack=="AoS" then
@@ -313,8 +314,6 @@ local function __get(d, x, y, z)
 end
 local function __set(d, x, y, z, v)
 	d.data[pos(d, x, y, z)] = v
-	-- check target color space : efficient for set3, get3
-	-- error on color space mismatch!!!
 end
 
 
@@ -436,13 +435,12 @@ toHybrid(d)
 toSoA(d)
 toAoS(d)
 
-toAoS(d)
+toSoA(d)
 sdl.tic()
-for i = 0, d.x-1 do
-	for j = 0, d.y-1 do
-		set(d, i, j, 0, i*10+j+100)
-		set(d, i, j, 1, i*10+j+200)
-		set(d, i, j, 2, i*10+j+300)
+for x = 0, d.x-1 do
+	for y = 0, d.y-1 do
+		local t = x*10+y
+		set3(d, x, y, t+100, t+200, t+300)
 	end
 end
 sdl.toc("assign")
@@ -474,12 +472,12 @@ sdl.tic()
 toXY(d)
 sdl.toc("Flop")
 
---d.layout.pack="AoS"
+toSoA(d)
 sdl.tic()
 --print("====================")
-for i = 0, d.x-1 do
-	for j = 0, d.y-1 do
-		local a, b, c = get(d, i, j, 0), get(d, i, j, 1), get(d, i, j, 2) 
+for x = 0, d.x-1 do
+	for y = 0, d.y-1 do
+		local a, b, c = get(d, x, y, 0), get(d, x, y, 1), get(d, x, y, 2) 
 		--print(a,b,c)
 	end
 	--print("====================")
@@ -489,11 +487,10 @@ sdl.toc("index")
 ---[[
 toSoA(d)
 sdl.tic()
-for i = 0, d.x-1 do
-	for j = 0, d.y-1 do
-		local a, b, c = get3(d, i, j)
-		set3(d, i, j, a*b/c)
-		--print(a,b)
+for x = 0, d.x-1 do
+	for y = 0, d.y-1 do
+		local a, b, c = get3(d, x, y)
+		set3(d, x, y, a+b+c)
 	end
 end
 sdl.toc("add")
