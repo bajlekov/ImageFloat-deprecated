@@ -185,7 +185,7 @@ if type(__sdl)=="table" then
 			print("using "..l.numCores.." threads...")
 			l.threadProgress = ffi.new("int[?]", l.numCores+4) -- TH states... , abort, sync, ?, ?
 			l.threadProgress[l.numCores+1]=1 
-			l.mutex = __sdl.createMutex()
+			l.mutex = __sdl.thread.mutex()
 			for i=0, l.numCores-1 do
 				l.threadInstance[i]=l.newState()						--create new state
 				l.doFile(l.threadInstance[i], file)						--load functions
@@ -239,8 +239,8 @@ if type(__sdl)=="table" then
 		do
 			local sdl = __sdl
 			local thread = {}
-			local procTime = sdl.ticks()
-			local loopTime = sdl.ticks()
+			local procTime = sdl.time()
+			local loopTime = sdl.time()
 			local procName
 			function l.threadSetup(buflist, params)
 				local bufs = {}
@@ -282,13 +282,13 @@ if type(__sdl)=="table" then
 				end
 			end
 			function l.threadRun(...)
-				procTime = sdl.ticks()
+				procTime = sdl.time()
 				-- NYI: bytecode 71 at luatools.lua:270
 				for i = 0, l.numCores-1 do
 					l.threadProgress[i]=0
 					lua.lua_settop(l.threadInstance[i], 0) -- restore stack
 					l.loadVariable(l.threadInstance[i], ...) -- loads processing function
-					thread[i+1] = sdl.createThread(l.threadFunction, l.threadCounter+i) -- runs preset function in each instance!!!
+					thread[i+1] = sdl.thread.new(l.threadFunction, l.threadCounter+i) -- runs preset function in each instance!!!
 				end
 				l.threadRunning = true
 				procName = table.concat({...},".")
@@ -296,12 +296,12 @@ if type(__sdl)=="table" then
 			function l.threadWait()
 				--if l.threadRunning then
 					for i = 0, l.numCores-1 do
-						sdl.waitThread(thread[i+1], NULL)
+						sdl.thread.wait(thread[i+1], NULL)
 					end
 					if not __global.preview then
-						io.write("("..procName.."): "..(sdl.ticks()-procTime).."ms ("..(sdl.ticks()-loopTime).."ms)\n")
+						io.write("("..procName.."): "..(sdl.time()-procTime).."ms ("..(sdl.time()-loopTime).."ms)\n")
 					end
-					loopTime = sdl.ticks()
+					loopTime = sdl.time()
 				--else
 				--	-- deprecated use:
 				--	error("Thread not running! Skipping threadWait()")

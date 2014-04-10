@@ -29,15 +29,15 @@ local __global = __global
 
 -- create initial node structure
 local node = {drawOrder={}, execOrder={}, levels={}, noExec={}, exec={}}			-- used for execution, set in node:calcLevels
-function node:setInput(input) self.mouse = input end							-- register input function
+--function node:setInput(input) self.mouse = input end							-- register input function
 function node:setImageProcess(input) self.imageProcess = input end				-- register image processing
 function node.imageProcess() end												-- set initial empty function
 
 function node:nodeDrag(n)
-	while self.mouse.button[1] do
-		self.mouse:update()
-		self[n].ui.x = self[n].ui.x + self.mouse.dx
-		self[n].ui.y = self[n].ui.y + self.mouse.dy
+	while sdl.input.button[1] do
+		sdl.input.update()
+		self[n].ui.x = self[n].ui.x + sdl.input.dx
+		self[n].ui.y = self[n].ui.y + sdl.input.dy
 		self:draw()
 	end
 end
@@ -48,19 +48,19 @@ function node:paramDrag(n, p)
 	local vmax = self[n].param[p].value[3]
 	local vrange = vmax-vmin
 	
-	while self.mouse.button[1] do
-		self.mouse:update()
+	while sdl.input.button[1] do
+		sdl.input.update()
 		
 		-- FIXME: allready checked before?
 		if self[n].param[p].type~="value" then break end --have check earlier and update data
 		
-		local fac = self.mouse.mod.shift and 10 or 1
-		v = v + self.mouse.dx/148/fac*vrange
+		local fac = sdl.input.mod.shift and 10 or 1
+		v = v + sdl.input.dx/148/fac*vrange
 		if v>vmax then v=vmax end
 		if v<vmin then v=vmin end
-		if self.mouse.mod.alt then v = self[n].param[p].value[4] end
-		if self.mouse.mod.ctrl then
-			local unit = vrange/(self.mouse.mod.shift and 100 or 10)
+		if sdl.input.mod.alt then v = self[n].param[p].value[4] end
+		if sdl.input.mod.ctrl then
+			local unit = vrange/(sdl.input.mod.shift and 100 or 10)
 			self[n].param[p].value[1] = vmin + math.floor(((v-vmin)/unit+0.5))*unit
 		else
 			self[n].param[p].value[1] = v
@@ -72,8 +72,8 @@ end
 
 function node:noodleDrag(n, p)
 	self[n]:disconnect(p) --disconnect old connection
-	while self.mouse.button[1] do
-		self.mouse:update()
+	while sdl.input.button[1] do
+		sdl.input.update()
 		
 		local _n, _p = nil, nil
 		for k, v in ipairs(self) do
@@ -92,9 +92,9 @@ function node:noodleDrag(n, p)
 		if _n and _p then
 			drawNoodle(self[n].ui.x, self[n].ui.y, self[_n].ui.x, self[_n].ui.y, p, _p)
 		else
-			drawNoodleLoose(self[n].ui.x, self[n].ui.y, self.mouse.x, self.mouse.y, p)
+			drawNoodleLoose(self[n].ui.x, self[n].ui.y, sdl.input.x, sdl.input.y, p)
 		end
-		sdl.flip()
+		sdl.update()
 	end
 	for k,v in ipairs(self) do
 		if k~=n then
@@ -109,16 +109,14 @@ function node:noodleDrag(n, p)
 end
 
 
-local function checkPos(r, mouse, self)
-	local x = mouse.x
-	local y = mouse.y
+local function checkPos(r, self)
+	local x = sdl.input.x
+	local y = sdl.input.y
 	local ox = self.x
 	local oy = self.y
 	if x>=r[1]+ox and x<=r[2]+ox and y>=r[3]+oy and y<=r[4]+oy then return true end
 end
 local function nodeClick(self, part)
-	local mouse = node.mouse
-
 	local areas = {
 		node = {-13, 162, -2, 23+12*self.p[1]},
 		title = {0, 149, 0, 19},
@@ -130,14 +128,14 @@ local function nodeClick(self, part)
 	if part~=nil then
 		local area = areas[part]
 
-		if checkPos(area, mouse, self) then
+		if checkPos(area, self) then
 			if part=="params" then
-				local p = math.floor((mouse.y - self.y - 22)/ 12) + 1
+				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
 				if p==0 then return 1 else return p end --correct for math.floor
 			end
 			if part=="connL" or part=="connR" then
-				if mouse.y>=self.y+7 and mouse.y<=self.y+19 then return 0 end
-				local p = math.floor((mouse.y - self.y - 22)/ 12) + 1
+				if sdl.input.y>=self.y+7 and sdl.input.y<=self.y+19 then return 0 end
+				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
 				return p>0 and p or nil
 			end
 			--for title return button end
@@ -244,7 +242,7 @@ end
 
 --remove node and move last node in its place
 function node:remove(n)
-	sdl.destroySurface(self[n].ui.buffer)
+	self[n].ui.buffer = nil
 	--clear everything corresponding to node
 
 	local nmax = #self
@@ -288,8 +286,8 @@ end
 
 -- put in resources table
 node.backgrounds = {}
-node.backgrounds.window = sdl.loadImage(__global.imgPath.."background.png")
-node.backgrounds.node = sdl.loadImage(__global.imgPath.."node_t.png")
+node.backgrounds.window = sdl.surf.image(__global.imgPath.."background.png")
+node.backgrounds.node = sdl.surf.image(__global.imgPath.."node_t.png")
 
 --destroy backgrounds at end?
 
@@ -317,21 +315,23 @@ local helpText = {
 
 function node:draw(flag)
 	-- see if drawing can be reduced when no update is available!!
-	sdl.blit(node.backgrounds.window, nil, sdl.screen, nil) --draws background
+	sdl.surf.copy(node.backgrounds.window, sdl.screen.surf) --draws background
 	self.imageProcess(flag) -- puts image on screen
 	drawNoodles(self) -- draws noodles
 
 	--help text
+	sdl.font.type(__global.ttfPath.."UbuntuR.ttf", 11)
+	sdl.font.color(128, 64, 64)
 	if __global.info then
 		for k, v in ipairs(helpText) do
-			sdl.text(v, font.normal, __global.setup.windowSize[1] - 220, 10 + k*10, 128, 64, 64)
+			sdl.draw.text(__global.setup.windowSize[1] - 220, 10 + k*10, v)
 		end
 	end
 	
 	for n = #self,1,-1 do
 		self[self.drawOrder[n]]:draw()
 	end
-	if flag~="noflip" then sdl.flip() end
+	if flag~="noflip" then sdl.update() end
 end
 
 function node:focus(n)
@@ -447,7 +447,7 @@ do
 		-- then again, this is not (or shouldn't be) performance-sensitive code
 			v.ui.draw=true
 		end
-		sdl.flip()
+		sdl.update()
 	end
 end
 

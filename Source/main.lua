@@ -48,7 +48,7 @@ bytecodes:
 	50: ??
 	51: definition of function inside of hot trace, fix immediately on encounter!!!
 	70: ??
-	71: ??
+	71: vararg where a) variables not in chunk, b) no use of select, 3) variable output
 
 record:
 luajit -jv=out.txt main.lua
@@ -80,7 +80,9 @@ math.randomseed(os.time())
 
 -- TODO internal console for debugging etc.
 
-local sdl = require("Include.sdltools")
+--local sdl = require("Include.sdltools")
+local sdl = require("Include.sdl")
+global("__sdl", sdl)
 local lua = require("Tools.luatools")
 local dbg = require("Tools.dbgtools")
 local ppm = require("Tools.ppmtools")
@@ -102,22 +104,21 @@ global("__img", img)
 
 lua.threadInit(arg and arg[2] or __global.setup.numThreads, __global.setup.threadPath)
 sdl.init()
-sdl.setScreen(__global.setup.windowSize[1], __global.setup.windowSize[2])
-sdl.setCaption("ImageFloat...loading", "ImageFloat");
-sdl.setIcon("icon.bmp")
+sdl.screen.set(__global.setup.windowSize[1], __global.setup.windowSize[2])
+sdl.screen.caption("ImageFloat...loading", "ImageFloat");
+sdl.screen.icon("icon.bmp")
 
 -- TODO refactor draw
-require("Draw.draw")
+-- require("Draw.draw")
 
-local mouse = sdl.input()
-mouse.interrupt = lua.threadDone -- interface refresh call on thread done ...
+sdl.input.interrupt = lua.threadDone -- interface refresh call on thread done ...
 
 -- TODO: move to fonttools, local font reference
-global("font", {})
-font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
-print(__global.ttfPath.."UbuntuR.ttf")
-font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
-local font = font
+--global("font", {})
+--font.normal = sdl.font(__global.ttfPath.."UbuntuR.ttf", 11)
+--print(__global.ttfPath.."UbuntuR.ttf")
+--font.big = sdl.font(__global.ttfPath.."UbuntuR.ttf", 15)
+--local font = font
 
 local node = require("Node.node")
 
@@ -143,11 +144,11 @@ node:add("Merge")
 node:add("Gaussian")
 node:add("Gamma")
 
-node:setInput(mouse)
+--node:setInput(mouse)
 
 --draw initial
 node:draw()
-sdl.flip()
+sdl.update()
 
 --read file
 print("Loading image: "..__global.setup.imageLoadName)
@@ -163,7 +164,7 @@ local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[
 	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
 local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
-sdl.setCaption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
+sdl.screen.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
 imageTemp = nil
 
 print(bufO.x, bufO.y)
@@ -231,7 +232,7 @@ local calcUpdate
 
 local hist = require("Tools.histogram")
 
-local loopTime = sdl.ticks()
+local loopTime = sdl.time()
 function funProcess()
 	toc("Overhead")					-- TODO: minimize overhead outside of coroutine (between resets)
 	cp=1							-- reset processing coroutine
@@ -267,17 +268,15 @@ function funProcess()
 	hist.calculate(bufout)
 
 	-- loop timer
-	io.write("Loop total: "..(sdl.ticks()-loopTime).."ms\n")
-	loopTime = sdl.ticks()
+	io.write("Loop total: "..(sdl.time()-loopTime).."ms\n")
+	loopTime = sdl.time()
 
 	tic()
 	coroutine.yield(-1)
 end
 
 --function updating the image and checking when processing should be advanced
-local t = sdl.ticks()
-local vLineAdd = vLine -- FIXME: avoid lineAdd
-local hLineAdd = hLine
+local t = sdl.time()
 local fpsSmooth = 128 -- smoothing parameter
 local fpsData = ffi.new("double[?]", fpsSmooth)
 local fpsCounter = 0
@@ -290,12 +289,17 @@ local function imageProcess(flag)
 		end -- if processing is done then start again
 		cp = coProcess() -- go to next step
 	end
-
-	sdl.screenPut(surf, 350, 20)
-
+	
+	--sdl.surf.attach(surf)
+	--sdl.draw.line(10,10,100,100)
+	sdl.screen.put(surf, 350, 20)
+	--sdl.update()
+	-- screen does not update after this
+	
+	
 	-- fps averaging
-	local tt = sdl.ticks()-t
-	t = sdl.ticks()
+	local tt = sdl.time()-t
+	t = sdl.time()
 
 	if tt<250 then -- filter outliers!
 		fpsAverage = fpsAverage + tt - fpsData[fpsCounter]
@@ -306,10 +310,12 @@ local function imageProcess(flag)
 		print("*** slow screen refresh ***")
 	end
 
-	sdl.text(math.floor(fpsSmooth/fpsAverage*1000).."FPS", font.normal, 12, 12)
+	sdl.surf.attach()
+	sdl.draw.text(12, 12, math.floor(fpsSmooth/fpsAverage*1000).."FPS")
 
 	-- FIXME: weird colors on chroma histogram, check chroma calc
 	-- put histogram buffer
+	--[[
 	for i=1, 255 do
 		--wrap graphics
 		--dbg.warn("HISTOGRAM DRAWING")
@@ -348,6 +354,7 @@ local function imageProcess(flag)
 	sdl.text("Chroma", font.normal, 12, __global.setup.windowSize[2]-305)
 	sdl.text("Luma", font.normal, 12, __global.setup.windowSize[2]-205)
 	sdl.text("RGB", font.normal, 12, __global.setup.windowSize[2]-105)
+	--]]
 end
 
 --register imageProcess
@@ -390,10 +397,10 @@ function node:click()
 				end
 			elseif t=="title" then
 				if (not self[n].ui.noClose) and -- prevent closing of non-closable items
-					self.mouse.x>=self[n].ui.x+130 and --delete node
-					self.mouse.x<=self[n].ui.x+146 and
-					self.mouse.y>=self[n].ui.y+2 and
-					self.mouse.y<=self[n].ui.y+18 then
+						sdl.input.x>=self[n].ui.x+130 and --delete node
+						sdl.input.x<=self[n].ui.x+146 and
+						sdl.input.y>=self[n].ui.y+2 and
+						sdl.input.y<=self[n].ui.y+18 then
 					self:remove(n)
 					self:draw()
 					self:calcLevels()
@@ -438,12 +445,13 @@ end
 calcUpdate = true
 node:calcLevels() --!! setup working levels in node setup allready!!
 node:draw()
-sdl.flip()
+sdl.update()
 while true do
-	mouse:update()
-
+	sdl.input.update()
+	--sdl.update()
+	
 	-- some simple interface handling, move to separate function!
-	if mouse.key.num==115 then--"S"
+	if sdl.input.key.num==115 then--"S"
 		print("Saving image: "..__global.saveFile)
 		-- why is bufoutL never filled? use bufout as it's always set to bufoutL?
 		local writeFunTable = {
@@ -457,7 +465,7 @@ while true do
 		writeFun(d, __global.setup.imageSaveParams)
 		d = nil
 	end
-	if mouse.key.num==122 then--"Z"
+	if sdl.input.key.num==122 then--"Z"
 		bufZoom()
 		lua.threadStop() -- stop processing
 		calcUpdate = true
@@ -466,11 +474,11 @@ while true do
 		coProcess()
 		node:draw()
 	end
-	if mouse.key.num==105 then--"I"
+	if sdl.input.key.num==105 then--"I"
 		__global.info = not __global.info
 		node:draw()
 	end
-	if mouse.key.num==113 then--"Q"
+	if sdl.input.key.num==113 then--"Q"
 		lua.threadStop()
 		node:cleanup()
 		lua.threadQuit()
@@ -481,16 +489,16 @@ while true do
 
 
 
-	if mouse.click[1] then
+	if sdl.input.click[1] then
 		node:click() --run mouse updating loop till mouse released
 	else
 		--draw progress bar
 		if calcUpdate then
 			local size = buf.x
 			local progress = math.floor(size*lua.threadGetProgress())
-			boxFill(350,8,350+progress,12,128,128,128)
-			boxFill(350+progress,8,350+size,12,32,32,32)
-			sdl.flip()
+			--boxFill(350,8,350+progress,12,128,128,128)
+			--boxFill(350+progress,8,350+size,12,32,32,32)
+			--sdl.update()
 		end
 
 		--force one last update before quitting
@@ -514,7 +522,7 @@ while true do
 			end
 		end
 	end
-	if mouse.quit then
+	if sdl.input.quit then
 		lua.threadStop()
 		node:cleanup()
 		lua.threadQuit()

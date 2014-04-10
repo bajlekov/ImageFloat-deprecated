@@ -22,13 +22,13 @@ global("toc")
 if type(__sdl)=="table" then
 	local t = 0
 	function tic()
-		t = __sdl.ticks()
+		t = __sdl.time()
 	end
 	function toc(m)
 		if m then
-			io.write(m..": "..tostring(__sdl.ticks() - t).."ms\n")
+			io.write(m..": "..tostring(__sdl.time() - t).."ms\n")
 		else
-			io.write(tostring(__sdl.ticks() - t).."ms\n")
+			io.write(tostring(__sdl.time() - t).."ms\n")
 		end
 	end
 else 
@@ -86,7 +86,7 @@ function dbg.error(m)
 	error("ERROR: "..m,0)
 end
 
-local ticks = __sdl.ticks
+local ticks = __sdl.time
 local time = ticks()
 local function trace()
 	local t = ticks()-time

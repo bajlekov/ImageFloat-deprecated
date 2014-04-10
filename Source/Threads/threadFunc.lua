@@ -59,7 +59,8 @@ __global.setup = require("Setup.IFsetup")
 __global.libPath = __global.setup.libPath or "./Libraries/"..ffi.os.."_"..ffi.arch.."/"
 
 -- replace the complete sdl lib with just the mutex functions and possibly tick/wait!
-local sdl = require("Include.sdltools")
+local sdl = require("Include.sdl")
+global("__sdl", sdl)
 
 if __global.setup.optCompile.ispc then
 	__global.ISPC = ffi.load("./Source/Ops/ISPC/ops.so")
