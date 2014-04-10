@@ -30,18 +30,24 @@ local _TTF = loadlib("SDL_ttf")
 local _IMG = loadlib("SDL_image")
 
 -- read SDL header
-ffi.cdef(io.open("./Source/Include/SDL.h", "r"):read('*a')) io.close()
+local f = io.open("./Source/Include/SDL.h", "r")
+f = f or io.open("./Include/SDL.h", "r")
+ffi.cdef(f:read('*a'))
+f:close()
 -- TODO: put definitions into corresponding lua file
 
 local sdl = {}
 
+--- Rectangle structure
 sdl.rect = ffi.typeof("SDL_Rect") -- x, y, w, h
 
+--- Initialise SDL system
 function sdl.init()
 	_SDL.SDL_Init(20)
 	_TTF.TTF_Init()
 	_IMG.IMG_Init(7) -- load JPG, PNG and TIFF support
 end
+--- Quit SDL system 
 function sdl.quit()
 	_SDL.SDL_Quit()
 	_TTF.TTF_Quit()
@@ -57,16 +63,19 @@ local SDL_NOFRAME	= 0x00000020
 
 local SDL_SRCALPHA	= 0x00010000
 
+--- Screen management functions
 sdl.screen = {}
 function sdl.screen.set(x, y)
-	sdl.screen.surf = _SDL.SDL_SetVideoMode(x, y, 32, SDL_DOUBLEBUF + SDL_HWSURFACE)
+	sdl.screen.surf = _SDL.SDL_SetVideoMode(x, y, 32, SDL_DOUBLEBUF + SDL_HWSURFACE) --- New Screen surface
 	sdl.screen.width = x
 	sdl.screen.height = y
 	sdl.surf.attach(sdl.screen.surf)
 	_SDL.SDL_EnableUNICODE(1) -- enable unicode support
 	return sdl.screen.surf
 end
+
 -- TODO: function for resizing the screen
+
 function sdl.screen.caption(title, toolbar) _SDL.SDL_WM_SetCaption(title, toolbar) end
 function sdl.screen.icon(file) _SDL.SDL_WM_SetIcon(_IMG.IMG_Load(file), null) end
 function sdl.screen.pixbuf() return ffi.cast("uint8_t*", sdl.screen.surf.pixels) end
@@ -114,6 +123,19 @@ end
 function sdl.surf.pixbuf(buf)
 	return ffi.cast("uint8_t*", buf and buf.pixels or sdl.surf.current.pixels)
 end
+
+function sdl.screen.get(x, y, w, h)
+	w = w or sdl.screen.width
+	h = h or sdl.screen.height
+	local buf = sdl.surf.new(w, h)
+	sdl.surf.copy(sdl.screen.surf, buf, sdl.rect(x or 0,y or 0,w,h), nil)
+	return buf
+end
+function sdl.screen.put(buf, x, y, w, h)
+	-- optional offset of origin buffer
+	sdl.surf.copy(buf, sdl.screen.surf, nil, sdl.rect(x or 0,y or 0,w or 0,h or 0))
+end
+
 function sdl.surf.attach(buf)
 	if buf then sdl.surf.current = buf
 	else sdl.surf.current = sdl.screen.surf end
@@ -174,12 +196,15 @@ do
 				print()
 			end
 			sdl.font.f = fonts[name][size]
+			sdl.font.t = name
 		else
 			sdl.font.f = name
+			sdl.font.t = name
 		end
 	end -- optional size, create new font if not present
 	function sdl.font.size(size)
 		local type = sdl.font.t
+		print(fonts[type])
 		if not fonts[type][size] then
 			fonts[type][size] = font(type, size)
 			print("register new font: "..type.."["..size.."]")
@@ -314,14 +339,14 @@ do
 	local function round(x) return ipart(x+0.5) end
 	local function fpart(x) return x-floor(x) end
 	local function rfpart(x) return 1-fpart(x) end
-	local function invpixeladd(x,y,r,g,b,a) return pAdd(y,x,r,g,b,a) end
+	local function invpixeladd(x,y,r,g,b,a) return sdl.draw.pMix(y,x,r,g,b,a) end
 	local function drawLineHQ(x1, y1, x2, y2, r, g, b, a)
 		--TODO: handle overlap of connected vertices in endpoint code
 		--TODO: implement connected vertices draw (polyline)
 		if x1==x2 and y1==y2 then return end 
 		local dx = x2 - x1
 		local dy = y2 - y1
-		local pixeladd = pAdd
+		local pixeladd = sdl.draw.pMix
 		if abs(dx) < abs(dy) then
 			x1, y1 = y1, x1
 			x2, y2 = y2, x2
@@ -489,13 +514,13 @@ end
 function sdl.update(x,y,w,h,force)
 	if x and y then 
 		sdl.screen.update(x,y,w,h)
-		sdl.input.update(force)
+		--sdl.input.update(force)
 	elseif x=="force" then
 		sdl.screen.update()
-		sdl.input.update("force")
+		--sdl.input.update("force")
 	else
 		sdl.screen.update()
-		sdl.input.update()
+		--sdl.input.update()
 	end
 end
 

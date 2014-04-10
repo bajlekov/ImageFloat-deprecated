@@ -16,6 +16,7 @@
 ]]
 
 local ffi = require("ffi")
+local sdl = __sdl
 local prec
 if __global==nil then
 	prec = {"float",4} 
@@ -169,11 +170,10 @@ return function(img)
 		end
 	end
 	--]]
-
+	local alpha = bit.lshift(255,-8)
 	function img.toSurface(buffer, surface)
-		surface = surface or __sdl.createSurface(buffer.x, buffer.y)
+		surface = surface or sdl.surf.new(buffer.x, buffer.y)
 		local surf = ffi.cast("uint32_t*", surface.pixels)
-		--local surf = ffi.cast("uint8_t*", surface.pixels)
 		if buffer.z==3 then
 			for x = 0, buffer.x-1 do
 				for y = 0, buffer.y-1 do
@@ -184,7 +184,7 @@ return function(img)
 					br = br>1 and 255 or br<0 and 0 or br*255
 					bg = bg>1 and 255 or bg<0 and 0 or bg*255
 					bb = bb>1 and 255 or bb<0 and 0 or bb*255
-					surf[(x + buffer.x * y)] = bit.lshift(br,-16)+bit.lshift(bg, 8)+math.floor(bb)
+					surf[(x + buffer.x * y)] = bit.lshift(br,-16)+bit.lshift(bg, 8)+math.floor(bb)+alpha
 				end
 			end
 		elseif buffer.z==1 then
@@ -193,10 +193,11 @@ return function(img)
 					local br
 					br = buffer:get(x,y,0)
 					br = br>1 and 255 or br<0 and 0 or br*255
-					surf[(x + buffer.x * y)] = bit.lshift(br,-16)+bit.lshift(br, 8)+math.floor(br)
+					surf[(x + buffer.x * y)] = bit.lshift(br,-16)+bit.lshift(br, 8)+math.floor(br)+alpha
 				end
 			end
 		end
+		
 		return surface
 	end
 
