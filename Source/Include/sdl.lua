@@ -383,8 +383,10 @@ do
 		local x2, y2 = x1+w, y1+h
 		local r, g, b, a = sdl.draw.r, sdl.draw.g, sdl.draw.b, sdl.draw.a
 		if x1==x2 then
+			if y1>y2 then y2, y1 = y1, y2 end
 			sdl.draw.fill(x1,y1,1,y2-y1+1)
 		elseif y1==y2 then
+			if x1>x2 then x2, x1 = x1, x2 end
 			sdl.draw.fill(x1,y1,x2-x1+1,1)
 		elseif sdl.draw.q=="high" then
 			drawLineHQ(x1, y1, x2, y2, r, g, b, a)
