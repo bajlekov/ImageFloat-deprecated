@@ -494,6 +494,11 @@ extern __attribute__ ((visibility("default"))) void SDL_Quit(void);
 extern __attribute__ ((visibility("default"))) void TTF_Quit(void);
 extern __attribute__ ((visibility("default"))) void IMG_Quit(void);
 
+extern __attribute__ ((visibility("default"))) SDL_mutex * SDL_CreateMutex(void);
+extern __attribute__ ((visibility("default"))) int SDL_mutexP(SDL_mutex *mutex);
+extern __attribute__ ((visibility("default"))) int SDL_mutexV(SDL_mutex *mutex);
+extern __attribute__ ((visibility("default"))) void SDL_DestroyMutex(SDL_mutex *mutex);
+
 
 
 
