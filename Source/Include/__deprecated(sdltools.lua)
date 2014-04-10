@@ -87,8 +87,11 @@ os.execute([=[echo '#include <SDL.h> \n #include <SDL_ttf.h> \n #include <SDL_im
 os.execute([=[gcc -I /usr/include/SDL -E stub.c | grep -v '^#' > SDL.h]=])
 --]]
 
-ffi.cdef(io.open(__global.setup.incPath.."SDL.h", "r"):read('*a'))
-io.close()
+local f = io.open(__global.setup.incPath.."SDL.h", "r")
+f = f or io.open("./Source/Include/SDL.h", "r")
+f = f or io.open("./Include/SDL.h", "r")
+ffi.cdef(f:read('*a'))
+f:close()
 
 ffi.cdef([[
 	SDL_mutex *SDL_CreateMutex();
@@ -191,13 +194,21 @@ end
 function SDL.lockMutex(m) _SDL.SDL_mutexP(m) end
 function SDL.unlockMutex(m) _SDL.SDL_mutexV(m) end
 
+local nnn = 0
 function SDL.createThread(fun, ptr)
-	DBprint("Deprecated!")
+	-- DBprint("Deprecated!")
 	-- NYI: unsupported C type conversion at sdltools.lua:198
 	local t = _SDL.SDL_CreateThread(fun, ptr) 
+	nnn = nnn+1
+	print("CREATE: \n"..debug.traceback())
 	return ffi.gc(t, _SDL.SDL_KillThread)
 end
-function SDL.waitThread(t) _SDL.SDL_WaitThread(ffi.gc(t, nil), nil) end
+function SDL.waitThread(t)
+	_SDL.SDL_WaitThread(ffi.gc(t, nil), nil)
+	nnn = nnn-1
+	print("Destroy: \n"..debug.traceback())
+	print(nnn)
+end
 
 function SDL.input() return require("Tools.input")(_SDL) end
 function SDL.ticks() return _SDL.SDL_GetTicks() end
