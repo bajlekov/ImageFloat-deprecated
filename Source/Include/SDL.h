@@ -1,6 +1,3 @@
-struct SDL_mutex;
-typedef struct SDL_mutex SDL_mutex;
-
 typedef int8_t Sint8;
 typedef uint8_t Uint8;
 typedef int16_t Sint16;
@@ -456,48 +453,56 @@ typedef union SDL_Event {
 
 typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Thread SDL_Thread;
+typedef struct SDL_mutex SDL_mutex;
+typedef struct SDL_cond SDL_cond;
+typedef struct SDL_semaphore SDL_sem;
 
-extern __attribute__ ((visibility("default"))) void TTF_CloseFont(TTF_Font *font);
-extern __attribute__ ((visibility("default"))) Uint32 SDL_GetTicks(void);
-extern __attribute__ ((visibility("default"))) int SDL_Init(Uint32 flags);
-extern __attribute__ ((visibility("default"))) int TTF_Init(void);
-extern __attribute__ ((visibility("default"))) int IMG_Init(int flags);
-extern __attribute__ ((visibility("default"))) SDL_Surface * SDL_SetVideoMode(int width, int height, int bpp, Uint32 flags);
-extern __attribute__ ((visibility("default"))) void SDL_WM_SetCaption(const char *title, const char *icon);
-extern __attribute__ ((visibility("default"))) void SDL_WM_SetIcon(SDL_Surface *icon, Uint8 *mask);
-extern __attribute__ ((visibility("default"))) int SDL_EnableUNICODE(int enable);
-extern __attribute__ ((visibility("default"))) TTF_Font * TTF_OpenFont(const char *file, int ptsize);
-extern __attribute__ ((visibility("default"))) SDL_Surface * IMG_Load(const char *file);
-extern __attribute__ ((visibility("default"))) SDL_Surface * SDL_DisplayFormatAlpha(SDL_Surface *surface);
-extern __attribute__ ((visibility("default"))) void SDL_FreeSurface(SDL_Surface *surface);
-extern __attribute__ ((visibility("default"))) int SDL_UpperBlit(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect);
-//extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Blended(TTF_Font *font, const char *text, SDL_Color fg);
-extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Blended(TTF_Font *font, const char *text, Uint32 fg);
+void TTF_CloseFont(TTF_Font *font);
+Uint32 SDL_GetTicks(void);
+int SDL_Init(Uint32 flags);
+int TTF_Init(void);
+int IMG_Init(int flags);
+SDL_Surface * SDL_SetVideoMode(int width, int height, int bpp, Uint32 flags);
+void SDL_WM_SetCaption(const char *title, const char *icon);
+void SDL_WM_SetIcon(SDL_Surface *icon, Uint8 *mask);
+int SDL_EnableUNICODE(int enable);
+TTF_Font * TTF_OpenFont(const char *file, int ptsize);
+SDL_Surface * IMG_Load(const char *file);
+SDL_Surface * SDL_DisplayFormatAlpha(SDL_Surface *surface);
+void SDL_FreeSurface(SDL_Surface *surface);
+int SDL_UpperBlit(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect);
+SDL_Surface * TTF_RenderText_Blended(TTF_Font *font, const char *text, Uint32 fg);
+SDL_Surface * TTF_RenderText_Shaded(TTF_Font *font, const char *text, Uint32 fg, Uint32 bg);
+SDL_Surface * TTF_RenderText_Solid(TTF_Font *font, const char *text, Uint32 fg);
+SDL_Surface * SDL_CreateRGBSurface(Uint32 flags, int width, int height, int depth, Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask);
+int SDL_Flip(SDL_Surface *screen);
+void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Uint32 w, Uint32 h);
+int SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color);
+int SDL_PollEvent(SDL_Event *event);
+Uint8 * SDL_GetKeyState(int *numkeys);
+void SDL_Delay(Uint32 ms);
+void SDL_Quit(void);
+void TTF_Quit(void);
+void IMG_Quit(void);
 
-//extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Shaded(TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg);
-extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Shaded(TTF_Font *font, const char *text, Uint32 fg, Uint32 bg);
+SDL_Thread * SDL_CreateThread(int ( *fn)(void *), void *data);
+void SDL_KillThread(SDL_Thread *thread);
+void SDL_WaitThread(SDL_Thread *thread, int *status);
 
-//extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Solid(TTF_Font *font, const char *text, SDL_Color fg);
-extern __attribute__ ((visibility("default"))) SDL_Surface * TTF_RenderText_Solid(TTF_Font *font, const char *text, Uint32 fg);
+SDL_mutex * SDL_CreateMutex(void);
+int SDL_mutexP(SDL_mutex *mutex);
+int SDL_mutexV(SDL_mutex *mutex);
+void SDL_DestroyMutex(SDL_mutex *mutex);
 
-extern __attribute__ ((visibility("default"))) SDL_Surface * SDL_CreateRGBSurface(Uint32 flags, int width, int height, int depth, Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask);
-extern __attribute__ ((visibility("default"))) int SDL_Flip(SDL_Surface *screen);
-extern __attribute__ ((visibility("default"))) void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Uint32 w, Uint32 h);
-extern __attribute__ ((visibility("default"))) int SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color);
-extern __attribute__ ((visibility("default"))) int SDL_PollEvent(SDL_Event *event);
-extern __attribute__ ((visibility("default"))) Uint8 * SDL_GetKeyState(int *numkeys);
-extern __attribute__ ((visibility("default"))) void SDL_Delay(Uint32 ms);
-extern __attribute__ ((visibility("default"))) SDL_Thread * SDL_CreateThread(int ( *fn)(void *), void *data);
-extern __attribute__ ((visibility("default"))) void SDL_KillThread(SDL_Thread *thread);
-extern __attribute__ ((visibility("default"))) void SDL_WaitThread(SDL_Thread *thread, int *status);
-extern __attribute__ ((visibility("default"))) void SDL_Quit(void);
-extern __attribute__ ((visibility("default"))) void TTF_Quit(void);
-extern __attribute__ ((visibility("default"))) void IMG_Quit(void);
+SDL_cond *SDL_CreateCond(void);
+int SDL_CondSignal(SDL_cond *cond);
+int SDL_CondWait(SDL_cond *cond, SDL_mutex *mut);
+void SDL_DestroyCond(SDL_cond *cond);
 
-extern __attribute__ ((visibility("default"))) SDL_mutex * SDL_CreateMutex(void);
-extern __attribute__ ((visibility("default"))) int SDL_mutexP(SDL_mutex *mutex);
-extern __attribute__ ((visibility("default"))) int SDL_mutexV(SDL_mutex *mutex);
-extern __attribute__ ((visibility("default"))) void SDL_DestroyMutex(SDL_mutex *mutex);
+SDL_sem *SDL_CreateSemaphore(Uint32 initial_value);
+int SDL_SemPost(SDL_sem *sem);
+int SDL_SemWait(SDL_sem *sem);
+void SDL_DestroySemaphore(SDL_sem *sem);
 
 
 
