@@ -23,13 +23,6 @@ This program comes WITHOUT ANY WARRANTY.
 This is free software, and you are welcome to redistribute it under the conditions of the GNU General Public License version 3.
 ]])
 
-__DEBUG = false
-function DBprint(...)
-	if __DEBUG then
-		print(debug.traceback(...))
-	end
-end
-
 -- setup paths if not loading bytecode
 --package.path = 	"./?.lua;"..package.path
 --require("path")

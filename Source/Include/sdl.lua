@@ -206,7 +206,6 @@ do
 			end
 			if not fonts[name][size] then
 				fonts[name][size] = font(name, size)
-				print()
 			end
 			sdl.font.f = fonts[name][size]
 			sdl.font.t = name
@@ -217,7 +216,6 @@ do
 	end -- optional size, create new font if not present
 	function sdl.font.size(size)
 		local type = sdl.font.t
-		print(fonts[type])
 		if not fonts[type][size] then
 			fonts[type][size] = font(type, size)
 			print("register new font: "..type.."["..size.."]")

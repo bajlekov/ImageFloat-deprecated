@@ -17,13 +17,6 @@
 
 print("Thread initialisation...")
 
-__DEBUG = true
-function DBprint(...)
-	if __DEBUG then
-		print(debug.traceback(...))
-	end
-end
-
 -- disable implicit globals
 do
 	function global(k, v) -- assign new global
