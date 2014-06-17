@@ -67,6 +67,14 @@ local typedefs = [[
 		SDL_sem *read;
 		double v;
 	}chStruct;
+	typedef struct{
+		SDL_sem *write;
+		SDL_sem *read;
+		double *v;	// pointer to data
+		int n;		// total length
+		int r;		// read location
+		int w;		// write location
+	}chStructBuf;
 	typedef int (*chFun)(chStruct*, const char*);
 ]]
 
@@ -158,30 +166,80 @@ local function channel(chStruct)
 		sdl.thread.semPost(c.read)
 		return t
 	end
+	function o:peek() return c.v end
+	function o:struct() return c end
+	return o
+end
+
+local function channelBuf(chStruct)
+	local length
+	if type(chStruct)=="number" then
+		length = chStruct
+		chStruct = nil
+	end
+	
+	local o = {}
+	local c
+	if chStruct then
+		c = chStruct
+	else
+		c = ffi.new("chStructBuf")
+		c.write = sdl.thread.sem(0)
+		c.read = sdl.thread.sem(length)
+		c.v = ffi.new("double[?]", length)
+		c.n = length
+		c.r = 0
+		c.w = 0
+	end
+	
+	function o:push(i)
+		sdl.thread.semWait(c.read)
+		c.v[c.w] = i
+		c.w = c.w + 1
+		if c.w==c.n then c.w = 0 end
+		sdl.thread.semPost(c.write)
+	end
+	function o:pull()
+		sdl.thread.semWait(c.write)
+		local t = c.v[c.r]
+		c.r = c.r + 1
+		if c.r==c.n then c.r = 0 end
+		sdl.thread.semPost(c.read)
+		return t
+	end
+	function o:peek(n) return c.v[n or c.r] end
 	function o:struct() return c end
 	return o
 end
 
 -- testing
+local ch = channel()
+
 local th = l.newState()
 l.doString(th, threadString)
 local thRun = funptr(th, "__run")
 local chPass = funptr(th, "__getCh", "chFun")
+chPass(ch:struct(), "ch")
+sdl.thread.new(thRun, nil)
 
-local ch = channel()
-
+local th = l.newState()
+l.doString(th, threadString)
+local thRun = funptr(th, "__run")
+local chPass = funptr(th, "__getCh", "chFun")
 chPass(ch:struct(), "ch")
 sdl.thread.new(thRun, nil)
 
 print(ch:pull(), "yay")
-print(ch:pull(), "yay")
-print(ch:pull(), "yay")
-print(ch:pull(), "yay")
+print(ch:pull(), ".")
+print(ch:pull(), ".")
+print(ch:pull(), ".")
 
+--[[
 local t = sdl.time()
 for j = 1, 100000 do
-	ch:pull()
+	print(ch:pull())
 end
 print( ((sdl.time()-t)/100000).."ms" )
+--]]
 
 print("done!")
