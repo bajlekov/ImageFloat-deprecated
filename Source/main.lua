@@ -273,7 +273,7 @@ function funProcess()
 	end
 
 	-- calculate histograms
-	hist.calculate(bufout)
+	--hist.calculate(bufout)
 
 	-- loop timer
 	io.write("Loop total: "..(sdl.time()-loopTime).."ms\n")
