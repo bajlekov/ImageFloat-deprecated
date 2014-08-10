@@ -40,10 +40,16 @@ This is free software, and you are welcome to redistribute it under the conditio
 -- Coroutine functions are never compiled!
 
 bytecodes:
-	50: ??
-	51: definition of function inside of hot trace, fix immediately on encounter!!!
-	70: ??
-	71: vararg where a) variables not in chunk, b) no use of select, 3) variable output
+	50: UCLO
+	51: FNEW / definition of function inside of hot trace, fix immediately on encounter!!!
+	70: ITERN
+	71: VARG / vararg where a) variables not in chunk, b) no use of select, 3) variable output
+
+bytecode numbers:
+--function bcnumber_to_name( bcnum )
+--	if not bcnum then return '' end
+--	return string.sub(require("jit.vmdef").bcnames, bcnum*6+1, bcnum*6+6)
+--end
 
 record:
 luajit -jv=out.txt main.lua
