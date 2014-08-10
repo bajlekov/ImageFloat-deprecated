@@ -58,11 +58,11 @@ do
 	GAMMA.cie 		= {0.45,0}
 	GAMMA.srgb 		= {0.42,0.055}
 	GAMMA.hdtv 		= {0.45,0.099}
-	GAMMA.wide 		= {0.45}
+	GAMMA.wide 		= {0.45,0}
 
-	local Rec709 = false --Rec709 or sRGB?
-	local a = Rec709 and 0.099 or 0.055
-	local G = Rec709 and 1/0.45 or 1/0.42
+	local userGamma = "srgb"
+	local a = GAMMA[userGamma][2]
+	local G = 1/GAMMA[userGamma][1]
 
 
 	local a_1 = 1/(1+a)
