@@ -18,7 +18,7 @@
 local ffi = require("ffi")
 local lua
 
---make arch-dependent!!
+--TODO: use loadlib!
 if ffi.os == "Linux" then lua = ffi.load(__global.libPath.."libluajit.so") end
 if ffi.os == "Windows" then lua = ffi.load("lua51.dll") end
 
@@ -160,6 +160,8 @@ end
 os.execute("gcc -O3 -shared -fomit-frame-pointer -fPIC -o lib/Linux_x64/libthread.so thread.c -L. -lSDL")
 os.execute("gcc -m32 -O3 -shared -fomit-frame-pointer -o lib/Linux_x32/libthread.so thread.c -L. -lSDL")
 os.execute("i586-mingw32msvc-gcc -O3 -shared -fomit-frame-pointer -o lib/Windows_x32/thread.dll thread.c -L. -llua51 -lsdl")
+
+gcc -O3 -shared -fomit-frame-pointer -fPIC -o thread.dll thread.c -L ./../ -llua51
 --]]
 --os.execute("gcc -O3 -shared -fomit-frame-pointer -fPIC -o ../Libraries/Linux_x64/libthread.so ./Threads/thread.c -L. -lSDL")
 --print("!!!!!!!!! COMPILE THREAD CALLER FOR ALL PLATFORMS !!!!!!!!")
@@ -167,8 +169,9 @@ os.execute("i586-mingw32msvc-gcc -O3 -shared -fomit-frame-pointer -o lib/Windows
 
 if type(__sdl)=="table" then
 	local p, th
-	if ffi.os == "Linux" then p, th = pcall(ffi.load, __global.libPath.."libthread.so") end
-	if ffi.os == "Windows" then p, th = pcall(ffi.load, __global.libPath.."thread.dll") end
+	--if ffi.os == "Linux" then p, th = pcall(ffi.load, __global.libPath.."libthread.so") end
+	--if ffi.os == "Windows" then p, th = pcall(ffi.load, __global.libPath.."thread.dll") end
+  p, th = pcall(loadlib, "thread")
 
 	if p then
 
