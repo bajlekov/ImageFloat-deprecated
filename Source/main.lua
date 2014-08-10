@@ -163,6 +163,11 @@ local readFunTable = {
 local readFun = readFunTable[__global.setup.imageLoadType]
 
 local imageTemp = ppm.toBuffer(readFun(__global.loadFile, __global.setup.imageLoadParams))
+
+-- TODO: loading screen inbetween: parallel execution
+lua.threadSetup({imageTemp, imageTemp})
+lua.threadRunWait("ops", "cs", "SRGB", "LRGB")
+
 local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
 	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
