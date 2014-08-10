@@ -1,5 +1,5 @@
-#include <luajit-2.0/lualib.h>
-#include <luajit-2.0/lauxlib.h>
+#include "lualib.h"
+#include "lauxlib.h"
 
 lua_State* L[64];
 int arg_in;
