@@ -34,10 +34,29 @@ local function construct(i)
 	return loadstring(table.concat(funTable))()
 end
 
+local function constructFixed(i, p)
+	print("constructing unroll["..i.."]["..p.."] function")
+	local paramStr = ""
+	if p>0 then
+		paramStr = "p1"
+		for i = 2, p do
+			paramStr = paramStr..", p"..i
+		end
+	end
+	local funStart = "return function(fun, "..paramStr..") "
+	local funTable = {}
+	table.insert(funTable, funStart)
+	for j = 0, i-1 do
+		table.insert(funTable, "fun("..j..", "..paramStr..") ")
+	end
+	table.insert(funTable, funEnd)
+	return loadstring(table.concat(funTable))()
+end
+
 -- extend metatable with newindex
 local unrollMT = {}
 function unrollMT.__index(self, k)
-	if k>4096 then
+	if k>512 then
 		return function(fun, ...)
 			for i = 0, k-1 do
 				fun(i, ...)
@@ -51,6 +70,18 @@ function unrollMT.__index(self, k)
 end
 setmetatable(unroll, unrollMT)
 
+---[[
+local fixed = {}
+function unroll.fixed(i, p)
+	if fixed[i]==nil then
+		fixed[i] = {}
+	end
+	if fixed[i][p]==nil then
+		fixed[i][p] = constructFixed(i, p)
+	end
+	return fixed[i][p]
+end
+--]]
 
 -- add functions for multidimensional unrolling
 unroll.construct1 = function(i1, i2)
@@ -117,7 +148,7 @@ end
 
 --testcase:
 --[[
-unroll[34](
+unroll.fixed(34,1)(
 function(i, a)
 	print(i.."+"..a.."="..(i+a))
 end
