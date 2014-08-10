@@ -15,7 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-require("jit.p").start("sli1m1", "profileMain")
+--require("jit.p").start("vfni1m1", "profile.txt")
+--require("jit.v").start("verbose.txt")
+--require("jit.dump").start("tbT", "dump.txt")
 
 print([[
 ImageFloat  Copyright (C) 2011-2014 G.Bajlekov
