@@ -21,7 +21,7 @@
 jit.opt.start("sizemcode=512")
 
 --require("jit.v").start("verbose.txt")
-require("jit.dump").start("tT", "dump.txt")
+--require("jit.dump").start("tT", "dump.txt")
 --require("jit.p").start("vfi1m10", "profile.txt")
 
 math.randomseed(os.time())
@@ -115,14 +115,14 @@ do
 	end
 	
 	function data.get(d, x, y, z)
-		if d.cs==CS then
+		if d.cs==CS or D.CS=="MAP" then
 			return d:__get(x, y, z)
 		else
 			error("Wrong CS!")
 		end
 	end
 	function data.set(d, x, y, z, v)
-		if d.cs==CS then
+		if d.cs==CS or d.cs=="MAP" then
 			d:__set(x, y, z, v)
 		else
 			error("Wrong CS!")
@@ -157,10 +157,7 @@ end
 -- introduce switchable XY / YX loops based on layout
 
 
-function data:layout(pack, order, cs) -- add any parameters that might change frequently
-	local d = self
-	jit.flush(true)
-	
+function data.layout(d, pack, order, cs) -- add any parameters that might change frequently
 	-- set to default if not supplied
 	pack = pack or d.pack
 	order = order or d.order
@@ -169,6 +166,7 @@ function data:layout(pack, order, cs) -- add any parameters that might change fr
 	if d.pack==pack and d.order==order and d.cs==cs then
 		return d
 	else
+		jit.flush(true)
 		local t = d:new()
 		t.cs = cs 
 		t.pack = pack
@@ -207,8 +205,6 @@ local function toAoS(d) return d:layout("AoS") end
 local function toSoA(d) return d:layout("SoA") end
 local function toXY(d) return d:layout(nil, "XY") end
 local function toYX(d) return d:layout(nil, "YX") end
-
-
 
 
 
@@ -326,6 +322,7 @@ end
 sdl.toc("add YX "..d.pack)
 
 collectgarbage("setpause", 100)
+print(alloc.count(), collectgarbage("count"))
 sdl.tic()
 local b=0
 for i = 1, 100000 do
@@ -333,7 +330,7 @@ for i = 1, 100000 do
 	a:set(1,1,1,1)
 	b = b + a:get(1,1,1)
 end
-print(alloc.count())
 sdl.toc("constructor "..b)
+print(alloc.count(), collectgarbage("count"))
 collectgarbage("collect")
-print(alloc.count())
+print(alloc.count(), collectgarbage("count"))
