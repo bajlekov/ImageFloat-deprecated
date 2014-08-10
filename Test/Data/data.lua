@@ -18,56 +18,26 @@
 -- this library provides tools for storing and accessing structured data
 -- it is intended to replace the imgtools library
 
+jit.opt.start("sizemcode=512")
+
+--require("jit.v").start("verbose.txt")
+require("jit.dump").start("tT", "dump.txt")
+--require("jit.p").start("vfi1m10", "profile.txt")
 
 math.randomseed(os.time())
 local ffi = require("ffi")
 require("global")
 
-local sdl = require("Include.sdl")
+local sdl = require("Include.sdl2")
 local unroll = require("Tools.unroll")
+local alloc = require("Test.Data.alloc")
 
--- memory allocation handling
-local prec = {"float",4} 
+local prec = {"float",4} --TODO: get desired bit depth
 print("Using "..(prec[2]*8).."bit precision buffers...")
-ffi.cdef[[
-	void * malloc ( size_t size );
-	void * calloc ( size_t num, size_t size );
-	void * realloc ( void * ptr, size_t size );
-	void free ( void * ptr );
-	typedef float float_a __attribute__ ((aligned (16)));
-	typedef double double_a __attribute__ ((aligned (16)));
-]] -- allocate aligned memory for use with SSE
-local allocCount = 0
-local allocTable = {}
-setmetatable(allocTable, {__mode="k"})
-local function free(p)
-	allocCount = allocCount - 1
-	allocTable[p] = nil
-	ffi.C.free(ffi.gc(p, nil))
-end
-local function allocF(size)
-	allocCount = allocCount + 1
-	local t = ffi.cast("float_a*", ffi.C.calloc(size, 4))
-	allocTable[t] = size * 4
-	return ffi.gc(t, free)
-end
-local function allocD(size)
-	allocCount = allocCount + 1
-	local t = ffi.cast("double_a*", ffi.C.calloc(size, 8))
-	allocTable[t] = size * 8
-	return ffi.gc(t, free)
-end
-local function getAllocCount() return allocCount end
-local function getAllocSize()
-	local sum = 0
-	for _, v in pairs(allocTable) do sum = sum + v end
-	return sum/1024/1024
-end
+local dataAlloc = prec[2]==4 and alloc.float32 or alloc.float64
 
 local data = {__type="data"}
-data.alloc = prec[2]==4 and allocF or allocD
 data.meta = {__index = data}
-
 data.meta.__tostring = function(a)
 	return "Image buffer ["..a.x..", "..a.y..", "..a.z.."], CS: "..a.color.cs.."."
 end
@@ -79,12 +49,7 @@ function data:new(x, y, z)
 	local size = x*y*z
 	
 	local o = {
-		data = self.alloc(size),
-		color = self.color or {cs = "MAP",
-							gamma = nil,
-							wp = nil,
-							xyz = nil,
-							},
+		data = dataAlloc(size),
 		x = x, y = y, z = z,
 		
 		layout = {pack = "AoS", order = "XY", slice = nil}
