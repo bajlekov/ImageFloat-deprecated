@@ -134,6 +134,17 @@ function l.loadVariable(state, name, ...)
 	end
 end
 
+function l.loadVariable(state, name, t)
+	lua.lua_getfield(state, LUA_GLOBALSINDEX, name)
+	local n = #t
+	if n>0 then
+		for k = 1, n do
+			local v = t[k]
+			lua.lua_getfield(state, -1, v)
+		end
+	end
+end
+
 function l.newState()
 	local state = lua.luaL_newstate()
 	--FIXME: error with luajit 2.1
@@ -177,7 +188,7 @@ if type(__sdl)=="table" then
 		l.threadInstance = th.L
 		function l.threadArgIn(n) th.arg_in = n end		-- not used
 		function l.threadArgOut(n) th.arg_out = n end	-- not used
-		
+
 		function l.threadInit(n, file)	--number of threads, file to load in new instances
 			l.numCores = n -- #number
 			l.threadCounter = ffi.new("int[?]", n)
@@ -246,7 +257,7 @@ if type(__sdl)=="table" then
 				local bufs = {}
 				local dims = {} -- x1, y1, z1, x2, y2, z2, x3, y3, z3 ...
 				local n -- error thrown or hook called during recording at luatools.lua:248
-				
+
 				if type(bufs)=="table" and buflist.__type==nil then -- table of bufs
 					for k, v in ipairs(buflist) do
 						bufs[k] = v
@@ -256,8 +267,8 @@ if type(__sdl)=="table" then
 						--table.insert(dims, v.x)
 						--table.insert(dims, v.y)
 						--table.insert(dims, v.z)
-					end
-					n = #bufs
+				end
+				n = #bufs
 				elseif type(bufs)=="table" and buflist.__type=="buffer" then
 					bufs[1] = buflist
 					dims[1] = buflist.x
@@ -268,40 +279,42 @@ if type(__sdl)=="table" then
 					--table.insert(dims, buflist.z)
 					n = 1
 				end
-				
+
 				if type(params)~="table" then
 					if type(params)=="number" then params = {params} else params = {} end
 				end
-				
+
 				l.threadPushBuffers(bufs)
 				l.threadPushITable(dims, "__dims")
 				l.threadPushITable(params, "__params")
-	
+
 				for i = 0, l.numCores-1 do
 					l.doFunction(l.threadInstance[i], "__setup") --run setup function
 				end
 			end
-			function l.threadRun(...)
+			function l.threadRun(name, ...)
+				local a = {...}
 				procTime = sdl.time()
-				-- NYI: bytecode 71 at luatools.lua:270
+				-- NYI: bytecode 71
 				for i = 0, l.numCores-1 do
 					l.threadProgress[i]=0
 					lua.lua_settop(l.threadInstance[i], 0) -- restore stack
-					l.loadVariable(l.threadInstance[i], ...) -- loads processing function
+					l.loadVariable(l.threadInstance[i], name, a) -- loads processing function
 					thread[i+1] = sdl.thread.new(l.threadFunction, l.threadCounter+i) -- runs preset function in each instance!!!
 				end
 				l.threadRunning = true
-				procName = table.concat({...},".")
+				procName = name.."."..table.concat(a,".")
 			end
 			function l.threadWait()
 				--if l.threadRunning then
-					for i = 0, l.numCores-1 do
-						sdl.thread.wait(thread[i+1], NULL)
-					end
-					if not __global.preview then
-						io.write("("..procName.."): "..(sdl.time()-procTime).."ms ("..(sdl.time()-loopTime).."ms)\n")
-					end
-					loopTime = sdl.time()
+				for i = 0, l.numCores-1 do
+					sdl.thread.wait(thread[i+1], NULL)
+				end
+				
+				if not __global.preview then
+					io.write("("..procName.."): "..(sdl.time()-procTime).."ms ("..(sdl.time()-loopTime).."ms)\n")
+				end
+				loopTime = sdl.time()
 				--else
 				--	-- deprecated use:
 				--	error("Thread not running! Skipping threadWait()")
@@ -342,8 +355,8 @@ if type(__sdl)=="table" then
 		function l.threadDone() --returns true once when the threads are finished
 			for i = 0, l.numCores-1 do
 				if l.threadProgress[i]~=-1 then return false end
-			end
-			return true
+		end
+		return true
 		end
 	else
 		print("threading library not loaded, multithreading functionality not supported")
