@@ -84,7 +84,7 @@ math.randomseed(os.time())
 -- TODO internal console for debugging etc.
 
 --local sdl = require("Include.sdltools")
-local sdl = require("Include.sdl")
+local sdl = require("Include.sdl2")
 global("__sdl", sdl)
 local lua = require("Tools.luatools")
 local dbg = require("Tools.dbgtools")
