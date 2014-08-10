@@ -72,6 +72,8 @@ grep "NYI" out.txt | grep -v "coroutine"
 	- still better to create regular function and parse that for optimization -> JIT-y compilation instead of branchy code
 --]]
 
+package.path = package.path .. ';Source/?.lua; ./?/.init.lua'
+
 local ffi = require("ffi")
 local __global = require("global")
 global("__global", __global)
