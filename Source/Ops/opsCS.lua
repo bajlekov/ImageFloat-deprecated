@@ -90,7 +90,7 @@ end
 
 -- HSV/HSL <=> SRGB
 local SRGBtoHSV
---local HSVtoSRGB
+local HSVtoSRGB
 local SRGBtoHSL
 local HSLtoSRGB
 local SRGBtoHSI
@@ -120,9 +120,7 @@ do
 	local ones = {{1,0,0},{1,1,0},{0,1,0},{0,1,1},{0,0,1},{1,0,1}}
 	local exes = {{0,1,0},{-1,0,0},{0,0,1},{0,-1,0},{1,0,0},{0,0,-1}}
 	
-	global("HtoRGB") --FIXME!!
-	global("HSVtoSRGB") --FIXME!!
-	function HtoRGB(h)
+	local function HtoRGB(h)
 		h = h * 6
 		local n = math.floor(h)
 		local x = h - n
@@ -143,7 +141,9 @@ do
 		local c = (1 - math.abs(2 * i3 - 1)) * i2
 		return (o1-0.5)*c+i3, (o2-0.5)*c+i3, (o3-0.5)*c+i3
 	end
+	global("HtoRGB", HtoRGB)
 end
+global("HSVtoSRGB", HSVtoSRGB)
 
 
 local WP = {
@@ -328,9 +328,9 @@ do
 	-- use sampling at 1K to find matching temperature and green-balance
 end
 
-global("TtoXY")
-global("tanTtoXY")
-global("norTtoXY")
+local TtoXY
+local tanTtoXY
+local norTtoXY
 local TtoM
 local MtoT
 local dMatT
@@ -372,9 +372,13 @@ do
 	local function TtoM(T) return 1000000/T end
 	local function MtoT(M) return 1000000/M end
 	local function dMatT(M,T) return MtoT(TtoM(T)+M) end --offset with M mired from T
-	global("dTdMatT")
-	function dTdMatT(T) return (MtoT(TtoM(T)+0.5)-MtoT(TtoM(T)-0.5)) end --get offset in K for 1 mired at T 
+	
+	local function dTdMatT(T) return (MtoT(TtoM(T)+0.5)-MtoT(TtoM(T)-0.5)) end --get offset in K for 1 mired at T 
+	global("dTdMatT", dTdMatT)
 end
+global("TtoXY", TtoXY)
+global("tanTtoXY", tanTtoXY)
+global("norTtoXY", norTtoXY)
 
 local TtoXY_D
 do
@@ -405,8 +409,7 @@ end
 --nm to xy (from table)
 
 --chromaticity coordinates
-global("XYtoXYZ")
-function XYtoXYZ(x,y)
+local function XYtoXYZ(x,y)
 	local X, Z
 	X = x * (1/y)
 	Z = (1-x-y) * (1/y)
@@ -418,6 +421,7 @@ local function XYZtoXY(X,Y,Z)
 	y = Y/(X+Y+Z)
 	return x, y
 end
+global("XYtoXYZ", XYtoXYZ)
 
 --chromatic adaptation transforms
 local CAT = {}
@@ -438,8 +442,7 @@ local cat = CAT.bradford
 local catInv = mat.inv(cat)
 
 --implement color correction: von kries transform with chosen matrix
-global("vonKriesTransform")
-function vonKriesTransform(source, dest)
+local function vonKriesTransform(source, dest)
 	if type(source)=="string" then source = WP[source] end
 	if type(dest)=="string" then dest = WP[dest] end
 	source = mat.mult(cat,source)
@@ -447,6 +450,7 @@ function vonKriesTransform(source, dest)
 	local sd = {dest[1]/source[1], dest[2]/source[2], dest[3]/source[3]}
 	return mat.matMult(mat.diagMult(catInv,sd), cat)
 end
+global("vonKriesTransform", vonKriesTransform)
 
 --[[ example transformation matrix to sRGB with D50 wp
 
