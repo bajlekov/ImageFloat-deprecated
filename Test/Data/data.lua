@@ -39,9 +39,10 @@ local dataAlloc = prec[2]==4 and alloc.float32 or alloc.float64
 local data = {__type="data"}
 data.meta = {__index = data}
 data.meta.__tostring = function(a)
-	return "Image buffer ["..a.x..", "..a.y..", "..a.z.."], CS: "..a.color.cs.."."
+	return "Image buffer ["..a.x..", "..a.y..", "..a.z.."], CS: "..a.cs().."."
 end
 
+-- having layout as object properties is dangerous, but using hidden upvalues incurs a significant overhead
 function data:new(x, y, z)
 	x = x or self.x or 1
 	y = y or self.y or 1
@@ -51,8 +52,9 @@ function data:new(x, y, z)
 	local o = {
 		data = dataAlloc(size),
 		x = x, y = y, z = z,
-		
-		layout = {pack = "AoS", order = "XY", slice = nil}
+		cs = self.cs or "MAP",
+		pack = self.pack or "AoS",
+		order = self.order or "XY",
 	}
 	setmetatable(o, self.meta)
 	return o
@@ -70,353 +72,182 @@ local function AC(d, n)
 	else return n end
 end
 
-local hybridSize = 128
--- TODO: unroll loops over hybrid chunks for small sizes!
-
-local function toSoA(data)
-	jit.flush(true)
-	if data.layout.pack=="SoA" or data.z==1 then
-		return data
-	elseif data.layout.pack=="AoS" then
-		local size = data.x*data.y
-		local sz = data.z
-		local t = data.alloc(size*sz)
-		local d = data.data
-		local function fun (z, i)
-			t[i+z*size] = d[i*sz+z] 
-		end
-		for i = 0, size-1 do
-			unroll[sz](fun, i)
-		end
-		free(data.data)
-		data.data = t
-		data.layout.pack = "SoA"
-		return data
-	elseif data.layout.pack=="Hybrid" then
-		local size = data.x*data.y
-		local sz = data.z
-		local t = data.alloc(size*sz)
-		local d = data.data
-		local rem = size%hybridSize
-		
-		local function fun (z, i, j)
-			t[(i+j)+z*size] = d[j*sz+i+z*hybridSize]
-		end
-		local function funrem (z, i, j)
-			t[(i+j)+z*size] = d[j*sz+i+z*rem]
-		end
-		
-		for j = 0, size-hybridSize, hybridSize do
-			for i = 0, hybridSize-1 do
-				unroll[sz](fun, i, j)
-			end
-		end
-		for i = 0, rem-1 do
-			unroll[sz](funrem, i, size-rem)
-		end
-		
-		free(data.data)
-		data.data = t
-		data.layout.pack = "SoA"
-		return data
-	else
-		error("Unrecognised layout!")
-	end
+-- dedicated position functions
+local pos = {}
+pos.AoS = {}
+pos.SoA = {}
+local function broadcast(d, x, y, z)
+	x = d.x==1 and 0 or x -- broadcast
+	y = d.y==1 and 0 or y -- broadcast
+	z = d.z==1 and 0 or z -- broadcast
+	return d, x, y, z
 end
-
-local function toAoS(data)
-	jit.flush(true)
-	if data.layout.pack=="AoS" or data.z==1 then
-		return data
-	elseif data.layout.pack=="SoA" then
-		local size = data.x*data.y
-		local sz = data.z
-		local t = data.alloc(size*sz)
-		local d = data.data
-		local function fun (z, i)
-			t[i*sz+z] = d[i+z*size] 
-		end
-		for i = 0, size-1 do
-			unroll[sz](fun, i)
-		end
-		free(data.data)
-		data.data = t
-		data.layout.pack = "AoS"
-		return data
-	elseif data.layout.pack=="Hybrid" then
-		local size = data.x*data.y
-		local sz = data.z
-		local t = data.alloc(size*sz)
-		local d = data.data
-		local rem = size%hybridSize
-		
-		local function fun (z, i, j)
-			t[(i+j)*sz+z] = d[j*sz+i+z*hybridSize]
-		end
-		local function funrem (z, i, j)
-			t[(i+j)*sz+z] = d[j*sz+i+z*rem]
-		end
-		
-		for j = 0, size-hybridSize, hybridSize do
-			for i = 0, hybridSize-1 do
-				unroll[sz](fun, i, j)
-			end
-		end
-		for i = 0, rem-1 do
-			unroll[sz](funrem, i, size-rem)
-		end
-		
-		free(data.data)
-		data.data = t
-		data.layout.pack = "AoS"
-		return data
-	else
-		error("Unrecognised layout!")
-	end
-end
-
-local function toHybrid(data)
-	jit.flush(true)
-	if data.layout.pack=="Hybrid" or data.z==1 then
-		return data
-	elseif data.layout.pack=="AoS" then
-		local size = data.x*data.y
-		local sz = data.z
-		local t = data.alloc(size*sz)
-		local d = data.data
-		local rem = size%hybridSize
-		
-		local function fun (z, i, j)
-			t[j*sz+i+z*hybridSize] = d[(j+i)*sz+z]
-		end
-		local function funrem (z, i, j)
-			t[j*sz+i+z*rem] = d[(j+i)*sz+z]
-		end
-		
-		for j = 0, size-hybridSize, hybridSize do
-			for i = 0, hybridSize-1 do
-				unroll[sz](fun, i, j)
-			end
-		end
-		for i = 0, rem-1 do
-			unroll[sz](funrem, i, size-rem)
-		end
-		
-		free(data.data)
-		data.data = t
-		data.layout.pack = "Hybrid"
-		return data
-	elseif data.layout.pack=="SoA" then
-		local size = data.x*data.y
-		local sz = data.z
-		local t = data.alloc(size*sz)
-		local d = data.data
-		local rem = size%hybridSize
-		
-		local function fun (z, i, j)
-			t[j*sz+i+z*hybridSize] = d[(i+j)+z*size] 
-		end
-		local function funrem (z, i, j)
-			t[j*sz+i+z*rem] = d[(i+j)+z*size]
-		end
-		
-		for j = 0, size-hybridSize, hybridSize do
-			for i = 0, hybridSize-1 do
-				unroll[sz](fun, i, j)
-			end
-		end
-		for i = 0, rem-1 do
-			unroll[sz](funrem, i, size-rem)
-		end
-		
-		free(data.data)
-		data.data = t
-		data.layout.pack = "Hybrid"
-		return data
-	else
-		error("Unrecognised layout!")
-	end
-end
-
-local function pos(d, x, y, z)
-	if d.x==1 then x=0 end -- broadcast
-	if d.y==1 then y=0 end -- broadcast
-	if d.z==1 then z=0 end -- broadcast
-	
-	local xx, yy, zz = d.x, d.y, d.z
-	
-	if d.layout.order=="YX" then
-		x, y = y, x
-		xx, yy = yy, xx
-	elseif d.layout.order~="XY" then
-		error("Unrecognised layout!")
-	end
-	
-	if d.layout.pack=="AoS" then
-		return (x*yy*zz+y*zz+z)
-	elseif d.layout.pack=="SoA" then
-		return (z*xx*yy+x*yy+y)
-	elseif d.layout.pack=="Hybrid" then
-		local size = xx*yy
-		local m = hybridSize
-		local thr = size-size%m
-		local n = x*yy+y
-		local t = n<thr
-		local rem = t and n%m or n-thr
-		local off = t and n-rem or thr
-		local m = t and m or size-thr
-		return (off*zz+z*m+rem)
-	else
-		error("Unrecognised layout!")
-	end
-end
-
--- hybrid layout only useful when whole chunks are processed at once
+function pos.AoS.XY(d, x, y, z) return (x*d.y*d.z+y*d.z+z) end
+function pos.AoS.YX(d, y, x, z) return (x*d.x*d.z+y*d.z+z) end
+function pos.SoA.XY(d, x, y, z) return (z*d.x*d.y+x*d.y+y) end
+function pos.SoA.YX(d, y, x, z) return (z*d.y*d.x+x*d.x+y) end
+data.pos = pos.AoS.XY -- standard layout
 
 -- every getter/setter should be implemented in terms of the get/set functions!
 local function __get(d, x, y, z)
-	return d.data[pos(d, x, y, z)]
+	return d.data[d:pos(x, y, z)]
 end
 local function __set(d, x, y, z, v)
-	d.data[pos(d, x, y, z)] = v
+	d.data[d:pos(x, y, z)] = v
 end
+local function __getABC(d, x, y, z)
+	return d.data[d:pos(ABC(d, x, y, z))]
+end
+local function __setABC(d, x, y, z, v)
+	d.data[d:pos(ABC(d, x, y, z))] = v
+end
+-- overridable getters and setters
+data.__get = __get
+data.__set = __set
 
-
-local get, set, setWorkingCS, getWorkingCS
+local workingCS
 do
-	local workingCS = "MAP"
-	function setWorkingCS(s)
+	local CS = "MAP"
+	function workingCS(s)
 		assert(type(s)=="string")
 		workingCS = s
-	end
-	function getWorkingCS()
 		return workingCS
 	end
 	
-	function get(d, x, y, z)
-		if d.color.cs==workingCS then
-			return d.data[pos(d, x, y, z)]
+	function data.get(d, x, y, z)
+		if d.cs==CS then
+			return d:__get(x, y, z)
 		else
 			error("Wrong CS!")
 		end
 	end
-	function set(d, x, y, z, v)
-		if d.color.cs==workingCS then
-			d.data[pos(d, x, y, z)] = v
+	function data.set(d, x, y, z, v)
+		if d.cs==CS then
+			d:__set(x, y, z, v)
 		else
 			error("Wrong CS!")
+		end
+	end
+	function data.get3(d, x, y)
+		if d.z==3 then
+			-- implicit color space switch!
+			return d:get(x, y, 0), d:get(x, y, 1), d:get(x, y, 2)
+		elseif d.z==1 then -- broadcast
+			local t = d:get(x, y, 0)
+			return t, t, t
+		else
+			error("wrong z-size")
+		end
+	end
+	function data.set3(d, x, y, a, b, c)
+		b = b or a
+		c = c or a
+		if d.z==3 then
+			-- implicit color space switch!
+			d:set(x, y, 0, a)
+			d:set(x, y, 1, b)
+			d:set(x, y, 2, c)
+		elseif d.z==1 then -- compress (TODO: overridable!)
+			d:set(x, y, 0, (a+b+c)/3)
+		else
+			error("wrong z-size")
 		end
 	end
 end
 -- introduce switchable XY / YX loops based on layout
 
-local function getABC(d, x, y, z)
-	get(d, ABC(d, x, y, z))
-end
-local function setABC(d, x, y, z, v)
-	set(d, ABC(d, x, y, z), v)
-end
 
-local function get3(d, x, y)
-	if d.z==3 then
-		-- implicit color space switch!
-		return get(d, x, y, 0), get(d, x, y, 1), get(d, x, y, 2)
-	elseif d.z==1 then -- broadcast
-		local t = get(d, x, y, 0)
-		return t, t, t
-	else
-		error("wrong z-size")
-	end
-end
-local function set3(d, x, y, a, b, c)
-	b = b or a
-	c = c or a
-	if d.z==3 then
-		-- implicit color space switch!
-		set(d, x, y, 0, a)
-		set(d, x, y, 1, b)
-		set(d, x, y, 2, c)
-	elseif d.z==1 then -- compress
-		set(d, x, y, 0, (a+b+c)/3)
-	else
-		error("wrong z-size")
-	end
-end
-
-local function toXY(d)
-	if d.layout.order=="XY" then
+function data:layout(pack, order, cs) -- add any parameters that might change frequently
+	local d = self
+	jit.flush(true)
+	
+	-- set to default if not supplied
+	pack = pack or d.pack
+	order = order or d.order
+	cs = cs or d.cs
+	
+	if d.pack==pack and d.order==order and d.cs==cs then
 		return d
-	elseif d.layout.order=="YX" then
+	else
 		local t = d:new()
-		t.layout.order = "XY"
-		t.layout.pack = d.layout.pack
+		t.cs = cs 
+		t.pack = pack
+		t.order = order
+		t.pos = pos[pack][order]
+		
+		-- definition of inner function is faster
 		local function fun(z, x, y)
-			__set(t, x, y, z, __get(d, x, y, z))
+			t:__set(x, y, z, d:__get(x, y, z))
 		end
-		for x = 0, d.x-1 do
+		if t.order=="YX" then
 			for y = 0, d.y-1 do
-				unroll[d.z](fun, x, y)
+				for x = 0, d.x-1 do
+					unroll.fixed(d.z, 2)(fun, x, y)
+				end
 			end
-		end
-		free(d.data)
-		d.data = t.data
-		d.layout.order = t.layout.order
-		return d
-	else
-		error("Unrecognised layout!")
-	end
-end
-
-local function toYX(d)
-	if d.layout.order=="YX" then
-		return d
-	elseif d.layout.order=="XY" then
-		local t = d:new()
-		t.layout.order = "YX"
-		t.layout.pack = d.layout.pack
-		local function fun(z, x, y)
-			__set(t, x, y, z, __get(d, x, y, z))
-		end
-		for y = 0, d.y-1 do
+		else
 			for x = 0, d.x-1 do
-				unroll[d.z](fun, x, y)
+				for y = 0, d.y-1 do
+					unroll.fixed(d.z, 2)(fun, x, y)
+				end
 			end
 		end
-		free(d.data)
+		alloc.free(d.data)
 		d.data = t.data
-		d.layout.order = t.layout.order
+		
+		d.cs = cs
+		d.pack = pack
+		d.order = order
+		d.pos = pos[pack][order]
 		return d
-	else
-		error("Unrecognised layout!")
 	end
 end
 
--- test
+local function toAoS(d) return d:layout("AoS") end
+local function toSoA(d) return d:layout("SoA") end
+local function toXY(d) return d:layout(nil, "XY") end
+local function toYX(d) return d:layout(nil, "YX") end
+
+
+
+
+
+----------
+-- TEST --
+----------
 
 local d = data:new(6000,4000,3)
+local f = data:new(6000,4000,3)
 
 -- warmup
-toHybrid(d)
 toSoA(d)
 toAoS(d)
+toYX(f)
+toXY(f)
 
 toSoA(d)
 sdl.tic()
 for x = 0, d.x-1 do
 	for y = 0, d.y-1 do
 		local t = x*10+y
-		set3(d, x, y, t+100, t+200, t+300)
+		f:set3(x, y, t+100, t+200, t+300)
 	end
 end
-sdl.toc("assign")
+sdl.toc("SoA assign")
 
 toAoS(d)
 sdl.tic()
-toHybrid(d)
-sdl.toc("aos->hybrid")
+for x = 0, d.x-1 do
+	for y = 0, d.y-1 do
+		local t = x*10+y
+		f:set3(x, y, t+100, t+200, t+300)
+	end
+end
+sdl.toc("AoS assign")
+
 sdl.tic()
 toSoA(d)
-sdl.toc("hybrid->soa")
+sdl.toc("aos->soa")
 sdl.tic()
 toAoS(d)
 sdl.toc("soa->aos")
@@ -424,11 +255,8 @@ sdl.tic()
 toSoA(d)
 sdl.toc("aos->soa")
 sdl.tic()
-toHybrid(d)
-sdl.toc("soa->hybrid")
-sdl.tic()
 toAoS(d)
-sdl.toc("hybrid->aos")
+sdl.toc("soa->aos")
 
 sdl.tic()
 toYX(d)
@@ -436,29 +264,76 @@ sdl.toc("Flip")
 sdl.tic()
 toXY(d)
 sdl.toc("Flop")
+sdl.tic()
+toYX(d)
+sdl.toc("Flip")
+sdl.tic()
+toXY(d)
+sdl.toc("Flop")
+
+sdl.tic()
+d:layout("SoA", "YX")
+sdl.toc("Combined")
+sdl.tic()
+d:layout("AoS", "XY")
+sdl.toc("Combined")
 
 toSoA(d)
+toSoA(f)
 sdl.tic()
---print("====================")
 for x = 0, d.x-1 do
 	for y = 0, d.y-1 do
-		local a, b, c = get(d, x, y, 0), get(d, x, y, 1), get(d, x, y, 2) 
-		--print(a,b,c)
+		local a, b, c = f:get3(x, y)
+		f:set3(x, y, a+b+c)
 	end
-	--print("====================")
 end
-sdl.toc("index")
+sdl.toc("add XY "..d.pack)
 
----[[
+toAoS(d)
+toAoS(f)
+sdl.tic()
+for x = 0, d.x-1 do
+	for y = 0, d.y-1 do
+		local a, b, c = f:get3(x, y)
+		f:set3(x, y, a+b+c)
+	end
+end
+sdl.toc("add XY "..d.pack)
+
+toYX(d)
+toYX(f)
+
 toSoA(d)
+toSoA(f)
 sdl.tic()
 for x = 0, d.x-1 do
 	for y = 0, d.y-1 do
-		local a, b, c = get3(d, x, y)
-		set3(d, x, y, a+b+c)
+		local a, b, c = f:get3(x, y)
+		f:set3(x, y, a+b+c)
 	end
 end
-sdl.toc("add")
---]]
+sdl.toc("add YX "..d.pack)
 
-print(d.layout.pack)
+toAoS(d)
+toAoS(f)
+sdl.tic()
+for x = 0, d.x-1 do
+	for y = 0, d.y-1 do
+		local a, b, c = f:get3(x, y)
+		f:set3(x, y, a+b+c)
+	end
+end
+sdl.toc("add YX "..d.pack)
+
+collectgarbage("setpause", 100)
+sdl.tic()
+local b=0
+for i = 1, 100000 do
+	local a = d:new(6000,4000,3)
+	a:set(1,1,1,1)
+	b = b + a:get(1,1,1)
+end
+print(alloc.count())
+sdl.toc("constructor "..b)
+collectgarbage("collect")
+print(alloc.count())
