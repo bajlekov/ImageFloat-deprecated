@@ -29,14 +29,14 @@ nodeTable["Input"] = function(self)
 	local n=self:new("Input")
 	n.param:add("File:", __global.setup.imageLoadName, "text")
 	n.param:add("", "Colour", "text")
-	n.param:add("", "Greyscale", "text")
+	n.param:add("", "Grayscale", "text")
 	n.conn_o:add(2)
 	n.conn_o:add(3)
 	function n:processRun(num)
 		local bo = self.conn_o
-
+		
 		bo[2].buf = self.bufIn:copy()
-		bo[3].buf = self.bufIn:copyG()
+		bo[3].buf = bo[2].buf:copyG()
 	end
 	return n
 end
@@ -77,7 +77,7 @@ end
 
 nodeTable["Rotate"] = function(self)
 	local n=self:new("Rotate")
-	n.param:add("Rotate", {-90,90,0})
+	n.param:add("Rotate", {-180,180,0})
 	n.conn_i:add(0)
 	n.conn_o:add(0)
 	local bufsIn = {}
@@ -406,7 +406,7 @@ nodeTable["Output"] = function(self)
 			bufsIn[1]=getBufIn(0, self, bi):copyC() --FIXME: better way to handle GS => color
 			-- keep multithreaded to allow broadcasting...non-parallel broadcasting copy?
 			lua.threadSetup({bufsIn[1], self.bufOut})
-			lua.threadRun("ops", "copy")
+			lua.threadRun("ops", "cs", "LRGB", "SRGB")
 			coroutine.yield(num)
 		else
 			io.write("*** node not connected\n")
