@@ -391,14 +391,14 @@ function buffer.max(a, b)
 end
 
 function buffer:get(x,y,z)
-	if z then
-		return (self.data + x*self.y*self.z + y*self.z + z)[0]
-	else
-		return self.data+x*self.y*self.z + y*self.z
-	end
+	--if z then
+		return self.data[x*self.y*self.z + y*self.z + z]
+	--else
+	--	return self.data + x*self.y*self.z + y*self.z
+	--end
 end
 function buffer:set(x,y,z, v)
-	(self.data + x*self.y*self.z + y*self.z + z)[0] = v
+	self.data[x*self.y*self.z + y*self.z + z] = v
 end
 function buffer:getABC(x,y,z)
 	if x>=self.x or y>=self.y or z>=self.z or x<0 or y<0 or z<0 then
