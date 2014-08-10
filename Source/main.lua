@@ -168,8 +168,8 @@ local imageTemp = ppm.toBuffer(readFun(__global.loadFile, __global.setup.imageLo
 lua.threadSetup({imageTemp, imageTemp})
 lua.threadRunWait("ops", "cs", "SRGB", "LRGB")
 
-local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-390)),
-	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-40))))
+local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-20)),
+	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-20))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
 local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
 sdl.screen.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
