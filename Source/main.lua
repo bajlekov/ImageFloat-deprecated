@@ -459,7 +459,7 @@ while true do
 	--sdl.update()
 	
 	-- some simple interface handling, move to separate function!
-	if sdl.input.key.num==115 then--"S"
+	if sdl.input.key==115 then--"S"
 		print("Saving image: "..__global.saveFile)
 		-- why is bufoutL never filled? use bufout as it's always set to bufoutL?
 		local writeFunTable = {
@@ -473,7 +473,7 @@ while true do
 		writeFun(d, __global.setup.imageSaveParams)
 		d = nil
 	end
-	if sdl.input.key.num==122 then--"Z"
+	if sdl.input.key==122 then--"Z"
 		bufZoom()
 		lua.threadStop() -- stop processing
 		calcUpdate = true
@@ -482,11 +482,11 @@ while true do
 		coProcess()
 		node:draw()
 	end
-	if sdl.input.key.num==105 then--"I"
+	if sdl.input.key==105 then--"I"
 		__global.info = not __global.info
 		node:draw()
 	end
-	if sdl.input.key.num==113 then--"Q"
+	if sdl.input.key==113 then--"Q"
 		lua.threadStop()
 		node:cleanup()
 		lua.threadQuit()

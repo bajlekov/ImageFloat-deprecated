@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package.path = 	"./?.lua;"..package.path
 
 -- use the new SDL bindings
-local sdl = require"Source.Include.sdl"
+local sdl = require"Source.Include.sdl2"
 sdl.init()
 sdl.screen.set(1400, 700)
 sdl.screen.caption("GUI test")
@@ -316,10 +316,11 @@ print(sdl.time()-t)
 
 sdl.input.fps(60)
 while not sdl.input.quit do
-	sdl.update(true)
+	sdl.input.update(true)
+	sdl.update()
 	
 	-- main event loop, move to function:
-	--drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
+	drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
 	
 	if sdl.input.click[1] then
 		print(sdl.input.x, sdl.input.y)
@@ -328,14 +329,9 @@ while not sdl.input.quit do
 		local t, x, y = gui:getElem(sdl.input.x, sdl.input.y)
 		if t then print(t.name, x, y) end
 	end
-	if sdl.input.mod.up or sdl.input.click[4] then
+	if sdl.input.mod.down or sdl.input.wheel.y~=0 then
 		local f = gui:getFrame(sdl.input.x, sdl.input.y)
-		f.scroll = f.scroll - 5
-		drawFrames(f)
-	end
-	if sdl.input.mod.down or sdl.input.click[5] then
-		local f = gui:getFrame(sdl.input.x, sdl.input.y)
-		f.scroll = f.scroll + 5
+		f.scroll = f.scroll + sdl.input.wheel.y*5
 		drawFrames(f)
 	end
 end

@@ -492,13 +492,19 @@ sdl.input.x 	= 0				-- x-location
 sdl.input.y 	= 0				-- y-location
 sdl.input.dx 	= 0				-- x-movement
 sdl.input.dy 	= 0				-- y-movement
+
+-- TODO: rather deprecate cx, cy
 sdl.input.cx 	= 0				-- x-click LMB
 sdl.input.cy 	= 0				-- y-click LMB
+
+sdl.input.wheel 	= {x=0, y=0}-- mouse wheel
+sdl.input.pressure	= 0			-- touch input pressure
 sdl.input.button	= {}		-- pressed button
 sdl.input.click		= {}		-- clicked button
 sdl.input.release 	= {}		-- released button
 sdl.input.quit 		= false		-- closed window
-sdl.input.key 		= {sym = "", num = nil}		--keyboard input
+sdl.input.key 		= nil		--keyboard input
+sdl.input.anykey	= false
 sdl.input.mod 		= {			-- modifier keys
 	alt = false,
 	ctrl = false,
@@ -514,53 +520,88 @@ sdl.input.interrupt = function() return false end --interrupt callback
 function sdl.input.fps(x) sdl.input.refreshDelay = 1000/x end
 
 do
+	local floor = math.floor
+	local xOld, yOld = 0, 0
+	local function updateToudhPosition(input, event)
+		input.x = floor(event.tfinger.x*sdl.screen.width)
+		input.y = floor(event.tfinger.y*sdl.screen.height)
+		input.pressure = event.tfinger.pressure
+	end
 	local event = ffi.new("SDL_Event")
 	local startTime = 0
 	function sdl.input.update(force)
-		local self = sdl.input
-		self.click = {false, false, false, false, false}
-		self.release = {false, false, false, false, false}
-		self.dx=0
-		self.dy=0
-		self.old_x = self.x
-		self.old_y = self.y
-		self.key = {sym = 0, num = nil}
-		self.key.any = false
+		local input = sdl.input
+		xOld = input.x
+		yOld = input.y
+		for i = 1, 5 do
+			input.click[i] = false
+			input.release[i] = false
+		end
+		input.wheel.x = 0
+		input.wheel.y = 0
+		input.key = nil
+		input.anykey = false
 		while _SDL.SDL_PollEvent(event)==1 do
 			if event.type==_SDL.SDL_MOUSEMOTION then
-				self.dx = event.motion.x - self.old_x
-				self.dy = event.motion.y - self.old_y
-				self.x = event.motion.x
-				self.y = event.motion.y
-				self.b = event.motion.state
+				input.x = event.motion.x
+				input.y = event.motion.y
 			elseif event.type==_SDL.SDL_MOUSEBUTTONDOWN then
-				self.button[event.button.button] = true --update state
-				self.click[event.button.button] = true
-				if self.click[1] then --set the drag position if LMB is clicked
-					self.cx = event.button.x
-					self.cy = event.button.y
+				local button = event.button.button
+				input.button[button] = true
+				input.click[button] = true
+				if button==1 then
+					input.cx = input.x
+					input.cy = input.y
 				end
 			elseif event.type==_SDL.SDL_MOUSEBUTTONUP then
-				self.button[event.button.button] = false
-				self.release[event.button.button] = true
+				local button = event.button.button
+				input.button[button] = false
+				input.release[button] = true
+			elseif event.type==_SDL.SDL_MOUSEWHEEL then
+				input.wheel.x = event.wheel.x
+				input.wheel.y = event.wheel.y
+			elseif event.type==_SDL.SDL_FINGERMOTION then
+				updateToudhPosition(input, event)
+			elseif event.type==_SDL.SDL_FINGERDOWN then
+				input.button[1] = true
+				input.click[1] = true
+				updateToudhPosition(input, event)
+				input.cx = input.x
+				input.cy = input.y
+			elseif event.type==_SDL.SDL_FINGERUP then
+				input.button[1] = false
+				input.release[1] = true
+				updateToudhPosition(input, event)
 			elseif event.type==_SDL.SDL_KEYDOWN then
-				self.key.sym = event.key.keysym.unicode
-				self.key.num = event.key.keysym.sym
-				self.key.any = true
+				input.key = event.key.keysym.sym
+				input.anykey = true
+				-- print(ffi.string(_SDL.SDL_GetKeyName(self.key))..": "..tostring(event.key.keysym.scancode))
 			elseif event.type==_SDL.SDL_QUIT then
-				self.quit=true
+				input.quit=true
 			end
+			-- TODO: efficient text editing
+			-- TODO: add multi-finger support, map everything to LMB for now
+			-- TODO: check wacom tablet support
+			-- TODO: export doubleclick events
+			-- TODO: joystick/controller events
+			-- TODO: drag/drop support
+			-- TODO: clipboard events
+			-- TODO: window resize events
 		end
 		
+		input.dx = input.x-xOld
+		input.dy = input.y-yOld
+		
+		-- TODO: improved handling of modifiers!!!
 		local key = _SDL.SDL_GetKeyboardState(nil)
-		if key[273]==1 then self.mod.up=true else self.mod.up=false end
-		if key[274]==1 then self.mod.down=true else self.mod.down=false end
-		if key[276]==1 then self.mod.left=true else self.mod.left=false end
-		if key[275]==1 then self.mod.right=true else self.mod.right=false end
-		if key[303]==1 or key[304]==1 then self.mod.shift=true else self.mod.shift=false end
-		if key[305]==1 or key[306]==1 then self.mod.ctrl=true else self.mod.ctrl=false end
-		if key[307]==1 or key[308]==1 then self.mod.alt=true else self.mod.alt=false end
-		if key[32]==1 then self.mod.space=true else self.mod.space=false end
+		if key[82]==1 then input.mod.up=true else input.mod.up=false end
+		if key[81]==1 then input.mod.down=true else input.mod.down=false end
+		if key[80]==1 then input.mod.left=true else input.mod.left=false end
+		if key[79]==1 then input.mod.right=true else input.mod.right=false end
+		if key[225]==1 or key[229]==1 then input.mod.shift=true else input.mod.shift=false end
+		if key[224]==1 or key[228]==1 then input.mod.ctrl=true else input.mod.ctrl=false end
+		if key[226]==1 or key[230]==1 then input.mod.alt=true else input.mod.alt=false end
+		if key[44]==1 then input.mod.space=true else input.mod.space=false end
 	
 		if sdl.time()-startTime < 1.25*sdl.input.refreshDelay then 
 			while true do
