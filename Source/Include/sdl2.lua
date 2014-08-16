@@ -46,7 +46,9 @@ local function loadlib(lib)
 		end
 	end
 end
-global("loadlib", loadlib)
+if _G.global then
+	global("loadlib", loadlib)
+end
 
 if jit.os=="Windows" then
 	-- either load libraries or put them in the root directory
@@ -65,6 +67,7 @@ local _IMG = loadlib("SDL2_image")
 -- read SDL header
 local f = io.open("./Source/Include/ffi_SDL2.h", "r")
 f = f or io.open("./Include/ffi_SDL2.h", "r")
+f = f or io.open("/home/galin/Dropbox/ImageFloat lua recode/Source/Include/ffi_SDL2.h", "r")
 ffi.cdef(f:read('*a'))
 f:close()
 -- TODO: put definitions into corresponding lua file
