@@ -580,16 +580,12 @@ do
 	end
 end
 
-function sdl.update(x,y,w,h,force)
+-- keep input update separate as input and display processing are separate
+function sdl.update(x,y,w,h)
 	if x and y then 
 		sdl.screen.update(x,y,w,h)
-		--sdl.input.update(force)
-	elseif x=="force" then
-		sdl.screen.update()
-		--sdl.input.update("force")
 	else
 		sdl.screen.update()
-		--sdl.input.update()
 	end
 end
 
