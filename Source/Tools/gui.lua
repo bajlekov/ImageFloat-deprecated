@@ -86,15 +86,12 @@ function frameFun:getElem(x, y)
 	end
 end
 
-function frameFun:vertical() self.direction="V" return self end
-function frameFun:horizontal() self.direction="H" return self end
--- tabbed
-
-local function drawElem(elem)
-	local x = elem.frame.x
-	local y = elem.frame.y
-	local w = elem.frame.w
-	local h = elem.frame.h
+local drawFunctions = {}
+drawFunctions.elem = {}
+drawFunctions.frame = {} -- TODO: use for frame drawing
+function drawFunctions.elem.text(elem)
+	local x, y = elem.frame.x, elem.frame.y
+	local w, h = elem.frame.w, elem.frame.h
 	local k = elem.num
 	
 	local yp = k*elemHeight-(elem.frame.scroll or 0)
@@ -109,6 +106,40 @@ local function drawElem(elem)
 		elem.visible = false
 	end
 end
+function drawFunctions.elem.float(elem)
+	local x, y = elem.frame.x, elem.frame.y
+	local w, h = elem.frame.w, elem.frame.h
+	local k = elem.num
+	
+	local yp = k*elemHeight-(elem.frame.scroll or 0)
+	
+	if yp>elemHeight-3 and yp+elemHeight<h-2 then
+		local f = elem.value[1]/(elem.value[4]-elem.value[3])
+		sdl.draw.color(224, 224, 224)
+		sdl.draw.fill(x+2, y+2+yp, w-4, elemHeight-2)
+		sdl.draw.color(192,192,192)
+		sdl.draw.fill(x+2, y+2+yp, math.floor((w-4)*f), elemHeight-2)
+		sdl.font.color(32,32,32)
+		sdl.draw.text(x+4, y+yp, elem.name)
+		sdl.draw.textR(x+w-20, y+yp, string.format("%.2f", elem.value[1]))
+		elem.visible = true
+	else
+		elem.visible = false
+	end
+end
+
+local function drawFrame(frame)
+	local f = frame
+	local t = 192
+	sdl.draw.color(96, 96, 96)
+	sdl.draw.fill(f.x, f.y, f.w, f.h)
+	
+	sdl.draw.color(255, 255, 255)
+	sdl.draw.line(f.x+2, f.y+elemHeight-1, f.w-5, 0)
+	sdl.draw.line(f.x+2, f.y+f.h-3, f.w-5, 0)
+	sdl.font.color(255,255,255)
+	sdl.draw.text(f.x+10, f.y-2, f.name)
+end
 
 --[[
 	eltype can be:
@@ -118,9 +149,11 @@ end
 		toggle
 		fill -> single element with own handler
 --]]
-function frameFun:addElem(name, eltype, value)
+local function pass() end
+
+function frameFun:elem(name, eltype, value)
 	value = value or {}
-	eltype = eltype or "float"
+	eltype = eltype or "text"
 	if not self.elements then self.elements = {parent = self} end
 	local e = self.elements
 	local n = #e
@@ -131,18 +164,19 @@ function frameFun:addElem(name, eltype, value)
 			name	= name,
 			type	= eltype,
 			value	= value,
-			draw	= drawElem,
+			draw	= drawFunctions.elem[eltype] or drawFunctions.elem.text,
 			event	= {
-				onAction	= nil,
-				onContext	= nil,
-				onHover		= nil,
-				onDrag		= nil,
-				onWheel		= nil,
-				onKey		= nil,
-				onChange	= nil,
+				onAction	= pass,
+				onContext	= pass,
+				onHover		= pass,
+				onDrag		= pass,
+				onWheel		= pass,
+				onKey		= pass,
+				onUpdate	= pass, -- when update = true, check on every draw cycle (sensible?)
 			},
 			frame	= self,
 			num		= n+1,
+			update	= false,
 		}
 		data[name] = e[n+1]
 	else
@@ -246,6 +280,16 @@ output:addElem("Test13")
 -- get data values
 print(data2.Test10.value[2])
 
+local function onDragFloat(elem, input)
+	local x = elem.value[1]
+	local min, max = elem.value[3], elem.value[4]
+	x = x + input.dx/(elem.frame.w-4)*(max-min)
+	if x<min then x = min elseif x>max then x = max end
+	elem.value[1] = x
+end
+data2.Test10.event.onDrag = onDragFloat
+
+
 -- change ui values
 view.elements[5].value[2] = 0.2345
 
@@ -324,24 +368,33 @@ local fpsAverage = 0
 
 
 sdl.input.fps(120)
+local scroll = false
+local fscroll
+local drag = false
+local fdrag
 while not sdl.input.quit do
 	sdl.input.update(true)
 	sdl.update()
 	
-	-- main event loop, move to function:
-	drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
+	--drawFrames(gui:getFrame(sdl.input.x, sdl.input.y))
+	
+	--if sdl.input.click[1] then
+	--	print(sdl.input.x, sdl.input.y)
+	--end
 	
 	if sdl.input.click[1] then
-		print(sdl.input.x, sdl.input.y)
+		drag = true
+		fdrag = gui:getElem(sdl.input.x, sdl.input.y)
 	end
-	if sdl.input.button[1] then
-		local t, x, y = gui:getElem(sdl.input.x, sdl.input.y)
-		if t then print(t.name, x, y) end
+	if sdl.input.release[1] then drag = false end
+	if drag and sdl.input.dx~=0 then
+		fdrag.event.onDrag(fdrag, sdl.input)
+		fdrag:draw()
 	end
+
 	if sdl.input.mod.down or sdl.input.wheel.y~=0 then
 		local f = gui:getFrame(sdl.input.x, sdl.input.y)
 		f.scroll = f.scroll + sdl.input.wheel.y*5
-		drawFrames(f)
 	end
 
 	if sdl.input.click[2] then
