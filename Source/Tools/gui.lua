@@ -396,9 +396,10 @@ while not sdl.input.quit do
 		fdrag:draw()
 	end
 
-	if sdl.input.mod.down or sdl.input.wheel.y~=0 then
+	if sdl.input.wheel.y~=0 then
 		local f = gui:getFrame(sdl.input.x, sdl.input.y)
-		f.scroll = f.scroll + sdl.input.wheel.y*5
+		f.scroll = f.scroll + sdl.input.wheel.y*10
+		drawFrames(f)
 	end
 
 	if sdl.input.click[2] then
