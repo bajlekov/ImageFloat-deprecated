@@ -314,7 +314,16 @@ drawFrames(gui)
 end
 print(sdl.time()-t)
 
-sdl.input.fps(60)
+
+--function updating the image and checking when processing should be advanced
+local t = sdl.time()
+local fpsSmooth = 128 -- smoothing parameter
+local fpsData = ffi.new("double[?]", fpsSmooth)
+local fpsCounter = 0
+local fpsAverage = 0
+
+
+sdl.input.fps(120)
 while not sdl.input.quit do
 	sdl.input.update(true)
 	sdl.update()
@@ -334,6 +343,30 @@ while not sdl.input.quit do
 		f.scroll = f.scroll + sdl.input.wheel.y*5
 		drawFrames(f)
 	end
+
+	if sdl.input.click[2] then
+		scroll = true
+		fscroll = gui:getFrame(sdl.input.x, sdl.input.y)
+	end
+	if sdl.input.release[2] then scroll = false end
+	if scroll and sdl.input.dy~=0 then
+		fscroll.scroll = fscroll.scroll - sdl.input.dy
+		drawFrames(fscroll)
+	end
+	
+	-- timer
+	local tt = sdl.time()-t
+	t = sdl.time()
+
+	if tt<250 then -- filter outliers!
+		fpsAverage = fpsAverage + tt - fpsData[fpsCounter]
+		fpsData[fpsCounter] = tt
+		fpsCounter = fpsCounter + 1
+		fpsCounter = fpsCounter==fpsSmooth and 0 or fpsCounter
+	else
+		print("*** slow screen refresh ***")
+	end
+	if math.floor(fpsSmooth/fpsAverage*1000)<100 then print(math.floor(fpsSmooth/fpsAverage*1000)) end
 end
 
 sdl.quit()
