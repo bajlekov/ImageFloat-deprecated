@@ -16,11 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
 -- graphic ui toolkit accomodating for the desired interface (nodes, stacks, layout management etc.)
-
-
 package.path = 	"./?.lua;"..package.path
+math.randomseed(os.time())
 
--- use the new SDL bindings
+local ffi = require("ffi")
+
 local sdl = require"Source.Include.sdl2"
 sdl.init()
 sdl.screen.set(1400, 700)
@@ -34,27 +34,22 @@ sdl.font.color(0,128,0)
 
 local frameFun = {}
 local function newGui(table, h, w)
-	return setmetatable(table or {direction = "H", x = 0, y = 0, h = h or sdl.screen.height, w = w or sdl.screen.width }, {__index=frameFun})
+	return setmetatable(table or {direction = "V", x = 0, y = 0, h = h or sdl.screen.height, w = w or sdl.screen.width }, {__index=frameFun})
 end
 
-function frameFun:split(name, size, unit)
+function frameFun:frame(name, size, unit, direction)
 	local n = #self
 	name = name or "frame_"..(n+1)
 	size = size or "fill"
 	unit = unit or "px"
 	self[n+1] = newGui{name = name, size = size, unit = unit, parent = self}
 	self[n+1].direction = self.direction=="H" and "V" or "H"
+	self[n+1].parent = self
 	return self[n+1]
 end
-function frameFun:addData() self.data = {} return self.data end
-function frameFun:getData()
-	if self.data then
-		return self.data
-	elseif self.parent then
-		return self.parent:getData()
-	else
-		return false
-	end
+function frameFun:flip()
+	self.direction = self.direction=="H" and "V" or "H"
+	return self
 end
 
 function frameFun:getFrame(x, y)
@@ -79,10 +74,27 @@ function frameFun:getElem(x, y)
 		local y = y-fr.y-2 -- k*elemHeight
 		local k = math.floor(y/elemHeight)
 		y = y - k*elemHeight
-		if k==0 or k>n or y>=elemHeight-2 or
+		
+		if
+			k<1 or k>n or
+			y>=elemHeight-2 or
 			x<0 or x>fr.w-5 or
-			fr.elements[k].visible==false then return nil end
+			fr.elements[k].visible==false
+		then
+			return nil
+		end
+		
 		return fr.elements[k], x, y
+	end
+end
+function frameFun:addData() self.data = {} return self.data end
+function frameFun:getData()
+	if self.data then
+		return self.data
+	elseif self.parent then
+		return self.parent:getData()
+	else
+		return false
 	end
 end
 
@@ -192,38 +204,48 @@ local function parseFrames(table)
 	local x = table.x or 0
 	local y = table.y or 0
 	
-	local size = table.direction=="V" and h or w
+	local maxSize = table.direction=="V" and h or w
 	local width = {}
-	local fill = 0
-	local totwidth = 0
-	local lastdir
+	local numFill = 0
+	local totWidth = 0
+	local fill = false
+	
 	for k, v in ipairs(table) do
 		if v.size=="fill" then
 			width[k] = "fill"
-			fill = fill+1
+			numFill = numFill+1
+			fill = true
 		elseif v.unit=="px" then width[k] = v.size
 		elseif v.unit=="ln" then width[k] = v.size*elemHeight
-		elseif v.unit=="%" then width[k] = v.size/100*w
+		elseif v.unit=="%" then width[k] = v.size/100*maxSize
 		else error("wrong specification") end
 		
-		if type(width[k])=="number" then totwidth = totwidth + width[k] end
+		if type(width[k])=="number" then totWidth = totWidth + width[k] end
 	end
-	if totwidth>size then error("exceeding size") end
-	local fillwidth = (size-totwidth)/fill
-	for k, v in ipairs(table) do
-		if width[k]=="fill" then width[k]=fillwidth end
-		if table.direction=="V" then
-			v.w, v.h = w, width[k]
-			v.x, v.y = x, y
-			y = y + width[k]
-		else
-			v.w, v.h = width[k], h
-			v.x, v.y = x, y
-			x = x + width[k]
+	if totWidth>maxSize then error("exceeding size") end
+	local fillwidth = (maxSize-totWidth)/numFill
+	
+	if not fill and totWidth<maxSize then
+		-- check if totwidth<size -> add filler!
+		table:frame("[[ FILL ]]")
+		parseFrames(table)
+	else
+		assert(fill or totWidth==maxSize, totWidth..", "..maxSize)
+		for k, v in ipairs(table) do
+			if width[k]=="fill" then width[k]=fillwidth end
+			if table.direction=="V" then
+				v.w, v.h = w, width[k]
+				v.x, v.y = x, y
+				y = y + width[k]
+			else
+				v.w, v.h = width[k], h
+				v.x, v.y = x, y
+				x = x + width[k]
+			end
+			v.scroll = 0
+			if #v>0 then parseFrames(v) end -- recurse over sub-frames
+			v.parent = table -- convenience parent link
 		end
-		v.scroll = 0
-		if #v>0 then parseFrames(v) end -- recurse over sub-frames
-		v.parent = table -- convenience parent link
 	end
 end
 -- TODO:
@@ -243,39 +265,39 @@ end
 
 --test
 -- setup structure
-local gui = newGui():vertical()
-	local top = gui:split(nil, 30)
-		local menu = top:split("Menu", 300)
-		local toolbox = top:split("Toolbox")
-	local main = gui:split()
-		local left = main:split(nil, 300)
-			local input = left:split("Input")
-			local hist = left:split("Histogram", 200)
-		local right = main:split()
-			local temp = right:split()
-				local view = temp:split("View")
-				local output = temp:split("Output", 200) -- collapsible!
-			local browser = right:split("Browser", 200)
-	local status = gui:split("Status", 20)
+local gui = newGui()
+	local top = gui:frame(nil, 16)
+		local menu = top:frame("Menu", math.random()*100, "%")
+		local toolbox = top:frame("Toolbox")
+	local main = gui:frame()
+		local left = main:frame(nil, 200)
+			local input = left:frame("Input")
+			local hist = left:frame("Histogram", 200)
+		local right = main:frame()
+			local temp = right:frame()
+				local view = temp:frame("View")
+				local output = temp:frame("Output", 200) -- collapsible!
+			local browser = right:frame("Browser", 200)
+	local status = gui:frame("Status", 16)
 
 -- setup data storage
 local data1 = input:addData()
 local data2 = right:addData()
 
 -- setup elements
-input:addElem("Test1")
-input:addElem("Test2")
-input:addElem("Test3")
-input:addElem("Test4")
-input:addElem("Test5")
-view:addElem("Test6")
-view:addElem("Test7")
-view:addElem("Test8")
-view:addElem("Test9")
-view:addElem("Test10", "float", {1, 1, 0, 5})
-view:addElem("Test11")
-view:addElem("Test12")
-output:addElem("Test13")
+input:elem("Test1")
+input:elem("Test2")
+input:elem("Test3")
+input:elem("Test4")
+input:elem("Test5")
+view:elem("Test6")
+view:elem("Test7")
+view:elem("Test8")
+view:elem("Test9")
+view:elem("Test10", "float", {1, 1, 0, 5})
+view:elem("Test11")
+view:elem("Test12")
+output:elem("Test13")
 
 -- get data values
 print(data2.Test10.value[2])
@@ -298,9 +320,6 @@ print(data2.Test10.value[2])
 
 
 -- draw ui
-local function rnd() return 0.5+math.random()*0.5 end
-math.randomseed(os.time())
-
 local level = 0
 local function drawElems(table, num)
 	local e = table.elements
@@ -320,27 +339,12 @@ end
 local function drawFrames(table)
 	if #table>0 then
 		for k, v in ipairs(table) do
-			local t = rnd()
-			sdl.draw.color(t*128, t*128, t*128)
-			sdl.draw.fill(v.x, v.y, v.w, v.h)
-			
-			sdl.draw.color(255, 255, 255)
-			sdl.draw.line(v.x+2, v.y+elemHeight-1, v.w-5, 0)
-			sdl.draw.line(v.x+2, v.y+v.h-3, v.w-5, 0)
-			sdl.font.color(255,255,255)
-			sdl.draw.text(v.x+10, v.y, v.name)
+			drawFrame(v)
 			if #v>0 then drawFrames(v)
 			elseif v.elements then drawElems(v) end
 		end
 	else
-		sdl.draw.color(128, 128, 128)
-		sdl.draw.fill(table.x, table.y, table.w, table.h)
-		
-		sdl.draw.color(255, 255, 255)
-		sdl.draw.line(table.x+2, table.y+elemHeight-1, table.w-5, 0)
-		sdl.draw.line(table.x+2, table.y+table.h-3, table.w-5, 0)
-		sdl.font.color(255,255,255)
-		sdl.draw.text(table.x+10, table.y, table.name)
+		drawFrame(table)
 		if #table>0 then drawFrames(table)
 		elseif table.elements then drawElems(table) end
 	end
