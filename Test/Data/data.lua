@@ -19,91 +19,100 @@
 -- it is intended to replace the imgtools library
 
 jit.opt.start("sizemcode=512")
-
 --require("jit.v").start("verbose.txt")
 --require("jit.dump").start("tT", "dump.txt")
 --require("jit.p").start("vfi1m10", "profile.txt")
 
+-- setup
 math.randomseed(os.time())
 local ffi = require("ffi")
 require("global")
 
-local sdl = require("Include.sdl2")
 local unroll = require("Tools.unroll")
 local alloc = require("Test.Data.alloc")
 
-local prec = {"float",4} --TODO: get desired bit depth
-print("Using "..(prec[2]*8).."bit precision buffers...")
-local dataAlloc = prec[2]==4 and alloc.float32 or alloc.float64
+local prec = 32 -- precision of buffers
+print("Using "..prec.."bit precision buffers...")
+local dataAlloc = prec==32 and alloc.float32 or alloc.float64
 
 local data = {__type="data"}
 data.meta = {__index = data}
-data.meta.__tostring = function(a)
-	return "Image buffer ["..a.x..", "..a.y..", "..a.z.."], CS: "..a.cs().."."
-end
 
--- having layout as object properties is dangerous, but using hidden upvalues incurs a significant overhead
-function data:new(x, y, z)
-	x = x or self.x or 1
+local function printBuffer(a)
+	return "Image["..a.x..", "..a.y..", "..a.z.."] ("..a.cs..", "..a.pack..", "..a.order..", "..prec.."bit)"
+end
+data.meta.__tostring = printBuffer
+
+local pos = {}
+
+function data:new(x, y, z)				-- new image data
+	x = x or self.x or 1				-- default dimensions or inherit
 	y = y or self.y or 1
 	z = z or self.z or 1
-	local size = x*y*z
 	
 	local o = {
-		data = dataAlloc(size),
-		x = x, y = y, z = z,
-		cs = self.cs or "MAP",
-		pack = self.pack or "AoS",
-		order = self.order or "XY",
+		data = dataAlloc(x*y*z),		-- allocate data
+		x = x, y = y, z = z,			-- set dimensions
+		cs = self.cs or "MAP",			-- default CS or inherit
+		pack = self.pack or "AoS",		-- default packing or inherit
+		order = self.order or "XY",		-- default order or inherit
 	}
-	setmetatable(o, self.meta)
-	return o
+	o.pos = pos[o.pack][o.order]
+	return setmetatable(o, self.meta)	-- inherit data methods
 end
 
-local function ABC(d, x, y, z)
-	if x>=d.x or x<0 then error("x out of bounds")
-	elseif y>=d.y or y<0 then error("y out of bounds")
-	elseif z>=d.z or z<0 then error("z out of bounds")
-	else return x, y, z end
+local function ABC(d, x, y, z) -- array bounds checking
+	assert(x<d.x and x>=0, "x out of bounds")
+	assert(y<d.y and y>=0, "y out of bounds")
+	assert(z<d.z and z>=0, "z out of bounds")
+	return d, x, y, z
 end
 
 local function AC(d, n)
-	if n>=d.x*d.y*d.z or n<0 then error("element out of bounds: "..n..">"..(d.x*d.y*d.z-1))
-	else return n end
+	assert(n<d.x*d.y*d.z and n>=0, "index out of bounds")
+	return n
 end
 
 -- dedicated position functions
-local pos = {}
 pos.AoS = {}
 pos.SoA = {}
-local function broadcast(d, x, y, z)
-	x = d.x==1 and 0 or x -- broadcast
-	y = d.y==1 and 0 or y -- broadcast
-	z = d.z==1 and 0 or z -- broadcast
-	return d, x, y, z
-end
 function pos.AoS.XY(d, x, y, z) return (x*d.y*d.z+y*d.z+z) end
-function pos.AoS.YX(d, y, x, z) return (x*d.x*d.z+y*d.z+z) end
+function pos.AoS.YX(d, x, y, z) return (y*d.x*d.z+x*d.z+z) end
 function pos.SoA.XY(d, x, y, z) return (z*d.x*d.y+x*d.y+y) end
-function pos.SoA.YX(d, y, x, z) return (z*d.y*d.x+x*d.x+y) end
+function pos.SoA.YX(d, x, y, z) return (z*d.y*d.x+y*d.x+x) end
 data.pos = pos.AoS.XY -- standard layout
 
--- every getter/setter should be implemented in terms of the get/set functions!
+local function broadcast(d, x, y, z) -- helper function
+	x = d.x==1 and 0 or x
+	y = d.y==1 and 0 or y
+	z = d.z==1 and 0 or z
+	return d, x, y, z
+end
+
+local function offset(d, x, y, z)
+	return d,
+		x+d.offset.x,
+		y+d.offset.y,
+		z+d.offset.z
+end
+
+-- every getter/setter should be implemented in terms of the data.__get/__set functions!
 local function __get(d, x, y, z)
-	return d.data[d:pos(x, y, z)]
+	return d.data[d.pos(broadcast(d, x, y, z))]
 end
 local function __set(d, x, y, z, v)
-	d.data[d:pos(x, y, z)] = v
+	d.data[d.pos(d, x, y, z)] = v
 end
 local function __getABC(d, x, y, z)
-	return d.data[d:pos(ABC(d, x, y, z))]
+	return d.data[d.pos(ABC(broadcast(d, x, y, z)))]
 end
 local function __setABC(d, x, y, z, v)
-	d.data[d:pos(ABC(d, x, y, z))] = v
+	d.data[d.pos(ABC(d, x, y, z))] = v
 end
+
 -- overridable getters and setters
-data.__get = __get
-data.__set = __set
+data.__get = __getABC
+data.__set = __setABC
 
 local workingCS
 do
@@ -115,47 +124,27 @@ do
 	end
 	
 	function data.get(d, x, y, z)
-		if d.cs==CS or D.CS=="MAP" then
-			return d:__get(x, y, z)
-		else
-			error("Wrong CS!")
-		end
+		assert(d.cs==CS or d.cs=="MAP", "CS mismatch")
+		return d:__get(x, y, z)
 	end
 	function data.set(d, x, y, z, v)
-		if d.cs==CS or d.cs=="MAP" then
-			d:__set(x, y, z, v)
-		else
-			error("Wrong CS!")
-		end
+		assert(d.cs==CS or d.cs=="MAP", "CS mismatch")
+		d:__set(x, y, z, v)
 	end
 	function data.get3(d, x, y)
-		if d.z==3 then
-			-- implicit color space switch!
-			return d:get(x, y, 0), d:get(x, y, 1), d:get(x, y, 2)
-		elseif d.z==1 then -- broadcast
-			local t = d:get(x, y, 0)
-			return t, t, t
-		else
-			error("wrong z-size")
-		end
+		-- implicit color space switch!
+		return d:get(x, y, 0), d:get(x, y, 1), d:get(x, y, 2)
 	end
 	function data.set3(d, x, y, a, b, c)
 		b = b or a
 		c = c or a
-		if d.z==3 then
-			-- implicit color space switch!
-			d:set(x, y, 0, a)
-			d:set(x, y, 1, b)
-			d:set(x, y, 2, c)
-		elseif d.z==1 then -- compress (TODO: overridable!)
-			d:set(x, y, 0, (a+b+c)/3)
-		else
-			error("wrong z-size")
-		end
+		-- implicit color space switch!
+		d:set(x, y, 0, a)
+		d:set(x, y, 1, b)
+		d:set(x, y, 2, c)
 	end
 end
 -- introduce switchable XY / YX loops based on layout
-
 
 function data.layout(d, pack, order, cs) -- add any parameters that might change frequently
 	-- set to default if not supplied
@@ -177,16 +166,16 @@ function data.layout(d, pack, order, cs) -- add any parameters that might change
 		local function fun(z, x, y)
 			t:__set(x, y, z, d:__get(x, y, z))
 		end
-		if t.order=="YX" then
-			for y = 0, d.y-1 do
-				for x = 0, d.x-1 do
-					unroll.fixed(d.z, 2)(fun, x, y)
+		if t.order=="YX" then		-- use loops aligned with the target for better performance
+			for y = 0, t.y-1 do
+				for x = 0, t.x-1 do
+					unroll.fixed(t.z, 2)(fun, x, y)
 				end
 			end
 		else
-			for x = 0, d.x-1 do
-				for y = 0, d.y-1 do
-					unroll.fixed(d.z, 2)(fun, x, y)
+			for x = 0, t.x-1 do
+				for y = 0, t.y-1 do
+					unroll.fixed(t.z, 2)(fun, x, y)
 				end
 			end
 		end
@@ -201,136 +190,128 @@ function data.layout(d, pack, order, cs) -- add any parameters that might change
 	end
 end
 
-local function toAoS(d) return d:layout("AoS") end
-local function toSoA(d) return d:layout("SoA") end
-local function toXY(d) return d:layout(nil, "XY") end
-local function toYX(d) return d:layout(nil, "YX") end
+function data:toAoS() return self:layout("AoS") end
+function data:toSoA() return self:layout("SoA") end
+function data:toXY() return self:layout(nil, "XY") end
+function data:toYX() return self:layout(nil, "YX") end
 
+function data:checkTarget(t) -- check if data can be broadcasted to buffer t
+	assert(self.x==t.x or self.x==1, "Incompatible x dimension")
+	assert(self.y==t.y or self.y==1, "Incompatible y dimension")
+	assert(self.z==t.z or self.z==1, "Incompatible z dimension")
+end
+function data:checkSuper(...) -- create new buffer to accomodate all argument buffers by broadcasting
+	local buffers = {...}
+	local x, y, z = 1, 1, 1
+	for _, t in ipairs(buffers) do
+		assert(t.x==x or t.x==1 or x==1, "Incompatible x dimension")
+		assert(t.y==y or t.y==1 or y==1, "Incompatible y dimension")
+		assert(t.z==z or t.z==1 or z==1, "Incompatible z dimension")
+		if t.x>x then x = t.x end
+		if t.y>y then y = t.y end
+		if t.z>z then z = t.z end
+	end
+	return x, y, z
+end
+function data:newSuper(...) -- create new buffer to accomodate all argument buffers by broadcasting
+	local buffers = {...}
+	local x, y, z = 1, 1, 1
+	for _, t in ipairs(buffers) do
+		assert(t.x==x or t.x==1 or x==1, "Incompatible x dimension")
+		assert(t.y==y or t.y==1 or y==1, "Incompatible y dimension")
+		assert(t.z==z or t.z==1 or z==1, "Incompatible z dimension")
+		if t.x>x then x = t.x end
+		if t.y>y then y = t.y end
+		if t.z>z then z = t.z end
+	end
+	return self:new(x, y, z)
+end
 
+local function locked(t, k, v)
+	error("Property acces through subarray is limited: "..k)
+end
+function data:linkedCopy() -- provides a reference to the original data with a different CS -> needed??
+	return setmetatable({cs = self.cs}, {__index=self, __newindex=locked, __tostring = printBuffer})	-- inherit data methods
+end
+function data:sub(xoff, yoff, xmax, ymax)
+	xoff = xoff or 0
+	yoff = yoff or 0
+	xmax = xmax or self.x-xoff
+	ymax = ymax or self.y-yoff
+	local o = {x = xmax, y = ymax}
+	-- TODO: implement proper ABC for subs!!
+	function o.__get(_, x, y, z) return self.__get(self, x+xoff, y+yoff, z) end
+	function o.__set(_, x, y, z, v) return self.__set(self, x+xoff, y+yoff, z, v) end
+	--function o.layout(d, pack, order, cs) return self.layout(self, pack, order, cs) end
+	return setmetatable(o, {__index=self, __newindex=locked, __tostring = printBuffer})	-- inherit data methods
+end
+function data.copy(d, x, y, z, pack, order, cs)
+	pack = pack or d.pack
+	order = order or d.order
+	cs = cs or d.cs
+	
+	jit.flush(true)
+	local t = d:new(x, y, z)
+	d:checkTarget(t)
+	t.cs = cs 
+	t.pack = pack
+	t.order = order
+	t.pos = pos[pack][order]
 
-----------
--- TEST --
-----------
+	local function fun(z, x, y)
+		t:__set(x, y, z, d:__get(x, y, z))
+	end
+	if t.order=="YX" then		-- use loops aligned with the target for better performance
+		for y = 0, t.y-1 do
+			for x = 0, t.x-1 do
+				unroll.fixed(t.z, 2)(fun, x, y)
+			end
+		end
+	else
+		for x = 0, t.x-1 do
+			for y = 0, t.y-1 do
+				unroll.fixed(t.z, 2)(fun, x, y)
+			end
+		end
+	end
+	return t
+end
 
-local d = data:new(6000,4000,3)
-local f = data:new(6000,4000,3)
+function data:newI(x, y) return self:new(x, y, 3) end
+function data:newM(x, y) return self:new(x, y, 1) end
+function data:newC(c1, c2, c3)
+	local o = self:new(1, 1, 3)
+	if c1 then
+		c2 = c2 or c1
+		c3 = c3 or c1
+		o:set3(0,0, c1,c2,c3)
+	end
+	return o
+end
+function data:newV(v1)
+	local o = self:new(1, 1, 1)
+	if v1 then o:set(0,0,0, v1) end
+	return o
+end
+function data:copyC()
+	if self.x>1 or self.y>1 then error("deprecated use, see color") end
+	return self:copy(1, 1, 3)
+end
 
--- warmup
-toSoA(d)
-toAoS(d)
-toYX(f)
-toXY(f)
-
-toSoA(d)
-sdl.tic()
-for x = 0, d.x-1 do
-	for y = 0, d.y-1 do
-		local t = x*10+y
-		f:set3(x, y, t+100, t+200, t+300)
+function data:type()
+	-- TODO: debug/warning/developer mode
+	-- print("Deprecated buffer property \"type\".")
+	local x, y, z = self.x, self.y, self.z
+	if		x==1 and y==1 and z==1 then		return 1
+	elseif	x==1 and y==1 and z==3 then		return 2
+	elseif	z==1 then						return 3
+	elseif	z==3 then						return 4
+	else
+		print(debug.traceback("WARNING: type is undefined"))
+		return 0
 	end
 end
-sdl.toc("SoA assign")
+require("Test.Data.ops")(data)
 
-toAoS(d)
-sdl.tic()
-for x = 0, d.x-1 do
-	for y = 0, d.y-1 do
-		local t = x*10+y
-		f:set3(x, y, t+100, t+200, t+300)
-	end
-end
-sdl.toc("AoS assign")
-
-sdl.tic()
-toSoA(d)
-sdl.toc("aos->soa")
-sdl.tic()
-toAoS(d)
-sdl.toc("soa->aos")
-sdl.tic()
-toSoA(d)
-sdl.toc("aos->soa")
-sdl.tic()
-toAoS(d)
-sdl.toc("soa->aos")
-
-sdl.tic()
-toYX(d)
-sdl.toc("Flip")
-sdl.tic()
-toXY(d)
-sdl.toc("Flop")
-sdl.tic()
-toYX(d)
-sdl.toc("Flip")
-sdl.tic()
-toXY(d)
-sdl.toc("Flop")
-
-sdl.tic()
-d:layout("SoA", "YX")
-sdl.toc("Combined")
-sdl.tic()
-d:layout("AoS", "XY")
-sdl.toc("Combined")
-
-toSoA(d)
-toSoA(f)
-sdl.tic()
-for x = 0, d.x-1 do
-	for y = 0, d.y-1 do
-		local a, b, c = f:get3(x, y)
-		f:set3(x, y, a+b+c)
-	end
-end
-sdl.toc("add XY "..d.pack)
-
-toAoS(d)
-toAoS(f)
-sdl.tic()
-for x = 0, d.x-1 do
-	for y = 0, d.y-1 do
-		local a, b, c = f:get3(x, y)
-		f:set3(x, y, a+b+c)
-	end
-end
-sdl.toc("add XY "..d.pack)
-
-toYX(d)
-toYX(f)
-
-toSoA(d)
-toSoA(f)
-sdl.tic()
-for x = 0, d.x-1 do
-	for y = 0, d.y-1 do
-		local a, b, c = f:get3(x, y)
-		f:set3(x, y, a+b+c)
-	end
-end
-sdl.toc("add YX "..d.pack)
-
-toAoS(d)
-toAoS(f)
-sdl.tic()
-for x = 0, d.x-1 do
-	for y = 0, d.y-1 do
-		local a, b, c = f:get3(x, y)
-		f:set3(x, y, a+b+c)
-	end
-end
-sdl.toc("add YX "..d.pack)
-
-collectgarbage("setpause", 100)
-print(alloc.count(), collectgarbage("count"))
-sdl.tic()
-local b=0
-for i = 1, 100000 do
-	local a = d:new(6000,4000,3)
-	a:set(1,1,1,1)
-	b = b + a:get(1,1,1)
-end
-sdl.toc("constructor "..b)
-print(alloc.count(), collectgarbage("count"))
-collectgarbage("collect")
-print(alloc.count(), collectgarbage("count"))
+--require("Test.Data.test")(data)
+return data
