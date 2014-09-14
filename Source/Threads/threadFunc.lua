@@ -95,12 +95,66 @@ end
 global("__bufs")
 global("__dims")
 global("__params")
+
+__global.state = {}
+function __global.state:up(x, y, z)
+	self.x = x or self.x
+	self.y = y or self.y
+	self.z = z or self.z
+end
+
+local getters = {}
+getters.A = {}
+getters.B = {}
+getters.C = {}
+getters.D = {}
+
+local s
+
+function getters.A:get() return self.data[0] end
+function getters.A:set(c) self.data[0] = c end
+function getters.A:get3() local c = self:get() return c, c, c end
+function getters.A:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
+getters.A.getxy = getters.A.get
+getters.A.setxy = getters.A.set
+getters.A.get3xy = getters.A.get3
+getters.A.set3xy = getters.A.set3
+
+function getters.B:get() return self.data[s.x*s.ymax+s.y] end 
+function getters.B:set(c) self.data[s.x*s.ymax+s.y] = c end
+function getters.B:get3() local c = self:get() return c, c, c end
+function getters.B:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
+function getters.B:getxy(n, x, y) return self.data[x*s.ymax+y] end
+function getters.B:setxy(c, n, x, y) self.data[x*s.ymax+y] = c end
+function getters.B:get3xy(x, y) local c = self:getxy(x, y) return c, c, c end
+function getters.B:set3xy(c1, c2, c3, x, y) local c = (c1+c2+c3)/3 self:setxy(c, x, y) end
+
+function getters.C:get(n) return self.data[n or s.z] end
+function getters.C:set(c, n) self.data[n or s.z] = c end
+function getters.C:get3() return self.data[0], self.data[1], self.data[2] end
+function getters.C:set3(c1, c2, c3) self.data[0], self.data[1], self.data[2] = c1, c2, c3 end
+getters.C.getxy = getters.C.get
+getters.C.setxy = getters.C.set
+getters.C.get3xy = getters.C.get3
+getters.C.set3xy = getters.C.set3
+
+function getters.D:get(n) return self.data[s.x*s.ymax*s.zmax+s.y*s.zmax+(n or s.z)] end
+function getters.D:set(c, n) self.data[s.x*s.ymax*s.zmax+s.y*s.zmax+(n or s.z)] = c end
+function getters.D:get3() return self:get(0), self:get(1), self:get(2) end
+function getters.D:set3(c1, c2, c3) self:set(c1, 0) self:set(c2, 1) self:set(c3, 2) end
+function getters.D:getxy(n, x, y) return self.data[x*s.ymax*s.zmax+y*s.zmax+(n or s.z)] end
+function getters.D:setxy(c, n, x, y) self.data[x*s.ymax*s.zmax+y*s.zmax+(n or s.z)] = c end
+function getters.D:get3xy(x, y) return self:getxy(0, x, y), self:getxy(1, x, y), self:getxy(2, x, y) end
+function getters.D:get3xy(c1, c2, c3, x, y) self.setxy(c1, 0, x, y) self.setxy(c2, 1, x, y) self.setxy(c3, 2, x, y) end
+
 function __setup() -- set up instance for processing after node parameters are passed
 	--[[ pass:
 		__bufs
 		__dims
 		__params
 	--]]
+	local __global = __global
+	
 	local buf = {}					-- structure containing all buffers and functions
 	local n = #__dims/3
 	local dims = __dims
@@ -124,61 +178,40 @@ function __setup() -- set up instance for processing after node parameters are p
 	
 	buf.max = n
 	
-	__global.state = {x=0, y=0, z=0, xmax=xmax, ymax=ymax, zmax=zmax}
-	function __global.state:up(x, y, z)
-		self.x = x or self.x
-		self.y = y or self.y
-		self.z = z or self.z
-	end
+	__global.state.x = 0
+	__global.state.y = 0
+	__global.state.z = 0
+	__global.state.xmax = xmax
+	__global.state.ymax = ymax
+	__global.state.zmax = zmax
 	__global.progress[__global.instmax+1] = __global.state.xmax
 	
 	-- setup getters/setters
 	for i = 1, n do
 		local b = buf[i]
-		local s = __global.state
+		local buftype
+		s = __global.state
 		
 		if b.x==1 and b.y==1 and b.z==1 then
-			function b:get() return self.data[0] end
-			function b:set(c) self.data[0] = c end
-			function b:get3() local c = self:get() return c, c, c end
-			function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
-			b.getxy = b.get
-			b.setxy = b.set
-			b.get3xy = b.get3
-			b.set3xy = b.set3
+			buftype = "A"
 		elseif (b.x>1 or b.y>1) and b.z==1 then
-			function b:get() return self.data[s.x*s.ymax+s.y] end 
-			function b:set(c) self.data[s.x*s.ymax+s.y] = c end
-			function b:get3() local c = self:get() return c, c, c end
-			function b:set3(c1, c2, c3) local c = (c1+c2+c3)/3 self:set(c) end
-			function b:getxy(n, x, y) return self.data[x*s.ymax+y] end
-			function b:setxy(c, n, x, y) self.data[x*s.ymax+y] = c end
-			function b:get3xy(x, y) local c = self:getxy(x, y) return c, c, c end
-			function b:set3xy(c1, c2, c3, x, y) local c = (c1+c2+c3)/3 self:setxy(c, x, y) end
+			buftype = "B"
 		elseif b.x==1 and b.y==1 and b.z==3 then
-			function b:get(n) return self.data[n or s.z] end
-			function b:set(c, n) self.data[n or s.z] = c end
-			function b:get3() return self.data[0], self.data[1], self.data[2] end
-			function b:set3(c1, c2, c3) self.data[0], self.data[1], self.data[2] = c1, c2, c3 end
-			b.getxy = b.get
-			b.setxy = b.set
-			b.get3xy = b.get3
-			b.set3xy = b.set3
+			buftype = "C"
 		elseif (b.x>1 or b.y>1) and b.z==3 then
-			function b:get(n) return self.data[s.x*s.ymax*s.zmax+s.y*s.zmax+(n or s.z)] end
-			function b:set(c, n) self.data[s.x*s.ymax*s.zmax+s.y*s.zmax+(n or s.z)] = c end
-			function b:get3() return self:get(0), self:get(1), self:get(2) end
-			function b:set3(c1, c2, c3) self:set(c1, 0) self:set(c2, 1) self:set(c3, 2) end
-			function b:getxy(n, x, y) return self.data[x*s.ymax*s.zmax+y*s.zmax+(n or s.z)] end
-			function b:setxy(c, n, x, y) self.data[x*s.ymax*s.zmax+y*s.zmax+(n or s.z)] = c end
-			function b:get3xy(x, y) return self:getxy(0, x, y), self:getxy(1, x, y), self:getxy(2, x, y) end
-			function b:get3xy(c1, c2, c3, x, y) self.setxy(c1, 0, x, y) self.setxy(c2, 1, x, y) self.setxy(c3, 2, x, y) end
+			buftype = "D"
 		end
+		
+		b.get = getters[buftype].get
+		b.get3 = getters[buftype].get3
+		b.getxy = getters[buftype].getxy
+		b.get3xy = getters[buftype].get3xy
+		b.set = getters[buftype].set
+		b.set3 = getters[buftype].set3
+		b.setxy = getters[buftype].setxy
+		b.set3xy = getters[buftype].set3xy
 	end
 	
 	__global.buf = buf
 	__global.params = __params
-	--__params = nil
-	--__bufs = nil
-	--__dims = nil
 end
