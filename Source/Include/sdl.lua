@@ -25,21 +25,28 @@ local ffi = require("ffi")
 
 -- TODO: load relevant SDL libs
 local function loadlib(lib)
-  local path = "./Libraries/"..jit.os.."_"..jit.arch.."/"
-  local file = lib
-  if jit.os=="Windows" then
-    file = file..".dll"
-  elseif jit.os=="Linux" then
-    file = "lib"..file..".so"
-  end
-  local p, l = pcall(ffi.load, path..file)
-  if p then
-    return l
-  else
-    error(l)
-  end
+	local path = "./Libraries/"..jit.os.."_"..jit.arch.."/"
+	local file = lib
+	if jit.os=="Windows" then
+		file = file..".dll"
+	elseif jit.os=="Linux" then
+		file = "lib"..file..".so"
+	end
+	local p, l = pcall(ffi.load, file)
+	if p then
+		return l
+	else
+		local p, l = pcall(ffi.load, path..file)
+		if p then
+			return l
+		else
+			error(l)
+		end
+	end
 end
-global("loadlib", loadlib)
+if _G.global then
+	global("loadlib", loadlib)
+end
 
 local _SDL = loadlib('SDL')
 local _TTF = loadlib("SDL_ttf")
