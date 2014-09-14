@@ -478,6 +478,13 @@ function sdl.draw.text(x, y, str)
 	_SDL.SDL_FreeSurface(ttf_text)
 	return x, y
 end
+function sdl.draw.textR(x, y, str) -- align text to right side
+	local ttf_text = sdl.font.__text(str)
+	sdl.surf.put(ttf_text, x-ttf_text.w, y)
+	local x, y = ttf_text.w, ttf_text.h
+	_SDL.SDL_FreeSurface(ttf_text)
+	return x, y
+end
 function sdl.draw.image(x, y, file)
 	local image = sdl.surf.__image(file)
 	sdl.surf.put(image, x, y)
