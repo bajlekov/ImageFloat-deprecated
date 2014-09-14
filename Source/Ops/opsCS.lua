@@ -143,8 +143,6 @@ do
 	end
 	global("HtoRGB", HtoRGB)
 end
-global("HSVtoSRGB", HSVtoSRGB)
-
 
 local WP = {
 	A 		= {0.44757/0.40744, 1, 0.14499/0.40744},
@@ -301,8 +299,6 @@ do
 				CI[7]*x + CI[8]*y + CI[9]*z
 	end
 end
-
-
 
 -- dcraw RAWtoXYZ using D65 illuminant --in 16bit int?
 local RAW = {}
@@ -671,6 +667,9 @@ local function LCHUVtoLAB(c1, c2, c3) return XYZtoLAB(LCHUVtoXYZ(c1, c2, c3)) en
 local function LABtoLCHUV(c1, c2, c3) return XYZtoLCHUV(LABtoXYZ(c1, c2, c3)) end
 local function LCHUVtoLCHAB(c1, c2, c3) return XYZtoLCHAB(LCHUVtoXYZ(c1, c2, c3)) end
 local function LCHABtoLCHUV(c1, c2, c3) return XYZtoLCHUV(LCHABtoXYZ(c1, c2, c3)) end
+
+global("HSVtoLRGB", HSVtoLRGB)
+global("XYZtoLRGB", XYZtoLRGB)
 
 cs.HSV = {}
 cs.HSL = {}
