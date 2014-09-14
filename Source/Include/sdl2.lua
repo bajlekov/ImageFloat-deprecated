@@ -510,7 +510,7 @@ sdl.input.button	= {}		-- pressed button
 sdl.input.click		= {}		-- clicked button
 sdl.input.release 	= {}		-- released button
 sdl.input.quit 		= false		-- closed window
-sdl.input.key 		= nil		--keyboard input
+sdl.input.key 		= false		--keyboard input
 sdl.input.anykey	= false
 sdl.input.mod 		= {			-- modifier keys
 	alt = false,
@@ -540,13 +540,21 @@ do
 		local input = sdl.input
 		xOld = input.x
 		yOld = input.y
-		for i = 1, 5 do
-			input.click[i] = false
-			input.release[i] = false
-		end
+		
+		input.click[1] = false
+		input.click[2] = false
+		input.click[3] = false
+		input.click[4] = false
+		input.click[5] = false
+		input.release[1] = false
+		input.release[2] = false
+		input.release[3] = false
+		input.release[4] = false
+		input.release[5] = false
+		
 		input.wheel.x = 0
 		input.wheel.y = 0
-		input.key = nil
+		input.key = false
 		input.anykey = false
 		while _SDL.SDL_PollEvent(event)==1 do
 			if event.type==_SDL.SDL_MOUSEMOTION then
@@ -599,7 +607,7 @@ do
 		input.dx = input.x-xOld
 		input.dy = input.y-yOld
 		
-		-- TODO: improved handling of modifiers!!!
+		-- TODO: improve handling of modifiers!!! 
 		local key = _SDL.SDL_GetKeyboardState(nil)
 		if key[82]==1 then input.mod.up=true else input.mod.up=false end
 		if key[81]==1 then input.mod.down=true else input.mod.down=false end
@@ -609,8 +617,8 @@ do
 		if key[224]==1 or key[228]==1 then input.mod.ctrl=true else input.mod.ctrl=false end
 		if key[226]==1 or key[230]==1 then input.mod.alt=true else input.mod.alt=false end
 		if key[44]==1 then input.mod.space=true else input.mod.space=false end
-	
-		if sdl.time()-startTime < 1.25*sdl.input.refreshDelay then 
+		
+		if sdl.time()-startTime < 1.5*sdl.input.refreshDelay then 
 			while true do
 				if sdl.time()-startTime > sdl.input.refreshDelay then
 					startTime = startTime + sdl.input.refreshDelay
