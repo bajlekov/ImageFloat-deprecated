@@ -85,7 +85,6 @@ function sdl.init()
 end
 --- Quit SDL system 
 function sdl.quit()
-	sdl.SDL_DestroyWindow(sdl.screen.window)
 	_SDL.SDL_Quit()
 	_TTF.TTF_Quit()
 	_IMG.IMG_Quit()
@@ -108,17 +107,20 @@ local SDL_TEXTUREACCESS_STATIC = 0
 --- Screen management functions
 sdl.screen = {}
 function sdl.screen.set(x, y)
-	-- create window with texture
-	-- create screen surface
-	-- modify update from surface to texture to renderer to screen
-	sdl.screen.window = _SDL.SDL_CreateWindow("SDL2 Window", 0, 0, x, y, SDL_WINDOW_SHOWN)
-	sdl.screen.renderer = _SDL.SDL_CreateRenderer(sdl.screen.window, -1, 0)
-	sdl.screen.texture = _SDL.SDL_CreateTexture(sdl.screen.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, x, y)
+	sdl.screen.window = ffi.gc(
+		_SDL.SDL_CreateWindow("SDL2 Window", 0, 0, x, y, SDL_WINDOW_SHOWN),
+		_SDL.SDL_DestroyWindow)
+	sdl.screen.renderer = ffi.gc(
+		_SDL.SDL_CreateRenderer(sdl.screen.window, -1, 0),
+		_SDL.SDL_DestroyRenderer)
+	sdl.screen.texture = ffi.gc(
+		_SDL.SDL_CreateTexture(sdl.screen.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, x, y),
+		_SDL.SDL_DestroyTexture)
+	
 	sdl.screen.surf = sdl.surf.new(x, y)
 	sdl.screen.width = x
 	sdl.screen.height = y
 	sdl.surf.attach(sdl.screen.surf)
-	--_SDL.SDL_EnableUNICODE(1) -- enable unicode support
 	return sdl.screen.surf
 end
 
