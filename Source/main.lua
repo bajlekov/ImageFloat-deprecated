@@ -241,8 +241,11 @@ local calcUpdate
 local hist = require("Tools.histogram")
 
 local loopTime = sdl.time()
+local loopOverhead = sdl.time()
+
 function funProcess()
-	toc("Overhead")					-- TODO: minimize overhead outside of coroutine (between resets)
+	io.write("Loop overhead: "..(sdl.time()-loopOverhead).."ms\n")					-- TODO: minimize overhead outside of coroutine (between resets)
+
 	cp=1							-- reset processing coroutine
 	node[1].bufIn = buf 			-- initialise input node, move to other location!
 
@@ -270,8 +273,10 @@ function funProcess()
 	--hist.calculate(bufout)
 
 	-- loop timer
-	io.write("Loop total: "..(sdl.time()-loopTime).."ms\n")
-	loopTime = sdl.time()
+	local newTime = sdl.time()
+	io.write("Loop total: "..(newTime-loopTime).."ms\n")
+	loopTime = newTime
+	loopOverhead = newTime
 
 	tic()
 	coroutine.yield(-1)
