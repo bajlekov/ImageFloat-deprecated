@@ -168,6 +168,30 @@ nodeTable["Mixer"] = function(self)
 	return n
 end
 
+nodeTable["Threshold"] = function(self)
+  local n=self:new("threshold")
+  n.param:add("Level",{0,1,0.5})
+  n.conn_i:add(0)
+  n.conn_i:add(1)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local p = self.param
+    local b1 = getBufIn(self, 0)
+    
+    local br = getBufIn(self, 1,
+      img:newV(p[1].value[1]))
+    
+    local x, y, z = img:checkSuper(b1, br)
+    bo[0].buf = b1:new(x, y, z)
+    
+    lua.threadSetup({b1, br, bo[0].buf})
+    lua.threadRun("ops", "filter", "threshold")
+    coroutine.yield(num)
+  end
+  return n
+end
+
 nodeTable["Add"] = function(self)
 	local n=self:new("Add")
 	n.param:add("Input","Output","text")
@@ -210,7 +234,6 @@ nodeTable["Merge"] = function(self)
 	end
 	return n
 end
-
 
 nodeTable["Split"] = function(self)
 	local n=self:new("Split")
@@ -511,5 +534,153 @@ nodeTable["Gamma"] = function(self)
 	end
 	return n
 end
+
+nodeTable["Median"] = function(self)
+  local n=self:new("Median")
+  n.conn_i:add(0)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[0].buf = b1:new()
+    lua.threadSetup({b1 , bo[0].buf})
+    lua.threadRun("ops", "filter", "median")
+    coroutine.yield(num)
+  end
+  return n
+end
+
+nodeTable["Mean"] = function(self)
+  local n=self:new("Mean")
+  n.conn_i:add(0)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[0].buf = b1:new()
+    lua.threadSetup({b1 , bo[0].buf})
+    lua.threadRun("ops", "filter", "mean")
+    coroutine.yield(num)
+  end
+  return n
+end
+
+nodeTable["Erode"] = function(self)
+  local n=self:new("Erode")
+  n.conn_i:add(0)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[0].buf = b1:new()
+    lua.threadSetup({b1 , bo[0].buf})
+    lua.threadRun("ops", "filter", "min")
+    coroutine.yield(num)
+  end
+  return n
+end
+
+nodeTable["Dilate"] = function(self)
+  local n=self:new("Dilate")
+  n.conn_i:add(0)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[0].buf = b1:new()
+    lua.threadSetup({b1 , bo[0].buf})
+    lua.threadRun("ops", "filter", "max")
+    coroutine.yield(num)
+  end
+  return n
+end
+
+nodeTable["Gradient"] = function(self)
+  local n=self:new("Gradient")
+  n.conn_i:add(0)
+  n.conn_o:add(1)
+  n.conn_o:add(2)
+  n.param:add("", "Horizontal", "text")
+  n.param:add("", "Vertical", "text")
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[1].buf = b1:new()
+    bo[2].buf = b1:new()
+    lua.threadSetup({b1 , bo[1].buf})
+    lua.threadRun("ops", "filter", "diffx")
+    coroutine.yield(num)
+    lua.threadSetup({b1 , bo[2].buf})
+    lua.threadRun("ops", "filter", "diffy")
+    coroutine.yield(num)
+  end
+  return n
+end
+
+nodeTable["Angle"] = function(self)
+  local n=self:new("Angle")
+  n.conn_i:add(1)
+  n.conn_i:add(2)
+  n.conn_o:add(1)
+  n.conn_o:add(2)
+  n.param:add("Horizontal", "Magnitude", "text")
+  n.param:add("Vertical", "Angle", "text")
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 1)
+    local b2 = getBufIn(self, 2)
+    bo[1].buf = b1:new()
+    bo[2].buf = b1:new()
+    lua.threadSetup({b1, b2, bo[1].buf, bo[2].buf})
+    lua.threadRun("ops", "filter", "angle")
+    coroutine.yield(num)
+  end
+  return n
+end
+
+nodeTable["Roberts"] = function(self)
+  local n=self:new("Roberts")
+  n.conn_i:add(0)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[0].buf = b1:new()
+    lua.threadSetup({b1 , bo[0].buf})
+    lua.threadRun("ops", "filter", "roberts")
+    coroutine.yield(num)
+  end
+  return n
+end
 	
+nodeTable["Prewitt"] = function(self)
+  local n=self:new("Prewitt")
+  n.conn_i:add(0)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[0].buf = b1:new()
+    lua.threadSetup({b1 , bo[0].buf})
+    lua.threadRun("ops", "filter", "prewitt")
+    coroutine.yield(num)
+  end
+  return n
+end
+
+nodeTable["Sobel"] = function(self)
+  local n=self:new("Sobel")
+  n.conn_i:add(0)
+  n.conn_o:add(0)
+  function n:processRun(num)
+    local bo = self.conn_o
+    local b1 = getBufIn(self, 0)
+    bo[0].buf = b1:new()
+    lua.threadSetup({b1 , bo[0].buf})
+    lua.threadRun("ops", "filter", "sobel")
+    coroutine.yield(num)
+  end
+  return n
+end
+  
 return nodeTable
