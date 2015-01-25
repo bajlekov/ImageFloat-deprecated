@@ -169,6 +169,11 @@ local function copy(b, p, z) -- 1, 1
 end
 ops.copy = wrapLoop(wrapChan(copy))
 
+local function copy3(b, p, z) -- 1, 1
+  b[2]:set3(b[1]:get3())
+end
+ops.copy3 = wrapLoop(copy3)
+
 
 local function hsxedit(b, p) -- 2, 1
 	local x = b[2]:get(0)+b[1]:get(0)
