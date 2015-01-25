@@ -116,37 +116,51 @@ local function checkPos(r, self)
 	local oy = self.y
 	if x>=r[1]+ox and x<=r[2]+ox and y>=r[3]+oy and y<=r[4]+oy then return true end
 end
-local function nodeClick(self, part)
-	local areas = {
-		node = {-13, 162, -2, 23+12*self.p[1]},
-		title = {0, 149, 0, 19},
-		params = {0, 149, 21, 21+12*self.p[1]},
-		connL = {-12, -1, 7, 21+12*self.p[1]},
-		connR = {150, 161, 7, 21+12*self.p[1]},
-	}
 
-	if part~=nil then
-		local area = areas[part]
 
-		if checkPos(area, self) then
-			if part=="params" then
-				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
-				if p==0 then return 1 else return p end --correct for math.floor
-			end
-			if part=="connL" or part=="connR" then
-				if sdl.input.y>=self.y+7 and sdl.input.y<=self.y+19 then return 0 end
-				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
-				return p>0 and p or nil
-			end
-			--for title return button end
-			return true
-		end
-	else
-		for k,_ in pairs(areas) do -- FIXME: replace pairs for fast execution!!!!!
-			local p = nodeClick(self, k)
-			if p and k~="node" then return p, k end
-		end
-	end
+local nodeClick
+do
+  local areas = {
+      node = {-13, 162, -2, 0},
+      title = {0, 149, 0, 19},
+      params = {0, 149, 21, 0},
+      connL = {-12, -1, 7, 0},
+      connR = {150, 161, 7, 0},
+    }
+  local areaNames = {"node", "title", "params", "connL", "connR"}
+  function nodeClick(self, part)
+    -- FIXME: functionality: if part~=nil then check if part is clicked, else return clicked part
+    local offset = 21+12*self.p[1]
+    areas.node[4] = offset + 2
+    areas.params[4] = offset
+    areas.connL[4] = offset
+    areas.connR[4] = offset
+  	
+  
+  	if part~=nil then
+  		local area = areas[part]
+  
+  		if checkPos(area, self) then
+  			if part=="params" then
+  				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
+  				if p==0 then return 1 else return p end --correct for math.floor
+  			end
+  			if part=="connL" or part=="connR" then
+  				if sdl.input.y>=self.y+7 and sdl.input.y<=self.y+19 then return 0 end
+  				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
+  				return p>0 and p or nil
+  			end
+  			--for title return button end
+  			return true
+  		end
+  	else
+  		for i = 1, 5 do -- FIXME: replace pairs -> keep track of size of areas
+  		  local k = areaNames[i]
+  			local p = nodeClick(self, k)
+  			if p and k~="node" then return p, k end
+  		end
+  	end
+  end
 end
 
 local function noodleConnect(self, pos, node, port)
