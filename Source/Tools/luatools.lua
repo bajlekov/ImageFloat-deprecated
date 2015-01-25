@@ -314,10 +314,11 @@ if type(__sdl)=="table" then
 					sdl.thread.wait(thread[i+1], NULL)
 				end
 				
+				local timeNow = sdl.time()
 				if not __global.preview then
-					io.write("("..procName.."): "..(sdl.time()-procTime).."ms ("..(sdl.time()-loopTime).."ms)\n")
+					io.write("("..procName.."): "..(timeNow-procTime).."ms ("..(timeNow-loopTime).."ms)\n")
 				end
-				loopTime = sdl.time()
+				loopTime = timeNow
 				--else
 				--	-- deprecated use:
 				--	error("Thread not running! Skipping threadWait()")
@@ -357,9 +358,11 @@ if type(__sdl)=="table" then
 		end
 		function l.threadDone() --returns true once when the threads are finished
 			for i = 0, l.numCores-1 do
-				if l.threadProgress[i]~=-1 then return false end
-		end
-		return true
+				if l.threadProgress[i]~=-1 then
+				  return false
+				end
+		  end
+		  return true
 		end
 	else
 		print("threading library not loaded, multithreading functionality not supported")
