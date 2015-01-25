@@ -470,8 +470,8 @@ function sdl.draw.box(x, y, w, h)
 	sdl.draw.line(x,y+h,w,0)
 	sdl.draw.line(x+w,y,0,h)
 end
-function sdl.draw.clear()
-	_SDL.SDL_FillRect(sdl.surf.current, nil, 0)
+function sdl.draw.clear(surf)
+	_SDL.SDL_FillRect(surf or sdl.surf.current, nil, 0)
 end
 function sdl.draw.text(x, y, str)
 	local ttf_text = sdl.font.__text(str)
