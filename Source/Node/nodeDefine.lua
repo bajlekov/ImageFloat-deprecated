@@ -29,9 +29,10 @@ require("Ops.opsCS")
 local nodeTable = {}
 
 -- TODO: make defaults immutable!
-local empty = img:new(1,1,1) -- no guarantee on content
-local zero = img:new(1,1,1) -- use as output for unused buffers
+local empty = img:new(1,1,1) -- no guarantee on content, use as unused output
+local zero = img:new(1,1,1)
 local one = img:new(1,1,1)
+zero:set(0,0,0,0)
 one:set(0,0,0,1)
 
 nodeTable["Input"] = function(self)
