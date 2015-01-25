@@ -329,7 +329,13 @@ local helpText = {
 
 function node:draw(flag)
 	-- see if drawing can be reduced when no update is available!!
-	sdl.surf.copy(node.backgrounds.window, sdl.screen.surf) --draws background
+	
+	--sdl.surf.copy(node.backgrounds.window, sdl.screen.surf) --draws background
+	sdl.draw.clear(sdl.screen.surf)
+	
+	-- TODO: use dirty rect updating
+	-- TODO: use sdl2 renderers
+	
 	self.imageProcess(flag) -- puts image on screen
 	drawNoodles(self) -- draws noodles
 
