@@ -215,7 +215,7 @@ end
 
 --set desired working buffers
 local function bufSet(size)
-	if size=="S" then
+	if size=="S" and (not __global.fullDraw) then
 		__global.preview = true
 		buf = bufS
 		bufout = bufoutS
@@ -257,21 +257,15 @@ function funProcess()
 	for k, v in ipairs(node.execOrder) do
 		node[v]:processRun(k)	-- run processes
 	end
-
 	-- TODO: optimize histogram and pasting to surface!!
 
 	-- put output buffer to screen buffer
 	bufout = node[outNode].bufOut
-	if __global.preview then
-		img.toSurfaceQuad(bufout, surf)
+	if __global.preview and (not __global.fullDraw) then
+		bufout:toSurfaceQuad(surf)
 	else
-		tic()
-		img.toSurface(bufout, surf)
-		bufoutS = img.scaleDownHQ(bufout, 4) --if full process then also update preview buffer
-		img.toSurfaceQuad(bufoutS, surfS)
-		toc("put to surface")
+		bufout:toSurface(surf)
 	end
-
 	-- calculate histograms
 	--hist.calculate(bufout)
 

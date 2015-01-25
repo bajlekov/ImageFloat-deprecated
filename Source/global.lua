@@ -28,7 +28,7 @@ end
 local g
 local ffi = require("ffi")
 
-g = {preview = true, error=false, info=true}
+g = {preview = true, error=false, info=true, fullDraw=false}
 g.setup = require("Setup.IFsetup")
 g.setup.bufferPrecision = g.setup.bufferPrecision or {"float", 4}
 
