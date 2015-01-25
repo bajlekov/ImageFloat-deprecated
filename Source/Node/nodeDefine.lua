@@ -42,13 +42,33 @@ nodeTable["Input"] = function(self)
 	n.param:add("", "Grayscale", "text")
 	n.conn_o:add(2)
 	n.conn_o:add(3)
+	
+	function n:processRun(num)
+    local bo = self.conn_o
+    
+    if bo[2].node then
+      bo[2].buf = self.bufIn:new()
+      lua.threadSetup({self.bufIn, bo[2].buf})
+      lua.threadRun("ops", "copy3")
+      coroutine.yield(num)
+    end
+    
+    if bo[3].node then
+      bo[3].buf = self.bufIn:newM()
+      lua.threadSetup({self.bufIn, bo[3].buf})
+      lua.threadRun("ops", "copy3")
+      coroutine.yield(num)
+    end
+	end
+	
+	--[[
 	function n:processRun(num)
 		local bo = self.conn_o
 		
-		-- conditional processing!
 		bo[2].buf = bo[2].node and self.bufIn:copy()
 		bo[3].buf = bo[3].node and self.bufIn:grayscale()
 	end
+	--]]
 	return n
 end
 
