@@ -338,6 +338,11 @@ function data:copyC()
   return self:copy(1, 1, 3)
 end
 
+function data:i(...) return self:get(...) end
+function data:a(...) return self:set(...) end
+function data:i3(...) return self:get3(...) end
+function data:a3(...) return self:set3(...) end
+
 function data:type()
   -- TODO: debug/warning/developer mode
   -- print("Deprecated buffer property \"type\".")
