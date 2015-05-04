@@ -203,6 +203,7 @@ function lut.memoize(fun)
 end
 
 --test
---lut.test(math.atan,0,math.pi,2^12)
+lut.test(math.atan,0,math.pi,2^16)
+lut.test(function(a) return a^2.2 end,0,math.pi,2^12)
 
 return lut
