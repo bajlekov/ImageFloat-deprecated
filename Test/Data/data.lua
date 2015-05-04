@@ -111,9 +111,45 @@ do
     d.data[d.pos(ABC(d, x, y, z))] = v
   end
   
+  -- TODO: fix great delays in in-bounds getters/setters for mixed cases
+  local function __getPad(d, x, y, z)
+    local _
+    _, x, y, z = broadcast(d, x, y, z)
+    if x<d.x and x>=0 and y<d.y and y>=0 then
+      return d.data[d.pos(broadcast(d, x, y, z))]
+    else
+      return 0
+    end
+  end
+  local function __setPad(d, x, y, z, v)
+    local _
+    _, x, y, z = broadcast(d, x, y, z)
+    if x<d.x and x>=0 and y<d.y and y>=0 then
+      d.data[d.pos(d, x, y, z)] = v
+    end
+  end
+  local function __getExtend(d, x, y, z)
+    local _
+    _, x, y, z = broadcast(d, x, y, z)
+    x = (x<0 and 0) or (x>=d.x and d.x-1) or x
+    y = (y<0 and 0) or (y>=d.y and d.y-1) or y
+    return d.data[d.pos(broadcast(d, x, y, z))]
+  end
+  local __setExtend = __setPad
+  local function __getMirror(d, x, y, z)
+    local _
+    _, x, y, z = broadcast(d, x, y, z)
+    -- FIXME: indexing is incorrect
+    x = (x<0 and -x) or (x>=d.x and 2*d.x - x - 1) or x
+    y = (y<0 and -y) or (y>=d.y and 2*d.y - y - 1) or y
+    return d.data[d.pos(broadcast(d, x, y, z))]
+  end
+  local __setMirror = __setPad
+  
+  
   -- overridable getters and setters, possibly implementing ABC
-  data.__get = __get
-  data.__set = __set
+  data.__get = __getPad
+  data.__set = __setPad
 end
 
 
