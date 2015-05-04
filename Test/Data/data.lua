@@ -31,7 +31,7 @@ require("global")
 local unroll = require("Tools.unroll")
 local alloc = require("Test.Data.alloc")
 
-local prec = 32 -- precision of buffers
+local prec = __global.setup.bufferPrecision[2]*8
 print("Using "..prec.."bit precision buffers...")
 local dataAlloc = prec==32 and alloc.float32 or alloc.float64
 
