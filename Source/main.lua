@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
---require("jit.p").start("vfni1m1", "profile.txt")
+require("jit.p").start("l5i1m1", "profile.txt")
 --require("jit.v").start("verbose.txt")
 --require("jit.dump").start("tbT", "dump.txt")
 
@@ -89,9 +89,11 @@ global("__sdl", sdl)
 local lua = require("Tools.luatools")
 local dbg = require("Tools.dbgtools")
 local ppm = require("Tools.ppmtools")
-local img = require("Tools.imgtools")
 
---put often-used libs in a global namespace and index from there, not as independent globals
+local img = require("Test.Data.data") -- TODO: merge with main development
+--local img = require("Tools.imgtools")
+
+--put often-used libs in a global namespace and index from there, not as independent globals (no need, require does not duplicate table!)
 global("__dbg", dbg)
 global("__img", img)
 
@@ -130,22 +132,43 @@ require("Node.nodeCreate")(node, img)
 
 node:add("Input")
 node:add("Output")
+---[[
+node:add("Median")
+node:add("Dilate")
+node:add("Erode")
 node:add("Rotate")
+--]]
+---[[
+node:add("Gradient")
+node:add("Prewitt")
+node:add("Roberts")
+node:add("Sobel")
+node:add("Threshold")
+node:add("Angle")
+node:add("ComposeLCH")
+node:add("Split")
+node:add("Gaussian")
+--]]
 node:add("Mixer")
+
+--[[
+node:add("Rotate")
+
 node:add("Add")
 node:add("Split")
---node:add("DecomposeLCH")
---node:add("DecomposeRGB")
---node:add("WhiteBalance")
---node:add("ComposeLCH")
---node:add("ComposeRGB")
---node:add("ColorSpace")
---node:add("Color RGB")
---node:add("Color HSV")
+node:add("DecomposeLCH")
+node:add("DecomposeRGB")
+node:add("WhiteBalance")
+node:add("ComposeLCH")
+node:add("ComposeRGB")
+node:add("ColorSpace")
+node:add("Color RGB")
+node:add("Color HSV")
 node:add("GradientRot")
 node:add("Merge")
 node:add("Gaussian")
---node:add("Gamma")
+node:add("Gamma")
+--]]
 
 --node:setInput(mouse)
 
@@ -171,7 +194,7 @@ lua.threadRunWait("ops", "cs", "SRGB", "LRGB")
 local reduceFactor = (math.max(math.ceil(imageTemp.x/(__global.setup.windowSize[1]-20)),
 	math.ceil(imageTemp.y/(__global.setup.windowSize[2]-20))))
 local bufO = img.scaleDownHQ(imageTemp, reduceFactor)
-local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y)
+local bufZ = ppm.toBufferCrop(readFun(__global.loadFile, __global.setup.imageLoadParams), bufO.x, bufO.y) -- TODO: get crop from loaded image, do not load twice!! messes up gamma
 sdl.screen.caption("ImageFloat [ "..__global.loadFile.." ]", "ImageFloat");
 imageTemp = nil
 
@@ -255,7 +278,9 @@ function funProcess()
 	if outNode==nil then error("no output node! FIXME") end --error if no output node found
 
 	-- FIXME: do this only if no nodes are connected => skip the rest of processing
+	--if not node[outNode].conn_i[0].node then
 	node[outNode].bufOut = buf:new()	-- place black screen if output node is not connected
+	--end
 
 	for k, v in ipairs(node.execOrder) do
 		node[v]:processRun(k)	-- run processes
@@ -296,14 +321,14 @@ local function imageProcess(flag)
 		end -- if processing is done then start again
 		cp = coProcess() -- go to next step
 	end
-	
+
 	--sdl.surf.attach(surf)
 	--sdl.draw.line(10,10,100,100)
 	sdl.screen.put(surf, 350, 20)
 	--sdl.update()
 	-- screen does not update after this
-	
-	
+
+
 	-- fps averaging
 	local tt = sdl.time()-t
 	t = sdl.time()
@@ -404,10 +429,10 @@ function node:click()
 				end
 			elseif t=="title" then
 				if (not self[n].ui.noClose) and -- prevent closing of non-closable items
-						sdl.input.x>=self[n].ui.x+130 and --delete node
-						sdl.input.x<=self[n].ui.x+146 and
-						sdl.input.y>=self[n].ui.y+2 and
-						sdl.input.y<=self[n].ui.y+18 then
+					sdl.input.x>=self[n].ui.x+130 and --delete node
+					sdl.input.x<=self[n].ui.x+146 and
+					sdl.input.y>=self[n].ui.y+2 and
+					sdl.input.y<=self[n].ui.y+18 then
 					self:remove(n)
 					self:draw()
 					self:calcLevels()
@@ -443,7 +468,7 @@ function node:click()
 				end
 			end
 			break
-		end
+	end
 	end
 end
 
@@ -456,7 +481,7 @@ sdl.update()
 while true do
 	sdl.input.update()
 	--sdl.update()
-	
+
 	-- some simple interface handling, move to separate function!
 	if sdl.input.key==115 then--"S"
 		print("Saving image: "..__global.saveFile)
@@ -483,6 +508,10 @@ while true do
 	end
 	if sdl.input.key==105 then--"I"
 		__global.info = not __global.info
+		node:draw()
+	end
+	if sdl.input.key==102 then--"F"
+		__global.fullDraw = not __global.fullDraw
 		node:draw()
 	end
 	if sdl.input.key==113 then--"Q"
@@ -538,4 +567,3 @@ while true do
 		os.exit()
 	end
 end
-
