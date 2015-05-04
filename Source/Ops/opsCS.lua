@@ -50,8 +50,8 @@ a, b, u, v range -128:128 is mapped to -1:1
 local LRGBtoSRGB
 local SRGBtoLRGB
 do
-	--Rec1361 transform!
-	--custom gamma and cutoff
+	--TODO: Rec1361 transform!
+	--TODO: custom gamma and cutoff
 	local GAMMA = {}
 	GAMMA.adobe 	= {0.45,0}
 	GAMMA.apple 	= {0.56,0}
@@ -80,10 +80,10 @@ do
 		return i<=k and i*f_1 or ((i+a)*a_1)^G
 	end
 
-	function SRGBtoLRGB(i1, i2, i3)
+	SRGBtoLRGB = function(i1, i2, i3)
 		return _SRGBtoLRGB(i1), _SRGBtoLRGB(i2), _SRGBtoLRGB(i3)
 	end
-	function LRGBtoSRGB(i1, i2, i3)
+	LRGBtoSRGB = function(i1, i2, i3)
 		return _LRGBtoSRGB(i1), _LRGBtoSRGB(i2), _LRGBtoSRGB(i3)
 	end
 end
@@ -582,7 +582,7 @@ else
 	end
 end
 
---general CS convert in place constructor
+--general CS convert in place constructor (only threaded)
 function cs.constructor(fun)
 	return function()
 		local s = __global.state

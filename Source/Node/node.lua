@@ -47,13 +47,13 @@ function node:paramDrag(n, p)
 	local vmin = self[n].param[p].value[2]
 	local vmax = self[n].param[p].value[3]
 	local vrange = vmax-vmin
-	
+
 	while sdl.input.button[1] do
 		sdl.input.update()
-		
+
 		-- FIXME: allready checked before?
 		if self[n].param[p].type~="value" then break end --have check earlier and update data
-		
+
 		local fac = sdl.input.mod.shift and 10 or 1
 		v = v + sdl.input.dx/148/fac*vrange
 		if v>vmax then v=vmax end
@@ -74,7 +74,7 @@ function node:noodleDrag(n, p)
 	self[n]:disconnect(p) --disconnect old connection
 	while sdl.input.button[1] do
 		sdl.input.update()
-		
+
 		local _n, _p = nil, nil
 		for k, v in ipairs(self) do
 			if k~=n then
@@ -120,47 +120,47 @@ end
 
 local nodeClick
 do
-  local areas = {
-      node = {-13, 162, -2, 0},
-      title = {0, 149, 0, 19},
-      params = {0, 149, 21, 0},
-      connL = {-12, -1, 7, 0},
-      connR = {150, 161, 7, 0},
-    }
-  local areaNames = {"node", "title", "params", "connL", "connR"}
-  function nodeClick(self, part)
-    -- FIXME: functionality: if part~=nil then check if part is clicked, else return clicked part
-    local offset = 21+12*self.p[1]
-    areas.node[4] = offset + 2
-    areas.params[4] = offset
-    areas.connL[4] = offset
-    areas.connR[4] = offset
-  	
-  
-  	if part~=nil then
-  		local area = areas[part]
-  
-  		if checkPos(area, self) then
-  			if part=="params" then
-  				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
-  				if p==0 then return 1 else return p end --correct for math.floor
-  			end
-  			if part=="connL" or part=="connR" then
-  				if sdl.input.y>=self.y+7 and sdl.input.y<=self.y+19 then return 0 end
-  				local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
-  				return p>0 and p or nil
-  			end
-  			--for title return button end
-  			return true
-  		end
-  	else
-  		for i = 1, 5 do -- FIXME: replace pairs -> keep track of size of areas
-  		  local k = areaNames[i]
-  			local p = nodeClick(self, k)
-  			if p and k~="node" then return p, k end
-  		end
-  	end
-  end
+	local areas = {
+		node = {-13, 162, -2, 0},
+		title = {0, 149, 0, 19},
+		params = {0, 149, 21, 0},
+		connL = {-12, -1, 7, 0},
+		connR = {150, 161, 7, 0},
+	}
+	local areaNames = {"node", "title", "params", "connL", "connR"}
+	function nodeClick(self, part)
+		-- FIXME: functionality: if part~=nil then check if part is clicked, else return clicked part
+		local offset = 21+12*self.p[1]
+		areas.node[4] = offset + 2
+		areas.params[4] = offset
+		areas.connL[4] = offset
+		areas.connR[4] = offset
+
+
+		if part~=nil then
+			local area = areas[part]
+
+			if checkPos(area, self) then
+				if part=="params" then
+					local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
+					if p==0 then return 1 else return p end --correct for math.floor
+				end
+				if part=="connL" or part=="connR" then
+					if sdl.input.y>=self.y+7 and sdl.input.y<=self.y+19 then return 0 end
+					local p = math.floor((sdl.input.y - self.y - 22)/ 12) + 1
+					return p>0 and p or nil
+				end
+				--for title return button end
+				return true
+			end
+		else
+			for i = 1, 5 do -- FIXME: replace pairs -> keep track of size of areas
+				local k = areaNames[i]
+				local p = nodeClick(self, k)
+				if p and k~="node" then return p, k end
+			end
+		end
+	end
 end
 
 local function noodleConnect(self, pos, node, port)
@@ -169,11 +169,11 @@ local function noodleConnect(self, pos, node, port)
 
 	--break if no matching connectors
 	if n_out==nil or n_in==nil then return false end 
- 	--remove possible old connection from old conn_i
+	--remove possible old connection from old conn_i
 	if n_out.node~=nil then self.node[n_out.node].conn_i[n_out.port].node = nil end
 	--remove possible old connection to new conn_i
 	if n_in.node~=nil then self.node[n_in.node].conn_o[n_in.port].node = nil end
-	
+
 	n_out.node = node
 	n_out.port = port
 	n_in.node = self.n
@@ -209,8 +209,8 @@ end
 --add new parameter slider
 local function paramAdd(self, name, p, type)
 	type = type or "value"
- 	--count number of params in array to be referenced to by other parts of the object
- 	local n = #self + 1
+	--count number of params in array to be referenced to by other parts of the object
+	local n = #self + 1
 	if type=="value" then
 		self[n] = {name=name, value={p[3], p[1], p[2], p[3]}, type="value"}
 	elseif type=="text" then
@@ -238,17 +238,17 @@ function node:new(name, x, y)
 		connect = noodleConnect, 				-- connects node_o with node_i
 		disconnect = noodleDisconnect, 			-- disconnects node_o
 		--unused: processInit = nil,				-- function to execute during processing
-			-- prepare output buffers
-			-- prepare processing data
-			-- call process
-			-- clean up
+		-- prepare output buffers
+		-- prepare processing data
+		-- call process
+		-- clean up
 		procFlags = {process = false, output = false},
 		ui = {name = name, x = x, y = y, draw = true,
 			collapsed=false, buffer=nil},		-- x, y etc...
 		draw = nodeDraw,
 		node = self,								--go one level back to nodelist from a single node
 		profile = {},							--profiler data
-		}
+	}
 	self[n].ui.p = self[n].param.n				--for refering to number of params
 	self[n].ui.click = nodeClick
 	return self[n]
@@ -260,28 +260,28 @@ function node:remove(n)
 	--clear everything corresponding to node
 
 	local nmax = #self
-	
+
 	self[n] = self[nmax]
 	self[n].n = n
-	
+
 	--rework connections
 	for i = 1, nmax - 1 do
-		
+
 		local n_i = self[i].conn_i
 		local n_o = self[i].conn_o
-		
+
 		if #n_i.list>0 then for j = 1, #n_i.list do
 			if n_i.list[j].node==n then n_i.list[j].node = nil end --remove conn
 			if n_i.list[j].node==nmax then n_i.list[j].node = n end --move conn to new node
 		end end
-		
+
 		if #n_o.list>0 then for j = 1, #n_o.list do
 			if n_o.list[j].node==n then n_o.list[j].node = nil end
 			if n_o.list[j].node==nmax then n_o.list[j].node = n end
 		end end
-		
+
 	end
-	
+
 	--ui order
 	local current_order
 	for k, v in ipairs(self.drawOrder) do
@@ -293,7 +293,7 @@ function node:remove(n)
 	for k, v in ipairs(self.drawOrder) do
 		if v==nmax then self.drawOrder[k]=n end
 	end
-	
+
 	self.drawOrder[#self] = nil
 	self[nmax]=nil	
 end
@@ -329,13 +329,13 @@ local helpText = {
 
 function node:draw(flag)
 	-- see if drawing can be reduced when no update is available!!
-	
+
 	--sdl.surf.copy(node.backgrounds.window, sdl.screen.surf) --draws background
 	sdl.draw.clear(sdl.screen.surf)
-	
+
 	-- TODO: use dirty rect updating
 	-- TODO: use sdl2 renderers
-	
+
 	self.imageProcess(flag) -- puts image on screen
 	drawNoodles(self) -- draws noodles
 
@@ -347,7 +347,7 @@ function node:draw(flag)
 			sdl.draw.text(__global.setup.windowSize[1] - 220, 10 + k*10, v)
 		end
 	end
-	
+
 	for n = #self,1,-1 do
 		self[self.drawOrder[n]]:draw()
 	end
@@ -368,7 +368,7 @@ function node:focus(n)
 end
 
 function node:cleanup()
-	-- currently empty, everything is GC'd
+-- currently empty, everything is GC'd
 end
 
 do
@@ -378,11 +378,11 @@ do
 		local level = 1
 		local tree = {}
 		local error = false
-	
+
 		local collect = c.collect
 		local negate = c.cNot
 		local list = c.list
-	
+
 		--return nodes connected to node n
 		local function connected(n, flag)
 			local o = {}
@@ -391,15 +391,15 @@ do
 			end
 			return list(o), o
 		end
-	
+
 		--add all nodes that can be used as generators
 		for k, v in ipairs(node) do
 			if v.procFlags.output then table.insert(current, k) end
 		end
-	
+
 		local allProc = {}
 		local noProc
-	
+
 		while true do
 			tree[level] = current
 			local c = {}
@@ -407,28 +407,28 @@ do
 				local t = connected(v)
 				c = collect(t, c)
 			end
-	
+
 			collect(current, allProc)
-	
+
 			current = list(c)
 			level = level + 1
-	
+
 			if level>#self+1 then __dbg.error("Loop detected! Wrong node connections. FIXME") end
 			if #current==0 then break end
 		end
-	
+
 		noProc = c.cNot(c.new(1,#self),allProc)
-	
+
 		if not error then
 			level = level - 1
-	
+
 			-- filter only last occurrence of each node:
 			local early = {}
 			for i = level,1, -1 do
 				tree[i] = list(negate(collect(tree[i]), early))
 				early = collect(tree[i],early)
 			end
-	
+
 			-- display node tree
 			--[[
 			for i = 1, level do
@@ -438,7 +438,7 @@ do
 			print("---")
 			--]]
 		end
-	
+
 		self.levels = tree
 		self.execOrder = {}
 		for _, v in ipairs(self.levels) do
@@ -446,7 +446,7 @@ do
 				table.insert(self.execOrder, v)
 			end
 		end
-	
+
 		--invert execOrder
 		local tempOrder = {}
 		for i = 1, #self.execOrder do
@@ -454,17 +454,17 @@ do
 		end
 		self.execOrder = tempOrder
 		tempOrder = nil
-	
+
 		--print(unpack(self.execOrder))
-	
+
 		self.exec = allProc
 		self.noExec = list(noProc)
-	
+
 		-- refresh view
 		-- NYI: bytecode 50 at node.lua:448
 		for _, v in ipairs(self) do
-		-- FIXME: possibly keep track of number of nodes and use a regular loop instead of an iterator
-		-- then again, this is not (or shouldn't be) performance-sensitive code
+			-- FIXME: possibly keep track of number of nodes and use a regular loop instead of an iterator
+			-- then again, this is not (or shouldn't be) performance-sensitive code
 			v.ui.draw=true
 		end
 		sdl.update()

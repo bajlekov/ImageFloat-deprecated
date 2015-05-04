@@ -36,7 +36,7 @@ function compile.ispc(file, str)
 	if str~=nil then
 		writeFile(file..".ispc", str)
 	end
-	os.execute ("ispc --pic --math-lib=fast --opt=fast-math --wno-perf --target=avx1 -o "..file..".o "..file..".ispc") print("compiling... (ispc)")
+	os.execute ("ispc --pic -o "..file..".o "..file..".ispc") print("compiling... (ispc)")
 	os.execute ("clang -shared -o "..file..".so "..file..".o") print("linking... (clang)")
 	return ffi.load("./"..file..".so")
 end
@@ -45,7 +45,7 @@ function compile.gcc(file, str)
 	if str~=nil then
 		writeFile(file..".c", str)
 	end
-	os.execute ("gcc -O3 -std=gnu99 -ffast-math -march=native -fPIC -o "..file..".o -c "..file..".c") print("compiling... (gcc)")
+	os.execute ("gcc -O3 -std=gnu99 -march=native -fPIC -o "..file..".o -c "..file..".c") print("compiling... (gcc)")
 	os.execute ("gcc -shared -o "..file..".so "..file..".o") print("linking... (gcc)")
 	return ffi.load("./"..file..".so")
 end
@@ -55,7 +55,7 @@ function compile.clang(file, str)
 	if str~=nil then
 		writeFile(file..".c", str)
 	end
-	os.execute ("clang -O3 -std=gnu99 -ffast-math -march=native -fPIC -o "..file..".o -c "..file..".c") print("compiling... (clang)")
+	os.execute ("clang -O3 -std=gnu99 -funroll-loops -march=native -fPIC -o "..file..".o -c "..file..".c") print("compiling... (clang)")
 	os.execute ("clang -shared -o "..file..".so "..file..".o") print("linking... (clang)")
 	return ffi.load("./"..file..".so")
 end

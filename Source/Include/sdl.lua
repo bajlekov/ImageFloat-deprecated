@@ -465,7 +465,7 @@ sdl.input.button	= {}		-- pressed button
 sdl.input.click		= {}		-- clicked button
 sdl.input.release 	= {}		-- released button
 sdl.input.quit 		= false		-- closed window
-sdl.input.key 		= {sym = "", num = nil}		--keyboard input
+sdl.input.key 		= {sym = 0, num = nil}		--keyboard input
 sdl.input.mod 		= {			-- modifier keys
 	alt = false,
 	ctrl = false,

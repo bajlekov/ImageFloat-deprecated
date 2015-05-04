@@ -36,6 +36,10 @@ local demosaic = require("Test.Raw.Demosaic.dlmmse")
 -- TODO: PGM loading!
 
 local i = ppm.toBuffer(ppm.readIM("~/P7288854.tiff")):copyG()*16-64/4096
+
+-- clipping
+
+
 local original = i:copy()
 
 local function imshow(i)
@@ -150,13 +154,16 @@ for x = 0, i.x-1 do
 		elseif c=="B" then
 			v = v * dl[3]
 		end
+		v = v<0 and 0 or v
 		i:a(x, y, v)
 	end
 end
 
 local j = i:copy()
 sdl.tic()
-i = denoise(i,0.001)
+i = (i+0.0001)^(1/1.8)
+i = denoise(i,0.003)
+i = i^1.8-0.0001
 sdl.toc("denoise")
 sdl.tic()
 i = demosaic(i)

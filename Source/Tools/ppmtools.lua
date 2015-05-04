@@ -17,7 +17,9 @@
 
 local ffi = require("ffi")
 local ppm = {}
-local img = require("Tools.imgtools")
+--local img = require("Tools.imgtools")
+-- FIXME: correct data tools
+local img = require("Test.Data.data")
 local unroll = require("Tools.unroll")
 
 ---[[methods for ppm headers

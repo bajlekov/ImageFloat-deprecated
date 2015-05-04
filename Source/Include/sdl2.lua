@@ -46,8 +46,13 @@ local function loadlib(lib)
 		end
 	end
 end
+
+local sdl = {}
 if _G.global then
 	global("loadlib", loadlib)
+	global("__sdl", sdl)
+else
+	_G["__sdl"] = sdl
 end
 
 if jit.os=="Windows" then
@@ -71,8 +76,6 @@ f = f or io.open("/home/galin/Dropbox/ImageFloat lua recode/Source/Include/ffi_S
 ffi.cdef(f:read('*a'))
 f:close()
 -- TODO: put definitions into corresponding lua file
-
-local sdl = {}
 
 --- Rectangle structure
 sdl.rect = ffi.typeof("SDL_Rect") -- x, y, w, h
@@ -132,8 +135,8 @@ function sdl.screen.pixbuf() return ffi.cast("uint8_t*", sdl.screen.surf.pixels)
 function sdl.screen.update(x, y, w, h)
 	--if x then _SDL.SDL_UpdateRect(sdl.screen.surf, x, y, w, h)
 	--else _SDL.SDL_Flip(sdl.screen.surf) end
-	_SDL.SDL_UpdateTexture(sdl.screen.texture, NULL, sdl.screen.surf.pixels, sdl.screen.width*4)
-	_SDL.SDL_RenderClear(sdl.screen.renderer)
+	_SDL.SDL_UpdateTexture(sdl.screen.texture, NULL, sdl.screen.surf.pixels, sdl.screen.width*4)  -- TODO: significant slowdown!
+	--_SDL.SDL_RenderClear(sdl.screen.renderer)
 	_SDL.SDL_RenderCopy(sdl.screen.renderer, sdl.screen.texture, NULL, NULL)
 	_SDL.SDL_RenderPresent(sdl.screen.renderer)
 end

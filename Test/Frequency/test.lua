@@ -7,6 +7,7 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 ImageFloat is distributed in the hope that it will be useful,
+
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
@@ -16,15 +17,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
 -- setup stuff
+package.path =  "./?.lua;"..package.path
+
 math.randomseed(os.time())
 local ffi = require("ffi")
 require("global")
 
 local sdl = require("Include.sdl")
 local ppm = require("Tools.ppmtools")
-local img = require("Tools.imgtools")
-
-package.path =  "./?.lua;"..package.path
+--local img = require("Test.Data.data")
+--local img = require("Tools.imgtools")
 
 local pyr = require("Test.Frequency.PYR")
 
@@ -35,8 +37,9 @@ local original = i:copy()
 local function imshow(i)
 	i:toSurface(sdl.screen.surf)
 	sdl.update()
+	sdl.input.update()
 
-	while not sdl.input.key.any do
+	while not sdl.input.key.any do 
 		sdl.input.update()
 	end
 end
@@ -65,27 +68,31 @@ end
 
 for x = 0, i.x-1 do
 	for y = 0, i.y-1 do
-		i:a(x,y,0, i:i(x,y,0)+math.random()*0.1)
-		i:a(x,y,1, i:i(x,y,1)+math.random()*0.1)
-		i:a(x,y,2, i:i(x,y,2)+math.random()*0.1)
+		i:a(x,y,0, i:i(x,y*2-50,0)+math.random()*0.1)
+		i:a(x,y,1, i:i(x,y*2-50,1)+math.random()*0.1)
+		i:a(x,y,2, i:i(x,y*2-50,2)+math.random()*0.1)
 	end
 end
 
 sdl.screen.set(i.x, i.y)
 imshow(i)
 
+sdl.tic()
 local L, G = pyr.construct(i)
-filter(L[0], 0.07)
-filter(L[1], 0.03)
+sdl.toc("construct")
+filter(L[0], 0.05)
+filter(L[1], 0.02)
 filter(L[2], 0.01)
+sdl.tic()
 local i = pyr.collapse(L)
+sdl.toc("collapse")
 
 imshow(i)
-imshow(original)
-imshow(i)
-imshow(original)
-imshow(i)
-imshow(original)
+--imshow(original)
+--imshow(i)
+--imshow(original)
+--imshow(i)
+--imshow(original)
 
 --[[
 local n = 6

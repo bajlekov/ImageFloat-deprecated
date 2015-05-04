@@ -17,6 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- create functions for asynchronous reading and writing of data to files
 
+--TODO: asynchronous communication through named pipes -> implement async write to/read from pipes
+
 local ffi = require("ffi")
 local sdl = require("Include.sdl")
 

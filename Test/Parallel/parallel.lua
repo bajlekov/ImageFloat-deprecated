@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- implements: parallel environments, synchronisation and communication
 
 local ffi = require("ffi")
-local sdl = require("Include.sdl")
+local sdl = require("Include.sdl2")
 
 -- TODO: fix definitions to be minimal and not overlaping with others!
 
@@ -82,7 +82,7 @@ ffi.cdef(typedefs)
 
 local threadString = [=[
 	local ffi = require("ffi")
-	local sdl = require("Include.sdl")
+	local sdl = require("Include.sdl2")
 	ffi.cdef[[ ]=]..typedefs..[=[ ]]
 	
 	local function funptr(fun, funtype)
@@ -234,10 +234,11 @@ print(ch:pull(), ".")
 print(ch:pull(), ".")
 print(ch:pull(), ".")
 
---[[
+---[[
 local t = sdl.time()
 for j = 1, 100000 do
 	print(ch:pull())
+	--ch:pull()
 end
 print( ((sdl.time()-t)/100000).."ms" )
 --]]

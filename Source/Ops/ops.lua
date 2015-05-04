@@ -30,6 +30,7 @@ local ffi = require("ffi")
 -- function to synchronise between a multi-pass operation
 local function syncThreads()
 	print("WARNING: the syncThreads function is not stable!")
+	-- FIXME: use proper semaphors for this
 	local progress	= __global.progress
 	local inst		= __global.instance
 	local instmax	= __global.instmax

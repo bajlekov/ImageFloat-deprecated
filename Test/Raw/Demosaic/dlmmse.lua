@@ -26,10 +26,10 @@ local unroll = require("Tools.unroll")
 local ffi = require("ffi")
 
 local function getCh(x, y)
-	return (x%2==1 and y%2==1 and "G") or
-		(x%2==0 and y%2==0 and "G") or
-		(x%2==0 and y%2==1 and "B") or
-		(x%2==1 and y%2==0 and "R")
+	return (x%2==1 and y%2==0 and "G") or
+		(x%2==0 and y%2==1 and "G") or
+		(x%2==0 and y%2==0 and "B") or
+		(x%2==1 and y%2==1 and "R")
 end
 
 local function convH5fun(i, x, y, bi, bo, k)

@@ -4,9 +4,9 @@
 -- 		etc...
 
 return {
-	windowSize = {1280, 600},
-	numThreads = 8,
-	bufferPrecision = {"float",4}, -- {"float", 4} or {"double", 8}
+	windowSize = {1200, 600},
+	numThreads = 16,
+	bufferPrecision = {"float", 4}, -- {"float", 4} or {"double", 8}
 	
 	imageLoadType = "PPM", -- PPM / IM / RAW / FPM
 	imageLoadParams = "",
@@ -28,8 +28,8 @@ return {
 	--optimizations
 	optRecompile = false,
 	optCompile	= {
-			c	= false,
-			sse	= false,
+			c		= false,
+			sse		= false,
 			ispc	= false,
 			glsl	= false,
 	},
@@ -42,19 +42,17 @@ return {
 			cache	= false,	-- keep intermediate results in ram
 			disk	= false,	-- keep buffers on disk for huge files (set limit)
 			tiled	= false,	-- tiled processing -> whenever possible
-			
-			pack	= false,	-- "float16"/"int16"/"int8"/"32bit RGBE" -> c-code for float<>half conversion!
+			pack	= false,	-- float16/int16/int8/32bitRGBE -> c-code for float<>half conversion!
 			compr	= false,	-- enable buffer compression -> external lib?
 	},
 	optCalc		= {
-			memoize	= false,	-- tables of 16/18/20/22/24 bits -> out of range still handled correctly
+			lut		= false,	-- tables of 16/18/20/22/24 bits -> out of range still handled correctly
 			linear	= true,		-- linear or step interpolation
-			approx	= false,	-- approximate functions by taylor/remez/polynomial
+			approx	= false,	-- approximate functions by taylor/remez/polynomial ??
 	},
 	optDraw		= {
 			fast	= false,	-- use faster line and text drawing
 			hist	= true,		-- histogram update on preview?
-			
 			preview	= 4,		-- preview downsampling
 			filter	= false,	-- change interpolation filter for a faster one during preview (NN or even floor)
 	},

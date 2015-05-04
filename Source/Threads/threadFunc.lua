@@ -85,7 +85,6 @@ function __init() -- initialisation function, runs once when instance is started
 	__progress = nil
 	__instance = nil
 	__tmax = nil
-	-- FIXME figure out where gc causes trouble!!
 	
 	-- set GC parameters for collector to keep up with allocated data
 	collectgarbage("setpause", 120)

@@ -84,7 +84,7 @@ optim.mov = ISPC.ispc_move
 -- bug in ispc??
 
 --test
---[[
+--[=[
 local LtoG
 local GtoL
 do
@@ -107,7 +107,7 @@ do
 	end
 end
 
----[[
+---[=[
 
 local size = 4096*128*3
 local a = ffi.new("float[?]", size)
@@ -147,6 +147,6 @@ for i = 0, size do
 end
 print("error ISPC: "..d1)
 print("error Lua: "..d2)
---]]
+--]=]
 
 return optim

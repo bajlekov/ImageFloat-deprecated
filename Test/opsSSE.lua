@@ -68,7 +68,7 @@ ffi.cdef[[
 -- check accuracy of power calculations
 
 -- example code for gamma transform from opsCS
---[[
+---[[
 local aa = 0.099
 local G = 1/0.45
 

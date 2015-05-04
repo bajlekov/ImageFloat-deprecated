@@ -44,6 +44,27 @@ local function process2(i, o, p, nmax)
 	end
 end
 
+-- process automatically
+--[[
+
+function definition:
+local function fun(i, o, p)
+  o[1] = p[1]*i[1]+p[2]*i[2]
+end
+
+converted function
+local function process(i, o, p, xmax, ymax, zmax, ...)
+  for x = 0, xmax-1 do
+    for y = 0, ymax-1 do
+      -- write function, unroll z
+      local v = p[1]*i[1]:get(x,y,z) + p[2]i[2]:get(x,y,z)
+      o[1]:set(x,y,z, v)
+    end
+  end
+end
+
+--]]
+
 local function fun3(i, o, p)
 	o(1, p(1)*i(1)+p(2)*i(2))
 end
