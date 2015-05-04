@@ -502,7 +502,7 @@ end
 
 function glsl.new(shader, nTexIn, nTexOut, sizeX, sizeY, sizeZ)
 	local o = {x = sizeX, y=sizeY, z=sizeZ, ni=nTexIn, no=nTexOut, ti={}, to={}}
-	o.sh = glsl.compileShader("Shaders/shader.vs", shader)	--compile shader
+	o.sh = glsl.compileShader("Test/Shaders/shader.vs", shader)	--compile shader
 	glsl.reshape(sizeX, sizeY)								--set size
 	o.fb = glsl.newFB()										--new fbo
 	for i = 1, nTexIn do
@@ -519,13 +519,13 @@ function glsl.new(shader, nTexIn, nTexOut, sizeX, sizeY, sizeZ)
 end
 
 -- test/example
---[[
+---[[
 glsl.init()
 
 -- texture size
 local n = 4096
-local m = 2048
-local z = 1
+local m = 2048*2
+local z = 3
 local maxiter = 10
 print(m.."x"..n.."x"..z.." float["..m*n*z.."], "..maxiter.." iterations.")
 glsl.reshape(n, m)				-- setup viewport, important! 
@@ -543,7 +543,7 @@ end
 -- ====================================================
 -- new GLSL program
 -- ====================================================
-local pr = glsl.new("Shaders/median.fs", 1, 1, m, n, z)
+local pr = glsl.new("Test/Shaders/median.fs", 1, 1, m, n, z)
 
 print("start GLSL ...")
 local g = os.time()
