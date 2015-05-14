@@ -19,6 +19,7 @@
 
 local ffi = require("ffi")
 local alloc = {}
+alloc.trace = {}
 
 ffi.cdef[[
 	void * malloc ( size_t size );
@@ -33,34 +34,47 @@ local allocCount = 0
 local allocTable = {}
 setmetatable(allocTable, {__mode="k"})
 
-local function free(p)
+function alloc.trace.free(p)
 	allocCount = allocCount - 1
 	allocTable[p] = nil
 	ffi.C.free(ffi.gc(p, nil))
 end
 
-function alloc.float32(size)
+function alloc.trace.float32(size)
 	allocCount = allocCount + 1
 	local t = ffi.cast("float_a*", ffi.C.calloc(size, 4))
 	allocTable[t] = size * 4
-	return ffi.gc(t, free)
+	return ffi.gc(t, alloc.trace.free)
 end
 
-function alloc.float64(size)
+function alloc.trace.float64(size)
 	allocCount = allocCount + 1
 	local t = ffi.cast("double_a*", ffi.C.calloc(size, 8))
 	allocTable[t] = size * 8
-	return ffi.gc(t, free)
+	return ffi.gc(t, alloc.trace.free)
 end
 
-function alloc.count() return allocCount end
+function alloc.trace.count() return allocCount end
 
-function alloc.size()
+function alloc.trace.size()
 	local sum = 0
 	for _, v in pairs(allocTable) do sum = sum + v end
 	return sum/1024/1024
 end
 
-alloc.free = free
+
+function alloc.free(p)
+	ffi.C.free(ffi.gc(p, nil))
+end
+
+function alloc.float32(size)
+	local t = ffi.cast("float_a*", ffi.C.calloc(size, 4))
+	return ffi.gc(t, ffi.C.free)
+end
+
+function alloc.trace.float64(size)
+	local t = ffi.cast("double_a*", ffi.C.calloc(size, 8))
+	return ffi.gc(t, ffi.C.free)
+end
 
 return alloc
