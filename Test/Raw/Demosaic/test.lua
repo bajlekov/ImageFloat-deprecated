@@ -23,7 +23,7 @@ math.randomseed(os.time())
 local ffi = require("ffi")
 require("global")
 
-local sdl = require("Include.sdl")
+local sdl = require("Include.sdl2")
 local ppm = require("Tools.ppmtools")
 local img = require("Tools.imgtools")
 
@@ -33,15 +33,16 @@ package.path =  "./?.lua;"..package.path
 local demosaic = require("Test.Raw.Demosaic.dlmmse")
 
 -- load image
-local i = ppm.toBuffer(ppm.readIM("~/test.png"))
+local i = ppm.toBuffer(ppm.readIM("img.ppm"))
 local original = i:copy()
 sdl.screen.set(i.x, i.y)
 
 local function imshow(i)
 	i:toSurface(sdl.screen.surf)
 	sdl.update()
+	sdl.input.update()
 
-	while not sdl.input.key.any do
+	while not sdl.input.anykey do
 		sdl.input.update()
 	end
 end
@@ -65,7 +66,7 @@ for x = 0, i.x-1 do
 	end
 end
 
-i = i:copyG()*3
+i = i:grayscale()
 
 imshow(i)
 
@@ -78,7 +79,7 @@ sdl.toc()
 -- show result
 imshow(j)
 imshow(original)
-imshow((j-original)*10+0.5)
+--imshow((j-original)*10+0.5)
 
 -- output
 ppm.writeIM(ppm.fromBuffer(j, "~/test_out.png"))

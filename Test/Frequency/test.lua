@@ -23,7 +23,7 @@ math.randomseed(os.time())
 local ffi = require("ffi")
 require("global")
 
-local sdl = require("Include.sdl")
+local sdl = require("Include.sdl2")
 local ppm = require("Tools.ppmtools")
 --local img = require("Test.Data.data")
 --local img = require("Tools.imgtools")
@@ -31,15 +31,14 @@ local ppm = require("Tools.ppmtools")
 local pyr = require("Test.Frequency.PYR")
 
 -- load image
-local i = ppm.toBuffer(ppm.readIM("~/test.png"))
+local i = ppm.toBuffer(ppm.readFile("img.ppm"))
 local original = i:copy()
 
 local function imshow(i)
 	i:toSurface(sdl.screen.surf)
 	sdl.update()
 	sdl.input.update()
-
-	while not sdl.input.key.any do 
+	while not sdl.input.anykey do 
 		sdl.input.update()
 	end
 end
@@ -80,9 +79,9 @@ imshow(i)
 sdl.tic()
 local L, G = pyr.construct(i)
 sdl.toc("construct")
-filter(L[0], 0.05)
-filter(L[1], 0.02)
-filter(L[2], 0.01)
+--filter(L[0], 0.05)
+--filter(L[1], 0.02)
+--filter(L[2], 0.01)
 sdl.tic()
 local i = pyr.collapse(L)
 sdl.toc("collapse")
