@@ -102,14 +102,14 @@ local threadString = [=[
 		end
 		
 		function o:push(i)
-			sdl.thread.semWait(c.read)
+			sdl.thread.sWait(c.read)
 			c.v = i
-			sdl.thread.semPost(c.write)
+			sdl.thread.sPost(c.write)
 		end
 		function o:pull()
-			sdl.thread.semWait(c.write)
+			sdl.thread.sWait(c.write)
 			local t = c.v
-			sdl.thread.semPost(c.read)
+			sdl.thread.sPost(c.read)
 			return t
 		end
 		function o:struct() return c end
@@ -156,14 +156,14 @@ local function channel(chStruct)
 	end
 	
 	function o:push(i)
-		sdl.thread.semWait(c.read)
+		sdl.thread.sWait(c.read)
 		c.v = i
-		sdl.thread.semPost(c.write)
+		sdl.thread.sPost(c.write)
 	end
 	function o:pull()
-		sdl.thread.semWait(c.write)
+		sdl.thread.sWait(c.write)
 		local t = c.v
-		sdl.thread.semPost(c.read)
+		sdl.thread.sPost(c.read)
 		return t
 	end
 	function o:peek() return c.v end
@@ -193,18 +193,18 @@ local function channelBuf(chStruct)
 	end
 	
 	function o:push(i)
-		sdl.thread.semWait(c.read)
+		sdl.thread.sWait(c.read)
 		c.v[c.w] = i
 		c.w = c.w + 1
 		if c.w==c.n then c.w = 0 end
-		sdl.thread.semPost(c.write)
+		sdl.thread.sPost(c.write)
 	end
 	function o:pull()
-		sdl.thread.semWait(c.write)
+		sdl.thread.sWait(c.write)
 		local t = c.v[c.r]
 		c.r = c.r + 1
 		if c.r==c.n then c.r = 0 end
-		sdl.thread.semPost(c.read)
+		sdl.thread.sPost(c.read)
 		return t
 	end
 	function o:peek(n) return c.v[n or c.r] end
@@ -244,3 +244,13 @@ print( ((sdl.time()-t)/100000).."ms" )
 --]]
 
 print("done!")
+
+local s = sdl.thread.sem(3)
+
+print(sdl.thread.sTryWait(s), sdl.thread.sValue(s))
+print(sdl.thread.sTryWait(s), sdl.thread.sValue(s))
+print(sdl.thread.sTryWait(s), sdl.thread.sValue(s))
+print(sdl.thread.sWaitTimeout(s, 1500), sdl.thread.sValue(s))
+print(sdl.thread.sWaitTimeout(s, 1500), sdl.thread.sValue(s))
+print(sdl.thread.sWaitTimeout(s, 1500), sdl.thread.sValue(s))
+

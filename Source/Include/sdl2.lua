@@ -232,20 +232,27 @@ function sdl.thread.mutex()
 	local t = _SDL.SDL_CreateMutex()
 	return ffi.gc(t, _SDL.SDL_DestroyMutex)
 end
-function sdl.thread.lock(mut) return _SDL.SDL_mutexP(mut) end
-function sdl.thread.unlock(mut) return _SDL.SDL_mutexV(mut) end
+function sdl.thread.mLock(mut) return assert(_SDL.SDL_mutexP(mut)==0) end
+function sdl.thread.mTryLock(mut) return _SDL.SDL_TryLockMutex(mut)==0 end
+function sdl.thread.mUnlock(mut) return assert(_SDL.SDL_mutexV(mut)==0) end
+
 function sdl.thread.cond()
 	local t = _SDL.SDL_CreateCond()
 	return ffi.gc(t, _SDL.SDL_DestroyCond)
 end
-function sdl.thread.condSignal(cond) return _SDL.SDL_CondSignal(cond) end
-function sdl.thread.condWait(cond, mut) return _SDL.SDL_CondWait(cond, mut) end
+function sdl.thread.cSignal(cond) return _SDL.SDL_CondSignal(cond) end
+function sdl.thread.cWait(cond, mut) return _SDL.SDL_CondWait(cond, mut) end
+
 function sdl.thread.sem(n)
 	local t = _SDL.SDL_CreateSemaphore(n or 0)
 	return ffi.gc(t, _SDL.SDL_DestroySemaphore)
 end
-function sdl.thread.semPost(sem) return _SDL.SDL_SemPost(sem) end
-function sdl.thread.semWait(sem) return _SDL.SDL_SemWait(sem) end
+function sdl.thread.sPost(sem) return assert(_SDL.SDL_SemPost(sem)==0) end
+function sdl.thread.sWait(sem) return assert(_SDL.SDL_SemWait(sem)==0) end
+function sdl.thread.sTryWait(sem) return _SDL.SDL_SemTryWait(sem)==0 end
+function sdl.thread.sWaitTimeout(sem, ms) return _SDL.SDL_SemWaitTimeout(sem, ms)==0 end
+function sdl.thread.sValue(sem) return _SDL.SDL_SemValue(sem) end
+
 
 
 --font
