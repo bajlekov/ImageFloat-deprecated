@@ -27,7 +27,7 @@ local abs = math.abs
 
 lut.size = "double"
 
-function lut.create(fun, start, len, res)
+function lut.create(fun, start, len, res, default)
   local map = ffi.new(lut.size.."[?]", res+1) -- keep map externally!!
   local step = len/res
   local step_1 = 1/step
@@ -41,7 +41,7 @@ function lut.create(fun, start, len, res)
     -- linear interpolation
     return function(n)
       if n<start or n>start+len then
-        return fun(n)
+        return default or fun(n)
       else
         local x = (n-start)*step_1
         local a1 = floor(x)
@@ -56,7 +56,7 @@ function lut.create(fun, start, len, res)
     -- rounding
     return function(n)
       if n<start or n>start+len then
-        return fun(n)
+        return default or fun(n)
       else
         return map[floor((n-start)*step_1+0.5)]
       end
@@ -203,7 +203,7 @@ function lut.memoize(fun)
 end
 
 --test
-lut.test(math.atan,0,math.pi,2^16)
-lut.test(function(a) return a^2.2 end,0,math.pi,2^12)
+--lut.test(math.atan,0,math.pi,2^16)
+--lut.test(function(a) return a^2.2 end,0,math.pi,2^12)
 
 return lut
