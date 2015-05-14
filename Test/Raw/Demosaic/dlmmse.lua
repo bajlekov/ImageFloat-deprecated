@@ -33,16 +33,16 @@ local function getCh(x, y)
 end
 
 local function convH5fun(i, x, y, bi, bo, k)
-	bo:a(x,y, bo:i(x,y) + bi:i(x+i-2,y)*k[i])
+	bo:a(x,y,0, bo:i(x,y) + bi:i(x+i-2,y)*k[i])
 end
 local function convV5fun(i, x, y, bi, bo, k)
-	bo:a(x,y, bo:i(x,y) + bi:i(x,y+i-2)*k[i])
+	bo:a(x,y,0, bo:i(x,y) + bi:i(x,y+i-2)*k[i])
 end
 local function convH9fun(i, x, y, bi, bo, k)
-	bo:a(x,y, bo:i(x,y) + bi:i(x+2*i-8,y)*k[i])
+	bo:a(x,y,0, bo:i(x,y) + bi:i(x+2*i-8,y)*k[i])
 end
 local function convV9fun(i, x, y, bi, bo, k)
-	bo:a(x,y, bo:i(x,y) + bi:i(x,y+2*i-8)*k[i])
+	bo:a(x,y,0, bo:i(x,y) + bi:i(x,y+2*i-8)*k[i])
 end
 
 local function convH5(bi, bo, k)
@@ -139,8 +139,8 @@ local function demosaic(i)
 				dh:i(x,y, i:i(x,y)-ih:i(x,y))
 				dv:i(x,y, i:i(x,y)-iv:i(x,y))
 			else
-				dh:a(x,y, ih:i(x,y)-i:i(x,y))
-				dv:a(x,y, iv:i(x,y)-i:i(x,y))
+				dh:a(x,y,0, ih:i(x,y)-i:i(x,y))
+				dv:a(x,y,0, iv:i(x,y)-i:i(x,y))
 			end
 		end
 	end
