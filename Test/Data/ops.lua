@@ -16,7 +16,7 @@
 ]]
 
 local unroll = require("Tools.unroll")
-local sdl = __sdl
+local sdl = require("Include.sdl2")
 local ffi = require("ffi")
 
 return function(img)
@@ -54,7 +54,6 @@ return function(img)
 		out:set(x,y,c, buffer:get(x*4,y*4,c))
 	end
 	function img.scaleDownQuad(buffer)
-		sdl.tic()
 		local out = img:new(math.floor(buffer.x / 4), math.floor(buffer.y / 4), buffer.z)
 		out.cs = buffer.cs
 		for x = 0, out.x-1 do
@@ -62,7 +61,6 @@ return function(img)
 				unroll[buffer.z](scaleDownQuad, x, y, out, buffer)
 			end
 		end
-		sdl.toc("downscale")
 		return out
 	end
 	
@@ -85,7 +83,7 @@ return function(img)
 	end
 	
 	
-		local alpha = bit.lshift(255,-8)
+	local alpha = bit.lshift(255,-8)
 	function img.toSurface(buffer, surface)
 		surface = surface or sdl.surf.new(buffer.x, buffer.y)
 		local surf = ffi.cast("uint32_t*", surface.pixels)
@@ -145,12 +143,12 @@ return function(img)
 	end
 	
 	function img.toSurfaceQuad(buffer, surface)
-		surface = surface or __sdl.createSurface(buffer.x, buffer.y, 0)
+		surface = surface or sdl.createSurface(buffer.x, buffer.y, 0)
 		local surf = ffi.cast("uint8_t*", surface.pixels)
 		toQuad(buffer, surf)
 	end
 	function img.toScreenQuad(buffer)
-		local surf = __sdl.pixbuf()
+		local surf = sdl.pixbuf()
 		toQuad(buffer, surf)
 	end
 
