@@ -37,6 +37,8 @@ local function printBuffer(a)
 	return "Image["..a.x..", "..a.y..", "..a.z.."] ("..a.cs..", "..a.order..", "..prec.."bit)"
 end
 data.meta.__tostring = printBuffer
+data.order = "XYZ"
+data.cs = "MAP"
 
 function data:new(x, y, z)				-- new image data
 	x = x or self.x or 1				-- default dimensions or inherit
@@ -47,12 +49,56 @@ function data:new(x, y, z)				-- new image data
 		data = dataAlloc(x*y*z),		-- allocate data
 		x = x, y = y, z = z,			-- set dimensions
 		sx = y*z, sy = z, sz = 1, -- set strides
-		cs = self.cs or "MAP",			-- default CS or inherit
-		order = self.order or "XYZ",		-- default order or inherit
+		cs = self.cs,			-- default CS or inherit
+		order = self.order,		-- default order or inherit
 	}
 	setmetatable(o, self.meta) -- inherit data methods
 	o:setStride()
 	return o
+end
+
+do
+	ffi.cdef[[
+		typedef struct{
+			void *data;			// buffer data
+			int size;				// 32/64bit
+			int dim[3];			// dimensions
+			int stride[3];	// strides
+			int order[3];		// order (1 = x, 2 = y, 3 = z)
+			int cs;					// color space (0 = "MAP")
+		} imageDataStruct;
+	]]
+	local ids = ffi.typeof("imageDataStruct")
+	
+	function data:toStruct()
+		return ids(self.data, prec, {self.x, self.y, self.z}, {self.sx, self.sy, self.sz}, { self:getOrder() }, 0)
+	end
+	
+	local order = {"X", "Y", "Z"}
+	local function orderString(v)
+		order[v[0]] = "X"
+		order[v[1]] = "Y"
+		order[v[2]] = "Z"
+		return order[1]..order[2]..order[3]
+	end
+	
+	local dataCS = {[0]="MAP"}
+	local dataType = prec==32 and "float_a*" or "double_a*"
+	function data.fromStruct(str)
+		local o = {
+			data = ffi.cast(dataType, str.data),
+			x = str.dim[0],
+			y = str.dim[1],
+			z = str.dim[2],			-- set dimensions
+			sx = str.stride[0],
+			sy = str.stride[1],
+			sz = str.stride[2], -- set strides
+			order = orderString(str.order),		-- default order or inherit
+			cs = dataCS[str.cs],			-- default CS or inherit
+		}
+		setmetatable(o, data.meta) -- inherit data methods
+		return o
+	end
 end
 
 function data:pos(x, y, z) return (x*self.sx+y*self.sy+z*self.sz) end
