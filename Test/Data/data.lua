@@ -135,18 +135,6 @@ function data:setStride()
 	self.sx, self.sy, self.sz = self:getStride()
 end
 
---[[
-local pos = {}
-function pos.XYZ(d, x, y, z) return (x*d.y*d.z+y*d.z+z) end
-function pos.XZY(d, x, y, z) return (x*d.y*d.z+y+z*d.y) end
-function pos.YXZ(d, x, y, z) return (x*d.z+y*d.x*d.z+z) end
-function pos.YZX(d, x, y, z) return (x+y*d.x*d.z+z*d.x) end
-function pos.ZXY(d, x, y, z) return (x*d.y+y+z*d.x*d.y) end
-function pos.ZYX(d, x, y, z) return (x+y*d.x+z*d.x*d.y) end
-function pos.stride(d, x, y, z) return (x+d.sx+y*d.sy+z*d.sz) end
-data.pos = pos.XYZ
---]]
-
 local function ABC(d, x, y, z) -- array bounds checking
 	assert(x<d.x, "x out of bounds")
 	assert(x>=0, "x out of bounds")
@@ -245,26 +233,26 @@ do
 	end
 
 	function data.get(d, x, y, z)
-		z = z or 0
-		--assert(z)
-		assert(d.cs==CS or d.cs=="MAP", "CS mismatch")
+		z = z or 0 -- use first channel if not specified
+		assert(d.cs==CS, "CS mismatch")
 		return d:__get(x, y, z)
 	end
 	function data.set(d, x, y, z, v)
-		--v = v or z
-		--z = v and z or 0
-		--assert(z and v)
-		assert(d.cs==CS or d.cs=="MAP", "CS mismatch")
+		assert(z)
+		assert(v)
+		assert(d.cs==CS, "CS mismatch")
 		d:__set(x, y, z, v)
 	end
 	function data.get3(d, x, y)
 		-- TODO: implicit color space switch!
+		assert(d.cs==CS, "CS mismatch")
 		return d:get(x, y, 0), d:get(x, y, 1), d:get(x, y, 2)
 	end
 	function data.set3(d, x, y, a, b, c)
 		b = b or a
 		c = c or a
 		-- TODO: implicit color space switch!
+		assert(d.cs==CS, "CS mismatch")
 		d:set(x, y, 0, a)
 		d:set(x, y, 1, b)
 		d:set(x, y, 2, c)
@@ -284,7 +272,7 @@ function data:checkTarget(t) -- check if data can be broadcasted to buffer t
 	assert(self.y==t.y or self.y==1, "Incompatible y dimension")
 	assert(self.z==t.z or self.z==1, "Incompatible z dimension")
 end
-function data:checkSuper(...) -- create new buffer to accomodate all argument buffers by broadcasting
+function data.checkSuper(...) -- create new buffer to accomodate all argument buffers by broadcasting
 	local buffers = {...}
 	local x, y, z = 1, 1, 1
 	for _, t in ipairs(buffers) do
@@ -298,7 +286,7 @@ function data:checkSuper(...) -- create new buffer to accomodate all argument bu
 	return x, y, z
 end
 function data:newSuper(...) -- create new buffer to accomodate all argument buffers by broadcasting
-	return self:new(self:checkSuper(...))
+	return self:new(self.checkSuper(...))
 end
 
 local function locked(t, k, v)
@@ -388,7 +376,7 @@ function data:newV(v1)
 	return o
 end
 function data:copyC()
-	if self.x>1 or self.y>1 then error("deprecated use, see color") end
+	assert(self.x==1 and self.y==1, "deprecated use, see color")
 	return self:copy(1, 1, 3)
 end
 
@@ -398,8 +386,7 @@ function data:i3(...) return self:get3(...) end
 function data:a3(...) return self:set3(...) end
 
 function data:type()
-	-- TODO: debug/warning/developer mode
-	-- print("Deprecated buffer property \"type\".")
+	print("Deprecated buffer property \"type\".")
 	local x, y, z = self.x, self.y, self.z
 	if		  x==1 and y==1 and z==1 then		return 1
 	elseif	x==1 and y==1 and z==3 then		return 2
