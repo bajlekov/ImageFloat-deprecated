@@ -270,51 +270,6 @@ do
 		d:set(x, y, 2, c)
 	end
 end
--- introduce switchable XY / YX loops based on layout
-
-function data.layout(d, order, cs) -- add any parameters that might change frequently
-	-- set to default if not supplied
-	order = order or d.order
-	cs = cs or d.cs
-
-	if d.order==order and d.cs==cs then
-		return d
-	else
-		jit.flush(true)
-		local t = d:new()
-		t.cs = cs 
-		t.order = order
-		t:setStride()
-		
-		-- definition of inner function is faster
-		local function fun(z, x, y) -- TODO: check if z is last? otherwise reorder loops?
-			t:__set(x, y, z, d:__get(x, y, z))
-		end
-		
-		local a, b, c = d:getOrder() -- TODO: which order to use???
-		if a>b then
-			for x = 0, t.x-1 do
-				for y = 0, t.y-1 do
-					unroll.fixed(t.z, 2)(fun, x, y)
-				end
-			end
-		else
-			for y = 0, t.y-1 do
-				for x = 0, t.x-1 do
-					unroll.fixed(t.z, 2)(fun, x, y)
-				end
-			end
-		end
-		
-		alloc.free(d.data)
-		d.data = t.data
-		
-		d.cs = cs
-		d.order = order
-		d:setStride()
-		return d
-	end
-end
 
 -- convenience functions
 function data:toXYZ() return self:layout("XYZ") end
@@ -363,22 +318,26 @@ function data:sub(xoff, yoff, xmax, ymax)
 	function o.__set(_, x, y, z, v) return self.__set(self, x+xoff, y+yoff, z, v) end
 	return setmetatable(o, {__index=self, __newindex=locked, __tostring = printBuffer})	-- inherit data methods
 end
+
 function data.copy(d, x, y, z, order, cs)
+	x = x or d.x
+	y = y or d.y
+	z = z or d.z
 	order = order or d.order
 	cs = cs or d.cs
-
+	
 	jit.flush(true)
 	local t = d:new(x, y, z)
 	d:checkTarget(t)
 	t.cs = cs 
 	t.order = order
 	t:setStride()
-
+	
 	local function fun(z, x, y)
 		t:__set(x, y, z, d:__get(x, y, z))
 	end
 	
-	local a, b, c = d:getOrder()
+	local a, b, c = t:getOrder() -- find best loop layout for each transformation
 	if a<b then
 		for x = 0, t.x-1 do
 			for y = 0, t.y-1 do
@@ -394,6 +353,22 @@ function data.copy(d, x, y, z, order, cs)
 	end
 	
 	return t
+end
+
+function data.layout(d, order, cs) -- add any parameters that might change frequently
+	order = order or d.order
+	cs = cs or d.cs
+	if d.order==order and d.cs==cs then
+		return d
+	else
+		local t = d:copy(d.x, d.y, d.z, order, cs)
+		alloc.free(d.data)
+		d.data = t.data
+		d.cs = cs
+		d.order = order
+		d:setStride()
+		return d
+	end
 end
 
 function data:newI(x, y) return self:new(x, y, 3) end
