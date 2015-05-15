@@ -158,7 +158,7 @@ nodeTable["Mixer"] = function(self)
 		local bb = getBufIn(self, 8,
 			img:newC(p[7].value[1], p[8].value[1], p[9].value[1]))
 		
-		local x, y = img:checkSuper(b1, br, bg, bb)
+		local x, y = img.checkSuper(b1, br, bg, bb)
 		bo[0].buf = b1:new(x, y, 3)
 		
 		lua.threadSetup({b1, br, bg, bb, bo[0].buf})
@@ -182,7 +182,7 @@ nodeTable["Threshold"] = function(self)
     local br = getBufIn(self, 1,
       img:newV(p[1].value[1]))
     
-    local x, y, z = img:checkSuper(b1, br)
+    local x, y, z = img.checkSuper(b1, br)
     bo[0].buf = b1:new(x, y, z)
     
     lua.threadSetup({b1, br, bo[0].buf})
@@ -396,7 +396,7 @@ local n=self:new("Compose RGB")
 		local b1 = getBufIn(self, 1)
 		local b2 = getBufIn(self, 2)
 		local b3 = getBufIn(self, 3)
-		local x, y = img:checkSuper(b1, b2, b3)
+		local x, y = img.checkSuper(b1, b2, b3)
 		bo[1].buf = img:new(x,y,3)
 		
 		lua.threadSetup({b1, b2, b3, bo[1].buf})
@@ -420,7 +420,7 @@ local n=self:new("Compose LCH")
 		local b1 = getBufIn(self, 1)
 		local b2 = getBufIn(self, 2)
 		local b3 = getBufIn(self, 3)
-		local x, y = img:checkSuper(b1, b2, b3)
+		local x, y = img.checkSuper(b1, b2, b3)
 		bo[1].buf = img:new(x,y,3)
 		
 		lua.threadSetup({b1, b2, b3, bo[1].buf})
