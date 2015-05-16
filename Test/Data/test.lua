@@ -1,5 +1,5 @@
 return function(data)
-	--jit.opt.start("sizemcode=512")
+	jit.opt.start("sizemcode=512")
 	--require("jit.v").start()
 	--require("jit.v").start("verbose.txt")
 	--require("jit.dump").start("tT", "dump.txt")
@@ -9,7 +9,12 @@ return function(data)
 	local alloc = require("Test.Data.alloc")
 	print("Testing...")
 	
-	local d = data:new(6000,4000,3)
+	local _d = data:new(6000,4000,3)
+	local ds = _d:toStruct()
+	local d = _d --data.fromStruct(ds)
+	
+	print(d)
+	
 	d:toZYX()
 	sdl.tic()
 	local f = d:copy()
