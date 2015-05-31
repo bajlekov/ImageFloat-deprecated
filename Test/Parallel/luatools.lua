@@ -28,10 +28,13 @@ ffi.cdef([[
 	int luaL_loadstring(lua_State *L, const char *s);
 	int lua_call(lua_State *L, int nargs, int nresults);
 	void lua_close(lua_State *L);
+	void lua_setfield(lua_State *L, int idx, const char *k);
 	void lua_getfield(lua_State *L, int idx, const char *k);
 	
 	// get pointer/number from stack
 	ptrdiff_t lua_tointeger(lua_State *L, int index);
+	
+	void lua_pushnumber(lua_State *L, lua_Number n);
 	
 	typedef int (*threadCB)(void*);
 ]])
@@ -72,5 +75,9 @@ function lua.toFunPtr(fun, funtype)
 	return tonumber(ffi.cast("intptr_t", ffi.cast(funtype or "threadCB", fun)))
 end
 
+function lua.pushNumber(state, num, name)
+	ffi.C.lua_pushnumber(state, num);
+	ffi.C.lua_setfield(state, LUA_GLOBALSINDEX, name);
+end
 
 return lua
