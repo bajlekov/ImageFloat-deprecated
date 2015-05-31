@@ -72,7 +72,7 @@ function alloc.float32(size)
 	return ffi.gc(t, ffi.C.free)
 end
 
-function alloc.trace.float64(size)
+function alloc.float64(size)
 	local t = ffi.cast("double_a*", ffi.C.calloc(size, 8))
 	return ffi.gc(t, ffi.C.free)
 end
